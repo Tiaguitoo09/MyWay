@@ -13,10 +13,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.myway.R
 import com.example.myway.ui.theme.Blanco
+import com.example.myway.ui.theme.Azul3
 import com.example.myway.ui.theme.Nunito
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.navigation.NavController
+
 
 @Composable
-fun InicioPantalla() {
+public fun InicioPantalla(navController: NavController) {
     Box(
         modifier = Modifier.fillMaxSize()
     ) {
@@ -41,11 +46,25 @@ fun InicioPantalla() {
 
             Text(
                 text = "MY WAY",
-                color = Blanco, // 👈 tu variable personalizada
+                color = Blanco,
                 fontSize = 40.sp,
                 fontWeight = FontWeight.ExtraBold,
                 fontFamily = Nunito
             )
+
+            Spacer(modifier = Modifier.height(40.dp))
+            Button(
+                onClick = { navController.navigate("ingreso_usuario") },
+                colors = ButtonDefaults.buttonColors(containerColor = Azul3),
+            ) {
+                Text(
+                    text = "Pulsa para comenzar",
+                    fontFamily = Nunito,
+                    color = Blanco,
+                    fontWeight = FontWeight.Bold
+                )
+            }
         }
     }
 }
+
