@@ -2,12 +2,12 @@ package com.example.myway.screens
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
@@ -16,8 +16,7 @@ import com.example.myway.ui.theme.Azul3
 import com.example.myway.ui.theme.Blanco
 import com.example.myway.ui.theme.Nunito
 import com.example.myway.screens.CustomButton
-import com.example.myway.screens.CustomTextField
-
+import com.example.myway.screens.CustomTitleText
 
 @Composable
 fun InicioPantalla(navController: NavController) {
@@ -45,12 +44,14 @@ fun InicioPantalla(navController: NavController) {
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Texto principal
-            Text(
+            // Texto principal reutilizable
+            CustomTitleText(
                 text = "MyWay",
                 color = Blanco,
                 fontSize = 80.sp,
-                fontFamily = Nunito
+                fontFamily = Nunito,
+                fontWeight = FontWeight.ExtraBold
+
             )
 
             Spacer(modifier = Modifier.height(30.dp))

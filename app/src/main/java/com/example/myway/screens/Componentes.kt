@@ -14,11 +14,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.myway.ui.theme.Azul1
 import com.example.myway.ui.theme.Blanco
 import com.example.myway.ui.theme.Nunito
+import androidx.compose.ui.text.font.FontFamily
+
 
 // ------------------- Botón reutilizable -------------------
 @Composable
@@ -46,7 +49,7 @@ fun CustomButton(
     }
 }
 
-
+//Texto que el usuario escribe
 @Composable
 fun CustomTextField(
     placeholder: String,
@@ -66,4 +69,22 @@ fun CustomTextField(
             .height(55.dp)
     )
 }
+
+@Composable
+fun CustomTitleText(
+    text: String,
+    color: Color,
+    fontSize: TextUnit = 80.sp,
+    fontFamily: FontFamily = Nunito,          // Por defecto tu Nunito
+    fontWeight: FontWeight = FontWeight.Normal // Peso de fuente opcional
+) {
+    Text(
+        text = text,
+        color = color,
+        fontFamily = fontFamily,
+        fontSize = fontSize,
+        fontWeight = fontWeight
+    )
+}
+
 
