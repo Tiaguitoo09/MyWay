@@ -1,5 +1,3 @@
-// Navigation.kt
-
 package com.example.myway.navigation
 
 import androidx.compose.runtime.Composable
@@ -13,6 +11,6 @@ import com.example.myway.screens.IngresoUsuario
 fun MyWayAppNavigation(navController: NavHostController) {
     NavHost(navController = navController, startDestination = "inicio") {
         composable("inicio") { InicioPantalla(navController) }
-        composable("ingreso_usuario") { IngresoUsuario() }
+        composable("ingreso_usuario") { IngresoUsuario(navController = navController) }
     }
 }

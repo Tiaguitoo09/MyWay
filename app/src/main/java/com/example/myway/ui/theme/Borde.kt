@@ -19,7 +19,7 @@ fun OutlinedText(
     fontWeight: FontWeight,
     textColor: Color,
     borderColor: Color,
-    borderWidth: Float = 2f // grosor del borde
+    borderWidth: Float, // grosor del borde
 ) {
     Box {
         for (x in -borderWidth.toInt()..borderWidth.toInt()) {
