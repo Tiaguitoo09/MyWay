@@ -1,10 +1,14 @@
 package com.example.myway.screens
 
+import android.app.Activity
+import android.content.Intent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
@@ -13,13 +17,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.example.myway.ui.theme.Blanco
-import com.example.myway.ui.theme.Azul3
 import com.example.myway.R
+import com.example.myway.ui.theme.Azul3
+import com.example.myway.ui.theme.Blanco
 import com.example.myway.ui.theme.Nunito
+import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.firebase.auth.FirebaseAuth
-
+import com.google.firebase.auth.GoogleAuthProvider
+import kotlinx.coroutines.launch
 
 @Composable
 fun IngresoUsuario(
@@ -27,8 +33,40 @@ fun IngresoUsuario(
     auth: FirebaseAuth,
     googleSignInClient: GoogleSignInClient
 ) {
-    Box(modifier = Modifier.fillMaxSize()) {
+    val scope = rememberCoroutineScope()
+    var isLoading by remember { mutableStateOf(false) }
 
+    // 🔹 Lanzador para el Intent de Google Sign-In
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+        try {
+            val account = task.result
+            val credential = GoogleAuthProvider.getCredential(account.idToken, null)
+
+            // 🔹 Autenticamos con Firebase
+            scope.launch {
+                auth.signInWithCredential(credential)
+                    .addOnCompleteListener { signInTask ->
+                        if (signInTask.isSuccessful) {
+                            // Login correcto
+                            navController.navigate("inicio") {
+                                popUpTo("ingreso_usuario") { inclusive = true }
+                            }
+                        } else {
+                            signInTask.exception?.printStackTrace()
+                        }
+                    }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        } finally {
+            isLoading = false
+        }
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
         // Fondo
         Image(
             painter = painterResource(id = R.drawable.ingreso_usuario),
@@ -48,7 +86,7 @@ fun IngresoUsuario(
                 .clickable { navController.popBackStack() }
         )
 
-        // Contenido
+        // Contenido principal
         Column(
             modifier = Modifier
                 .align(Alignment.Center)
@@ -76,7 +114,7 @@ fun IngresoUsuario(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // Input correo
+            // Inputs (no funcionales todavía)
             CustomTextField(
                 placeholder = "Correo electrónico",
                 color = Azul3,
@@ -85,7 +123,6 @@ fun IngresoUsuario(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Input contraseña
             CustomTextField(
                 placeholder = "Contraseña",
                 color = Azul3,
@@ -94,9 +131,8 @@ fun IngresoUsuario(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Texto "Olvidé mi contraseña"
             Text(
-                text = "Olvide mi contraseña",
+                text = "Olvidé mi contraseña",
                 color = Blanco,
                 fontSize = 14.sp,
                 modifier = Modifier.align(Alignment.End)
@@ -104,7 +140,7 @@ fun IngresoUsuario(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Botones: Ingresar y Registrarse
+            // Botones de ingresar y registrarse
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly
@@ -112,28 +148,34 @@ fun IngresoUsuario(
                 CustomButton(
                     text = "Ingresar",
                     color = Azul3,
-                    modifier= Modifier.width(140.dp),
+                    modifier = Modifier.width(140.dp),
                     onClick = {
-                        navController.navigate("") // Cambia esto si tienes otra ruta
+                        // Aquí más adelante puedes hacer login manual con correo/contraseña
                     }
                 )
                 CustomButton(
                     text = "Registrarse",
                     color = Azul3,
-                    modifier= Modifier.width(140.dp),
+                    modifier = Modifier.width(140.dp),
                     onClick = {
-                        navController.navigate("") // Asegúrate de que esta ruta exista
+                        navController.navigate("registro_usuario")
                     }
                 )
             }
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Google login
+            // 🔹 Botón funcional de Google
             Text(
-                text = "Iniciar sesión con Google",
+                text = if (isLoading) "Iniciando sesión..." else "Iniciar sesión con Google",
                 color = Blanco,
-                fontSize = 14.sp
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.clickable(enabled = !isLoading) {
+                    isLoading = true
+                    val signInIntent = googleSignInClient.signInIntent
+                    launcher.launch(signInIntent)
+                }
             )
         }
     }
