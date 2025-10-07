@@ -73,7 +73,7 @@ fun IngresoUsuario(navController: NavController) {
             // Input correo
             CustomTextField(
                 placeholder = "Correo electrónico",
-                color = Blanco,
+                color = Azul3,
                 isPassword = false
             )
 
@@ -82,7 +82,7 @@ fun IngresoUsuario(navController: NavController) {
             // Input contraseña
             CustomTextField(
                 placeholder = "Contraseña",
-                color = Blanco,
+                color = Azul3,
                 isPassword = true
             )
 
@@ -106,6 +106,7 @@ fun IngresoUsuario(navController: NavController) {
                 CustomButton(
                     text = "Ingresar",
                     color = Azul3,
+                    modifier= Modifier.width(140.dp),
                     onClick = {
                         navController.navigate("") // Cambia esto si tienes otra ruta
                     }
@@ -113,6 +114,7 @@ fun IngresoUsuario(navController: NavController) {
                 CustomButton(
                     text = "Registrarse",
                     color = Azul3,
+                    modifier= Modifier.width(140.dp),
                     onClick = {
                         navController.navigate("") // Asegúrate de que esta ruta exista
                     }
