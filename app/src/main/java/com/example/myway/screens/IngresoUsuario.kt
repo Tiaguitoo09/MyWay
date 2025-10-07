@@ -17,10 +17,16 @@ import com.example.myway.ui.theme.Blanco
 import com.example.myway.ui.theme.Azul3
 import com.example.myway.R
 import com.example.myway.ui.theme.Nunito
+import com.google.android.gms.auth.api.signin.GoogleSignInClient
+import com.google.firebase.auth.FirebaseAuth
 
 
 @Composable
-fun IngresoUsuario(navController: NavController) {
+fun IngresoUsuario(
+    navController: NavController,
+    auth: FirebaseAuth,
+    googleSignInClient: GoogleSignInClient
+) {
     Box(modifier = Modifier.fillMaxSize()) {
 
         // Fondo

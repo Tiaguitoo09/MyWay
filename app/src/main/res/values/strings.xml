@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">MyWay</string>
+    <string name="default_web_client_id">852578498359-l3cue4khum9036j7dn5ie89avevo3aui.apps.googleusercontent.com</string>
+
 </resources>
