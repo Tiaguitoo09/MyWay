@@ -52,9 +52,13 @@ fun CustomButton(
 //Texto que el usuario escribe
 @Composable
 fun CustomTextField(
-    placeholder: String,
-    color: Color,
-    isPassword: Boolean = false
+placeholder: String,
+color: Color,
+isPassword: Boolean = false,
+textColor: Color = Color.White,
+onTextChange: (String) -> Unit = {},
+text: String = ""
+
 ) {
     OutlinedTextField(
         value = "",

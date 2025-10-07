@@ -1,7 +1,5 @@
 package com.example.myway.screens
 
-import android.app.Activity
-import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
@@ -14,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
@@ -118,7 +117,6 @@ fun IngresoUsuario(
             CustomTextField(
                 placeholder = "Correo electrónico",
                 color = Azul3,
-                isPassword = false
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -126,7 +124,7 @@ fun IngresoUsuario(
             CustomTextField(
                 placeholder = "Contraseña",
                 color = Azul3,
-                isPassword = true
+                isPassword = true,
             )
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -135,6 +133,7 @@ fun IngresoUsuario(
                 text = "Olvidé mi contraseña",
                 color = Blanco,
                 fontSize = 14.sp,
+                textDecoration = TextDecoration.Underline,
                 modifier = Modifier.align(Alignment.End)
             )
 
@@ -171,6 +170,7 @@ fun IngresoUsuario(
                 color = Blanco,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
+                textDecoration = TextDecoration.Underline,
                 modifier = Modifier.clickable(enabled = !isLoading) {
                     isLoading = true
                     val signInIntent = googleSignInClient.signInIntent

@@ -11,7 +11,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
@@ -71,33 +70,33 @@ fun RegistroUsuario(navController: NavController) {
             // Campos de texto reutilizables
             CustomTextField(
                 placeholder = "Nombre",
-                color = Blanco
+                color = Blanco,
             )
             Spacer(modifier = Modifier.height(10.dp))
 
             CustomTextField(
                 placeholder = "Apellido",
-                color = Blanco
+                color = Blanco,
             )
             Spacer(modifier = Modifier.height(10.dp))
 
             CustomTextField(
                 placeholder = "Correo electrónico",
-                color = Blanco
+                color = Blanco,
             )
             Spacer(modifier = Modifier.height(10.dp))
 
             CustomTextField(
                 placeholder = "Contraseña",
                 color = Blanco,
-                isPassword = true
+                isPassword = true,
             )
             Spacer(modifier = Modifier.height(10.dp))
 
             CustomTextField(
                 placeholder = "Verificar contraseña",
                 color = Blanco,
-                isPassword = true
+                isPassword = true,
             )
             Spacer(modifier = Modifier.height(25.dp))
 
