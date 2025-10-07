@@ -116,7 +116,7 @@ fun IngresoUsuario(navController: NavController) {
                     color = Azul3,
                     modifier= Modifier.width(140.dp),
                     onClick = {
-                        navController.navigate("") // Asegúrate de que esta ruta exista
+                        navController.navigate("registro_usuario") // Asegúrate de que esta ruta exista
                     }
                 )
             }
