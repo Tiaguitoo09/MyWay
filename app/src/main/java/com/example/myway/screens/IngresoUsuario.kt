@@ -17,17 +17,13 @@ import com.example.myway.ui.theme.Blanco
 import com.example.myway.ui.theme.Azul3
 import com.example.myway.R
 import com.example.myway.ui.theme.Nunito
-import androidx.compose.ui.graphics.Color
-import com.example.myway.screens.CustomButton
-import com.example.myway.screens.CustomTextField
-
 
 
 @Composable
 fun IngresoUsuario(navController: NavController) {
     Box(modifier = Modifier.fillMaxSize()) {
 
-        // Fondo de pantalla
+        // Fondo
         Image(
             painter = painterResource(id = R.drawable.ingreso_usuario),
             contentDescription = "Fondo",
@@ -35,21 +31,18 @@ fun IngresoUsuario(navController: NavController) {
             contentScale = ContentScale.Crop
         )
 
-        // Flecha volver arriba a la izquierda
+        // Flecha volver
         Image(
             painter = painterResource(id = R.drawable.flecha),
-
             contentDescription = "Volver",
             modifier = Modifier
                 .align(Alignment.TopStart)
                 .padding(16.dp)
                 .size(40.dp)
-                .clickable {
-                    navController.popBackStack()
-                }
+                .clickable { navController.popBackStack() }
         )
 
-        // Contenido principal
+        // Contenido
         Column(
             modifier = Modifier
                 .align(Alignment.Center)
@@ -57,7 +50,7 @@ fun IngresoUsuario(navController: NavController) {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
 
-            // Logo de la app
+            // Logo brújula
             Image(
                 painter = painterResource(id = R.drawable.brujula),
                 contentDescription = "Ícono de brújula",
@@ -69,29 +62,33 @@ fun IngresoUsuario(navController: NavController) {
             // Texto MyWay
             Text(
                 text = "MyWay",
-                fontSize = 36.sp,
+                fontSize = 40.sp,
                 fontWeight = FontWeight.ExtraBold,
                 fontFamily = Nunito,
-                color = Blanco // Tu color personalizado
+                color = Blanco
             )
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // Campo Correo electrónico
-            @Composable
-            fun CustomTextField(placeholder: String, color: Color, isPassword: Boolean = false) {
-                // Aquí irá la implementación del TextField
-            }
-
+            // Input correo
+            CustomTextField(
+                placeholder = "Correo electrónico",
+                color = Blanco,
+                isPassword = false
+            )
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Campo Contraseña
-            CustomTextField(placeholder = "Contraseña", isPassword = true, color=Azul3)
+            // Input contraseña
+            CustomTextField(
+                placeholder = "Contraseña",
+                color = Blanco,
+                isPassword = true
+            )
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Olvidé mi contraseña
+            // Texto "Olvidé mi contraseña"
             Text(
                 text = "Olvide mi contraseña",
                 color = Blanco,
@@ -101,7 +98,7 @@ fun IngresoUsuario(navController: NavController) {
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Botones de Ingresar y Registrarse
+            // Botones: Ingresar y Registrarse
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly
@@ -109,19 +106,22 @@ fun IngresoUsuario(navController: NavController) {
                 CustomButton(
                     text = "Ingresar",
                     color = Azul3,
-                    onClick = { navController.navigate("ingreso_usuario") } // ✅ aquí va la acción
+                    onClick = {
+                        navController.navigate("") // Cambia esto si tienes otra ruta
+                    }
                 )
-
                 CustomButton(
                     text = "Registrarse",
                     color = Azul3,
-                    onClick = { /* Acción para registrarse */ } // ✅ aquí puedes poner otra navegación
+                    onClick = {
+                        navController.navigate("") // Asegúrate de que esta ruta exista
+                    }
                 )
             }
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Iniciar sesión con Google
+            // Google login
             Text(
                 text = "Iniciar sesión con Google",
                 color = Blanco,
@@ -130,11 +130,3 @@ fun IngresoUsuario(navController: NavController) {
         }
     }
 }
-
-
-
-
-
-
-
-
