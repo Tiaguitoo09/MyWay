@@ -22,6 +22,8 @@ import com.example.myway.ui.theme.Azul1
 import com.example.myway.ui.theme.Blanco
 import com.example.myway.ui.theme.Nunito
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 
 
 // ------------------- Botón reutilizable -------------------
@@ -51,6 +53,7 @@ fun CustomButton(
 }
 
 //Texto que el usuario escribe
+
 @Composable
 fun CustomTextField(
     placeholder: String,
@@ -73,11 +76,13 @@ fun CustomTextField(
             focusedBorderColor = textColor,
             unfocusedBorderColor = textColor,
             cursorColor = textColor,
-            containerColor = color
+            focusedContainerColor = color,
+            unfocusedContainerColor = color
         ),
         visualTransformation = if (isPassword) PasswordVisualTransformation() else VisualTransformation.None
     )
 }
+
 
 
 @Composable

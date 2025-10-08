@@ -181,10 +181,16 @@ fun IngresoUsuario(
                 textDecoration = TextDecoration.Underline,
                 modifier = Modifier.clickable(enabled = !isLoading) {
                     isLoading = true
+
+                    // 🔹 Forzar selector de cuentas
+                    googleSignInClient.signOut()
+                    auth.signOut()
+
                     val signInIntent = googleSignInClient.signInIntent
                     launcher.launch(signInIntent)
                 }
             )
+
         }
     }
 }

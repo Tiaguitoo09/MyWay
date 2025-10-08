@@ -22,7 +22,6 @@ fun MyWayAppNavigation(
             InicioPantalla(navController)
         }
 
-        // 👇 Aquí pasamos auth y googleSignInClient
         composable("ingreso_usuario") {
             IngresoUsuario(
                 navController = navController,
@@ -31,8 +30,13 @@ fun MyWayAppNavigation(
             )
         }
 
+        // ✅ Aquí agregamos auth y googleSignInClient también
         composable("registro_usuario") {
-            RegistroUsuario(navController = navController)
+            RegistroUsuario(
+                navController = navController,
+                auth = auth,
+                googleSignInClient = googleSignInClient
+            )
         }
 
         composable("olvide_contraseña") {

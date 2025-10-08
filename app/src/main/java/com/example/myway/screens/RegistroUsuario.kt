@@ -1,5 +1,7 @@
 package com.example.myway.screens
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -23,9 +25,51 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.myway.R
 import com.example.myway.ui.theme.*
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInClient
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.GoogleAuthProvider
+import kotlinx.coroutines.launch
 
 @Composable
-fun RegistroUsuario(navController: NavController) {
+fun RegistroUsuario(
+    navController: NavController,
+    auth: FirebaseAuth,
+    googleSignInClient: GoogleSignInClient
+) {
+    val scope = rememberCoroutineScope()
+    var isLoading by remember { mutableStateOf(false) }
+
+    // 🔹 Lanzador del Intent de Google Sign-In
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+        try {
+            val account = task.result
+            val credential = GoogleAuthProvider.getCredential(account.idToken, null)
+
+            // 🔹 Registrar o iniciar sesión con Firebase
+            scope.launch {
+                auth.signInWithCredential(credential)
+                    .addOnCompleteListener { signInTask ->
+                        if (signInTask.isSuccessful) {
+                            // Si el usuario no existía, Firebase lo crea automáticamente
+                            navController.navigate("inicio") {
+                                popUpTo("registro_usuario") { inclusive = true }
+                            }
+                        } else {
+                            signInTask.exception?.printStackTrace()
+                        }
+                    }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        } finally {
+            isLoading = false
+        }
+    }
+
     Box(modifier = Modifier.fillMaxSize()) {
         // Fondo
         Image(
@@ -35,7 +79,7 @@ fun RegistroUsuario(navController: NavController) {
             contentScale = ContentScale.Crop
         )
 
-        // Flecha de volver
+        // Flecha volver
         Image(
             painter = painterResource(id = R.drawable.flechaazul),
             contentDescription = "Volver",
@@ -54,7 +98,6 @@ fun RegistroUsuario(navController: NavController) {
                 .padding(horizontal = 32.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Variables de los campos
             var nombre by remember { mutableStateOf("") }
             var apellido by remember { mutableStateOf("") }
             var correo by remember { mutableStateOf("") }
@@ -80,7 +123,7 @@ fun RegistroUsuario(navController: NavController) {
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // --- FECHA DE NACIMIENTO ---
+            // Fecha de nacimiento
             Text(
                 text = "Fecha de nacimiento",
                 color = Blanco,
@@ -103,7 +146,7 @@ fun RegistroUsuario(navController: NavController) {
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // --- GÉNERO ---
+            // Género
             Text(
                 text = "Género",
                 color = Blanco,
@@ -160,32 +203,41 @@ fun RegistroUsuario(navController: NavController) {
 
             Spacer(modifier = Modifier.height(25.dp))
 
-            // Botón de registro
+            // Botón de registro manual
             CustomButton(
                 text = "Continuar",
                 color = Azul3,
                 onClick = {
-                    // Aquí luego agregaremos la lógica de validación o Firebase
+                    // Aquí luego agregaremos validación y registro manual (email/password)
                 }
             )
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Texto subrayado para iniciar sesión con Google
+            // 🔹 Botón funcional de Google
             Text(
-                text = "Iniciar sesión con Google",
-                color = Blanco,
+                text = if (isLoading) "Creando cuenta con Google..." else "Registrarse con Google",
+                color = Blanco, // <- cambia Azul1 por Blanco
                 fontFamily = Nunito,
-                fontWeight = FontWeight.Normal,
+                fontWeight = FontWeight.Bold,
                 fontSize = 16.sp,
                 textDecoration = TextDecoration.Underline,
-                modifier = Modifier.clickable {
-                    // Aquí luego agregaremos la lógica de autenticación con Google
+                modifier = Modifier.clickable(enabled = !isLoading) {
+                    isLoading = true
+
+                    googleSignInClient.signOut()
+                    auth.signOut()
+
+                    val signInIntent = googleSignInClient.signInIntent
+                    launcher.launch(signInIntent)
                 }
             )
+
         }
     }
 }
+
+
 
 // Reutilizable: Campo con fondo blanco, texto azul y esquinas redondeadas
 @Composable
