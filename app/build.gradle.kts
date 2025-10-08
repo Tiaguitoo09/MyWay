@@ -65,6 +65,10 @@ dependencies {
     implementation("androidx.navigation:navigation-compose:2.7.4")
     implementation("androidx.compose.material3:material3:1.1.0")
     implementation(libs.androidx.material3)
+    implementation(libs.androidx.ui.graphics)
+    implementation(libs.androidx.compose.ui.text)
+    implementation(libs.sceneform.base)
+    implementation(libs.androidx.compose.foundation)
 
     // Tests
     testImplementation(libs.junit)

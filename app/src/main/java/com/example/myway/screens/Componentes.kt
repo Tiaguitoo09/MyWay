@@ -1,10 +1,9 @@
 package com.example.myway.screens
 
-
-
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.OutlinedTextField
@@ -21,10 +20,10 @@ import androidx.compose.ui.unit.sp
 import com.example.myway.ui.theme.Azul1
 import com.example.myway.ui.theme.Blanco
 import com.example.myway.ui.theme.Nunito
+import com.example.myway.ui.theme.Azul3
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
-
 
 // ------------------- Botón reutilizable -------------------
 @Composable
@@ -52,8 +51,7 @@ fun CustomButton(
     }
 }
 
-//Texto que el usuario escribe
-
+// ------------------- Campo de texto reutilizable -------------------
 @Composable
 fun CustomTextField(
     placeholder: String,
@@ -72,10 +70,15 @@ fun CustomTextField(
         modifier = Modifier
             .width(320.dp)
             .height(55.dp),
+        shape = RoundedCornerShape(12.dp),
         colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = textColor,
-            unfocusedBorderColor = textColor,
-            cursorColor = textColor,
+            focusedTextColor = Blanco,
+            unfocusedTextColor = Blanco,
+            cursorColor = Blanco,
+            focusedPlaceholderColor = Blanco,
+            unfocusedPlaceholderColor = Blanco,
+            focusedBorderColor = Azul1,
+            unfocusedBorderColor = Azul1,
             focusedContainerColor = color,
             unfocusedContainerColor = color
         ),
@@ -83,15 +86,14 @@ fun CustomTextField(
     )
 }
 
-
-
+// ------------------- Texto de título reutilizable -------------------
 @Composable
 fun CustomTitleText(
     text: String,
     color: Color,
     fontSize: TextUnit = 80.sp,
-    fontFamily: FontFamily = Nunito,          // Por defecto tu Nunito
-    fontWeight: FontWeight = FontWeight.Normal // Peso de fuente opcional
+    fontFamily: FontFamily = Nunito,
+    fontWeight: FontWeight = FontWeight.Normal
 ) {
     Text(
         text = text,
@@ -101,5 +103,3 @@ fun CustomTitleText(
         fontWeight = fontWeight
     )
 }
-
-
