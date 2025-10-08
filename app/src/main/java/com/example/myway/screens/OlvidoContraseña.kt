@@ -1,5 +1,6 @@
 package com.example.myway.screens
 
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -8,6 +9,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -18,10 +20,16 @@ import com.example.myway.ui.theme.Azul3
 import com.example.myway.ui.theme.Blanco
 import com.example.myway.ui.theme.Negro
 import com.example.myway.ui.theme.Nunito
+import com.google.firebase.auth.FirebaseAuth
+
 
 @Composable
-fun OlvidoContraseña(navController: NavController) {
+fun OlvidoContraseña(
+    navController: NavController,
+    auth: FirebaseAuth
+) {
     var email by remember { mutableStateOf("") }
+    val context = LocalContext.current
 
     Box(modifier = Modifier.fillMaxSize()) {
         // Fondo
@@ -43,126 +51,115 @@ fun OlvidoContraseña(navController: NavController) {
                 .clickable { navController.popBackStack() }
         )
 
-        // Contenido principal
+        // Columna principal
         Column(
             modifier = Modifier
-                .align(Alignment.Center)
+                .fillMaxSize()
                 .padding(horizontal = 32.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Título
+            // 🟡 Título arriba con espacio
+            Spacer(modifier = Modifier.height(60.dp))
             Text(
                 text = "Olvide mi contraseña",
                 fontFamily = Nunito,
                 fontWeight = FontWeight.Bold,
-                fontSize = 22.sp,
+                fontSize = 26.sp,
                 color = Blanco
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(40.dp))
 
-            // Subtítulo
-            Text(
-                text = "Ingrese su correo electrónico",
-                fontFamily = Nunito,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 18.sp,
-                color = Blanco
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Campo correo
-            CustomTextField(
-                placeholder = "Correo electrónico",
-                text = email,
-                onTextChange = {
-                    val it = ""
-                    email = it
-                },
-                color = Blanco,        // Fondo blanco
-                textColor = Negro,
-                isPassword = false
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Botón Enviar
-            CustomButton(
-                text = "Enviar",
-                color = Azul3,
-                onClick = {
-                    // Aquí puedes llamar lógica de recuperación
-                }
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Línea con icono de Google (simulada)
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center,
-                modifier = Modifier.fillMaxWidth()
+            // 🔵 Contenido centrado abajo del título
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(20.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
             ) {
-                Box(modifier = Modifier.weight(1f)) {
-                    androidx.compose.foundation.Canvas(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(1.dp)
-                            .padding(horizontal = 40.dp),
-                        onDraw = {
-                            drawLine(
-                                color = Blanco,
-                                start = androidx.compose.ui.geometry.Offset.Zero,
-                                end = androidx.compose.ui.geometry.Offset(size.width, 0f)
-                            )
-                        }
-                    )
-                }
+                Text(
+                    text = "Ingrese su correo electrónico",
+                    fontFamily = Nunito,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 18.sp,
+                    color = Blanco
+                )
 
+                // Campo de correo
+                CustomTextField(
+                    placeholder = "Correo electrónico",
+                    text = email,
+                    onTextChange = { email = it },
+                    color = Blanco,
+                    textColor = Negro,
+                    isPassword = false
+                )
+
+                // Botón enviar
+                CustomButton(
+                    text = "Enviar",
+                    color = Azul3,
+                    modifier = Modifier
+                        .width(200.dp)
+                        .height(45.dp),
+                    onClick = {
+                        if (email.isNotEmpty()) {
+                            auth.sendPasswordResetEmail(email)
+                                .addOnCompleteListener { task ->
+                                    if (task.isSuccessful) {
+                                        Toast.makeText(
+                                            context,
+                                            "Correo de recuperación enviado",
+                                            Toast.LENGTH_LONG
+                                        ).show()
+                                        navController.popBackStack()
+                                    } else {
+                                        Toast.makeText(
+                                            context,
+                                            "Error: ${task.exception?.message}",
+                                            Toast.LENGTH_LONG
+                                        ).show()
+                                    }
+                                }
+                        } else {
+                            Toast.makeText(context, "Ingresa tu correo", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                )
+
+                // Imagen Google
                 Image(
                     painter = painterResource(id = R.drawable.google_image),
                     contentDescription = "Google",
-                    modifier = Modifier
-                        .size(60.dp)
-                        .padding(horizontal = 8.dp)
+                    modifier = Modifier.size(90.dp)
                 )
 
-                Box(modifier = Modifier.weight(1f)) {
-                    androidx.compose.foundation.Canvas(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(1.dp)
-                            .padding(horizontal = 40.dp),
-                        onDraw = {
-                            drawLine(
-                                color = Blanco,
-                                start = androidx.compose.ui.geometry.Offset.Zero,
-                                end = androidx.compose.ui.geometry.Offset(size.width, 0f)
-                            )
-                        }
-                    )
-                }
+                // ¿Tienes una cuenta?
+                Text(
+                    text = "¿Tienes una cuenta?",
+                    color = Blanco,
+                    fontSize = 14.sp,
+                    fontFamily = Nunito
+                )
+
+                // Botón Iniciar sesión
+                CustomButton(
+                    text = "Iniciar Sesión",
+                    color = Azul3,
+                    modifier = Modifier
+                        .width(200.dp)
+                        .height(45.dp),
+                    onClick = {
+                        navController.navigate("ingreso_usuario")
+                    }
+                )
             }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Text(
-                text = "¿Tienes una cuenta?",
-                color = Blanco,
-                fontSize = 14.sp,
-                fontFamily = Nunito
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            CustomButton(
-                text = "Iniciar Sesión",
-                color = Azul3,
-                onClick = {
-                    navController.navigate("ingreso_usuario")
-                }
-            )
         }
     }
 }
+
+
+
+
+
+

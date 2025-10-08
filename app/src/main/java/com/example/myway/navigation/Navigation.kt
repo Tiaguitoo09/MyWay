@@ -36,7 +36,7 @@ fun MyWayAppNavigation(
         }
 
         composable("olvide_contraseña") {
-            OlvidoContraseña(navController = navController)
+            OlvidoContraseña(navController = navController, auth=auth)
         }
     }
 }

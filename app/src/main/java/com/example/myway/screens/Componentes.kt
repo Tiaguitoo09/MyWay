@@ -83,8 +83,8 @@ fun CustomTextField(
             unfocusedPlaceholderColor = Blanco,
             focusedBorderColor = Azul1,
             unfocusedBorderColor = Azul1,
-            focusedContainerColor = Azul3,
-            unfocusedContainerColor = Azul3
+            focusedContainerColor = color,
+            unfocusedContainerColor = color
         )
         ,
         visualTransformation = if (isPassword) PasswordVisualTransformation() else VisualTransformation.None
