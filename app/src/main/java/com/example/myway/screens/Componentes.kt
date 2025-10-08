@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -52,27 +53,32 @@ fun CustomButton(
 //Texto que el usuario escribe
 @Composable
 fun CustomTextField(
-placeholder: String,
-color: Color,
-isPassword: Boolean = false,
-textColor: Color = Color.White,
-onTextChange: (String) -> Unit = {},
-text: String = ""
-
+    placeholder: String,
+    color: Color,
+    isPassword: Boolean = false,
+    textColor: Color = Color.White,
+    onTextChange: (String) -> Unit,
+    text: String
 ) {
     OutlinedTextField(
-        value = "",
-        onValueChange = {},
-        placeholder = { Text(text = placeholder, color = color) },
+        value = text,
+        onValueChange = onTextChange,
+        placeholder = { Text(text = placeholder, color = textColor) },
         singleLine = true,
-        textStyle = TextStyle(
-            color = color
-        ),
+        textStyle = TextStyle(color = textColor),
         modifier = Modifier
             .width(320.dp)
-            .height(55.dp)
+            .height(55.dp),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = textColor,
+            unfocusedBorderColor = textColor,
+            cursorColor = textColor,
+            containerColor = color
+        ),
+        visualTransformation = if (isPassword) PasswordVisualTransformation() else VisualTransformation.None
     )
 }
+
 
 @Composable
 fun CustomTitleText(

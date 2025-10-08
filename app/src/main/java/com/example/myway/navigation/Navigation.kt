@@ -6,6 +6,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.example.myway.screens.InicioPantalla
 import com.example.myway.screens.IngresoUsuario
+import com.example.myway.screens.OlvidoContraseña
 import com.example.myway.screens.RegistroUsuario
 import com.google.firebase.auth.FirebaseAuth
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
@@ -32,6 +33,10 @@ fun MyWayAppNavigation(
 
         composable("registro_usuario") {
             RegistroUsuario(navController = navController)
+        }
+
+        composable("olvide_contraseña") {
+            OlvidoContraseña(navController = navController)
         }
     }
 }

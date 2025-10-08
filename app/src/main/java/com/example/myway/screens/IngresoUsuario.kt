@@ -112,11 +112,15 @@ fun IngresoUsuario(
             )
 
             Spacer(modifier = Modifier.height(32.dp))
+            val email = remember { mutableStateOf("") }
+            val password = remember { mutableStateOf("") }
 
-            // Inputs (no funcionales todavía)
             CustomTextField(
                 placeholder = "Correo electrónico",
                 color = Azul3,
+                textColor = Blanco,
+                text = email.value,
+                onTextChange = { email.value = it }
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -124,8 +128,12 @@ fun IngresoUsuario(
             CustomTextField(
                 placeholder = "Contraseña",
                 color = Azul3,
+                textColor = Blanco,
                 isPassword = true,
+                text = password.value,
+                onTextChange = { password.value = it }
             )
+
 
             Spacer(modifier = Modifier.height(12.dp))
 
