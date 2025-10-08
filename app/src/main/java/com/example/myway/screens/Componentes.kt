@@ -5,6 +5,7 @@ package com.example.myway.screens
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.OutlinedTextField
@@ -22,6 +23,10 @@ import com.example.myway.ui.theme.Azul1
 import com.example.myway.ui.theme.Blanco
 import com.example.myway.ui.theme.Nunito
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
+import com.example.myway.ui.theme.Azul3
+
 
 
 // ------------------- Botón reutilizable -------------------
@@ -69,12 +74,19 @@ fun CustomTextField(
         modifier = Modifier
             .width(320.dp)
             .height(55.dp),
+        shape = RoundedCornerShape(12.dp),
         colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = textColor,
-            unfocusedBorderColor = textColor,
-            cursorColor = textColor,
-            containerColor = color
-        ),
+            focusedTextColor = Blanco,
+            unfocusedTextColor = Blanco,
+            cursorColor = Blanco,
+            focusedPlaceholderColor = Blanco,
+            unfocusedPlaceholderColor = Blanco,
+            focusedBorderColor = Azul1,
+            unfocusedBorderColor = Azul1,
+            focusedContainerColor = Azul3,
+            unfocusedContainerColor = Azul3
+        )
+        ,
         visualTransformation = if (isPassword) PasswordVisualTransformation() else VisualTransformation.None
     )
 }

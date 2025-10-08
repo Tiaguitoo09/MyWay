@@ -1,5 +1,6 @@
 package com.example.myway.screens
 
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
@@ -10,8 +11,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -33,9 +36,12 @@ fun IngresoUsuario(
     googleSignInClient: GoogleSignInClient
 ) {
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
     var isLoading by remember { mutableStateOf(false) }
+    val email = remember { mutableStateOf("") }
+    val password = remember { mutableStateOf("") }
 
-    // 🔹 Lanzador para el Intent de Google Sign-In
+    // 🔹 Google launcher
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -44,22 +50,22 @@ fun IngresoUsuario(
             val account = task.result
             val credential = GoogleAuthProvider.getCredential(account.idToken, null)
 
-            // 🔹 Autenticamos con Firebase
             scope.launch {
                 auth.signInWithCredential(credential)
                     .addOnCompleteListener { signInTask ->
                         if (signInTask.isSuccessful) {
-                            // Login correcto
                             navController.navigate("inicio") {
                                 popUpTo("ingreso_usuario") { inclusive = true }
                             }
                         } else {
                             signInTask.exception?.printStackTrace()
+                            Toast.makeText(context, "Error al iniciar sesión con Google", Toast.LENGTH_SHORT).show()
                         }
                     }
             }
         } catch (e: Exception) {
             e.printStackTrace()
+            Toast.makeText(context, "Error al autenticar", Toast.LENGTH_SHORT).show()
         } finally {
             isLoading = false
         }
@@ -85,36 +91,32 @@ fun IngresoUsuario(
                 .clickable { navController.popBackStack() }
         )
 
-        // Contenido principal
+        // Contenido
         Column(
             modifier = Modifier
                 .align(Alignment.Center)
                 .padding(horizontal = 32.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-
-            // Logo brújula
             Image(
                 painter = painterResource(id = R.drawable.brujula),
                 contentDescription = "Ícono de brújula",
-                modifier = Modifier.size(120.dp)
+                modifier = Modifier.size(180.dp)
             )
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Texto MyWay
             Text(
                 text = "MyWay",
-                fontSize = 40.sp,
+                fontSize = 80.sp,
                 fontWeight = FontWeight.ExtraBold,
                 fontFamily = Nunito,
                 color = Blanco
             )
 
             Spacer(modifier = Modifier.height(32.dp))
-            val email = remember { mutableStateOf("") }
-            val password = remember { mutableStateOf("") }
 
+            // Inputs
             CustomTextField(
                 placeholder = "Correo electrónico",
                 color = Azul3,
@@ -134,20 +136,25 @@ fun IngresoUsuario(
                 onTextChange = { password.value = it }
             )
 
+            Spacer(modifier = Modifier.height(20.dp))
 
-            Spacer(modifier = Modifier.height(12.dp))
-
+            // Texto "Olvidé mi contraseña"
             Text(
                 text = "Olvidé mi contraseña",
                 color = Blanco,
                 fontSize = 14.sp,
+                fontWeight = FontWeight.Bold,
                 textDecoration = TextDecoration.Underline,
-                modifier = Modifier.align(Alignment.End)
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .clickable {
+                        navController.navigate("olvide_contraseña")
+                    }
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(34.dp))
 
-            // Botones de ingresar y registrarse
+            // Botones
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly
@@ -157,9 +164,25 @@ fun IngresoUsuario(
                     color = Azul3,
                     modifier = Modifier.width(140.dp),
                     onClick = {
-                        // Aquí más adelante puedes hacer login manual con correo/contraseña
+                        if (email.value.isNotEmpty() && password.value.isNotEmpty()) {
+                            scope.launch {
+                                auth.signInWithEmailAndPassword(email.value, password.value)
+                                    .addOnCompleteListener { task ->
+                                        if (task.isSuccessful) {
+                                            navController.navigate("inicio") {
+                                                popUpTo("ingreso_usuario") { inclusive = true }
+                                            }
+                                        } else {
+                                            Toast.makeText(context, "Error al iniciar sesión", Toast.LENGTH_SHORT).show()
+                                        }
+                                    }
+                            }
+                        } else {
+                            Toast.makeText(context, "Completa todos los campos", Toast.LENGTH_SHORT).show()
+                        }
                     }
                 )
+
                 CustomButton(
                     text = "Registrarse",
                     color = Azul3,
@@ -172,7 +195,7 @@ fun IngresoUsuario(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // 🔹 Botón funcional de Google
+            // Google login
             Text(
                 text = if (isLoading) "Iniciando sesión..." else "Iniciar sesión con Google",
                 color = Blanco,
