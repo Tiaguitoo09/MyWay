@@ -74,7 +74,7 @@ fun IngresoUsuario(
     Box(modifier = Modifier.fillMaxSize()) {
         // Fondo
         Image(
-            painter = painterResource(id = R.drawable.ingreso_usuario),
+            painter = painterResource(id = R.drawable.fondo2),
             contentDescription = "Fondo",
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop

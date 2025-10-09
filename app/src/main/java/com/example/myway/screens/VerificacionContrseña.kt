@@ -10,7 +10,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
@@ -36,7 +35,7 @@ fun VerificacionContraseña(navController: NavController) {
     Box(modifier = Modifier.fillMaxSize()) {
         // Fondo
         Image(
-            painter = painterResource(id = R.drawable.fondo_login),
+            painter = painterResource(id = R.drawable.fondo1),
             contentDescription = "Fondo",
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop

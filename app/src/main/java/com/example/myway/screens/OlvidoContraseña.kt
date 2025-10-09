@@ -34,7 +34,7 @@ fun OlvidoContraseña(
     Box(modifier = Modifier.fillMaxSize()) {
         // Fondo
         Image(
-            painter = painterResource(id = R.drawable.fondo_login),
+            painter = painterResource(id = R.drawable.fondo1),
             contentDescription = "Fondo",
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop
