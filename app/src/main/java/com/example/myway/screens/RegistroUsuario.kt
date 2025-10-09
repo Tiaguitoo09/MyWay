@@ -29,6 +29,7 @@ import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
 
 @Composable
@@ -40,6 +41,9 @@ fun RegistroUsuario(
     val scope = rememberCoroutineScope()
     var isLoading by remember { mutableStateOf(false) }
 
+    // Instancia de Firestore
+    val db = FirebaseFirestore.getInstance()
+
     // Variables de usuario
     var nombre by remember { mutableStateOf("") }
     var apellido by remember { mutableStateOf("") }
@@ -50,7 +54,6 @@ fun RegistroUsuario(
     var mes by remember { mutableStateOf("") }
     var anio by remember { mutableStateOf("") }
     var genero by remember { mutableStateOf<String?>(null) }
-
     var errorFecha by remember { mutableStateOf<String?>(null) }
 
     // Google Sign-In launcher
@@ -61,7 +64,6 @@ fun RegistroUsuario(
         try {
             val account = task.result
             val credential = GoogleAuthProvider.getCredential(account.idToken, null)
-
             scope.launch {
                 auth.signInWithCredential(credential)
                     .addOnCompleteListener { signInTask ->
@@ -114,13 +116,19 @@ fun RegistroUsuario(
             // Campos de texto
             CampoTextoAzul("Nombre", nombre) { nombre = it }
             Spacer(modifier = Modifier.height(12.dp))
+
             CampoTextoAzul("Apellido", apellido) { apellido = it }
             Spacer(modifier = Modifier.height(12.dp))
+
             CampoTextoAzul("Correo electrónico", correo) { correo = it }
             Spacer(modifier = Modifier.height(12.dp))
+
             CampoTextoAzul("Contraseña", contrasena, true) { contrasena = it }
             Spacer(modifier = Modifier.height(12.dp))
-            CampoTextoAzul("Verificar contraseña", verificarContrasena, true) { verificarContrasena = it }
+
+            CampoTextoAzul("Verificar contraseña", verificarContrasena, true) {
+                verificarContrasena = it
+            }
 
             Spacer(modifier = Modifier.height(20.dp))
 
@@ -231,6 +239,19 @@ fun RegistroUsuario(
                 color = Azul3,
                 onClick = {
                     errorFecha = validarFechaNacimiento(dia, mes, anio)
+                    if (errorFecha == null) {
+                        guardarUsuarioEnFirestore(
+                            db,
+                            nombre,
+                            apellido,
+                            correo,
+                            contrasena,
+                            dia,
+                            mes,
+                            anio,
+                            genero
+                        )
+                    }
                 }
             )
 
@@ -258,8 +279,8 @@ fun RegistroUsuario(
 
 // ---------------------------------------------------------------------
 // Funciones de utilidad
+// ---------------------------------------------------------------------
 
-// ✅ Validar fecha correctamente (con años bisiestos y límite 2025)
 fun validarFechaNacimiento(dia: String, mes: String, anio: String): String? {
     if (dia.isBlank() || mes.isBlank() || anio.isBlank()) return "Por favor completa la fecha"
 
@@ -267,11 +288,8 @@ fun validarFechaNacimiento(dia: String, mes: String, anio: String): String? {
     val m = mes.toIntOrNull() ?: return "Mes inválido"
     val a = anio.toIntOrNull() ?: return "Año inválido"
 
-    // Definición del límite máximo solicitado
     val MAX_ANIO = 2025
-
     if (m !in 1..12) return "Mes inválido"
-    // Validamos el rango de años
     if (a !in 1900..MAX_ANIO) return "Año inválido (debe estar entre 1900 y $MAX_ANIO)"
 
     val diasEnMes = when (m) {
@@ -281,22 +299,54 @@ fun validarFechaNacimiento(dia: String, mes: String, anio: String): String? {
         else -> 0
     }
 
-    if (d !in 1..diasEnMes) {
-        return "El mes $m solo tiene $diasEnMes días"
-    }
+    if (d !in 1..diasEnMes) return "El mes $m solo tiene $diasEnMes días"
 
-    return null // ✅ Fecha válida
+    return null
 }
 
-// 🔹 Determina si un año es bisiesto
 fun esBisiesto(anio: Int): Boolean {
     return (anio % 4 == 0 && (anio % 100 != 0 || anio % 400 == 0))
 }
 
 // ---------------------------------------------------------------------
-// Componentes Componibles
+// 🔹 NUEVA FUNCIÓN PARA GUARDAR USUARIO EN FIRESTORE
+// ---------------------------------------------------------------------
 
-// Campo de texto normal
+fun guardarUsuarioEnFirestore(
+    db: FirebaseFirestore,
+    nombre: String,
+    apellido: String,
+    correo: String,
+    contrasena: String,
+    dia: String,
+    mes: String,
+    anio: String,
+    genero: String?
+) {
+    val usuario = hashMapOf(
+        "nombre" to nombre,
+        "apellido" to apellido,
+        "correo" to correo,
+        "contrasena" to contrasena, // ⚠️ Idealmente NO guardar en texto plano
+        "fechaNacimiento" to "$dia/$mes/$anio",
+        "genero" to (genero ?: "No especificado"),
+        "fechaRegistro" to System.currentTimeMillis()
+    )
+
+    db.collection("usuarios")
+        .add(usuario)
+        .addOnSuccessListener { documentRef ->
+            println("✅ Usuario guardado con ID: ${documentRef.id}")
+        }
+        .addOnFailureListener { e ->
+            println("❌ Error al guardar usuario: ${e.message}")
+        }
+}
+
+// ---------------------------------------------------------------------
+// Componentes Componibles
+// ---------------------------------------------------------------------
+
 @Composable
 fun CampoTextoAzul(
     placeholder: String,
@@ -310,7 +360,8 @@ fun CampoTextoAzul(
         placeholder = { Text(placeholder, color = Azul3) },
         singleLine = true,
         textStyle = TextStyle(color = Azul3),
-        visualTransformation = if (isPassword) PasswordVisualTransformation() else androidx.compose.ui.text.input.VisualTransformation.None,
+        visualTransformation = if (isPassword)
+            PasswordVisualTransformation() else androidx.compose.ui.text.input.VisualTransformation.None,
         modifier = Modifier
             .width(320.dp)
             .height(55.dp),
@@ -325,7 +376,6 @@ fun CampoTextoAzul(
     )
 }
 
-// Campo de fecha con límites (incluyendo el límite de año hasta 2025)
 @Composable
 fun CampoFecha(
     placeholder: String,
@@ -333,7 +383,6 @@ fun CampoFecha(
     onChange: (String) -> Unit
 ) {
     val MAX_ANIO = 2026
-
     OutlinedTextField(
         value = valor,
         onValueChange = { nuevoValor ->
@@ -345,16 +394,17 @@ fun CampoFecha(
                             if (num == null || num in 1..31) onChange(nuevoValor)
                         }
                     }
+
                     "mes" -> {
                         if (nuevoValor.length <= 2) {
                             val num = nuevoValor.toIntOrNull()
                             if (num == null || num in 1..12) onChange(nuevoValor)
                         }
                     }
+
                     "año" -> {
                         if (nuevoValor.length <= 4) {
                             val num = nuevoValor.toIntOrNull()
-                            // ✅ solo validar límite cuando ya hay 4 cifras
                             if (num == null || nuevoValor.length < 4 || num in 1900..MAX_ANIO) {
                                 onChange(nuevoValor)
                             }
@@ -364,11 +414,7 @@ fun CampoFecha(
             }
         },
         placeholder = {
-            Text(
-                placeholder,
-                color = Azul3,
-                textAlign = TextAlign.Center
-            )
+            Text(placeholder, color = Azul3, textAlign = TextAlign.Center)
         },
         singleLine = true,
         textStyle = TextStyle(color = Azul3, textAlign = TextAlign.Center),
