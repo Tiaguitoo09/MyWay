@@ -47,20 +47,18 @@ fun RegistroUsuario(
     val context = LocalContext.current
     var isLoading by remember { mutableStateOf(false) }
 
-    // Variables de usuario
     var nombre by remember { mutableStateOf("") }
     var apellido by remember { mutableStateOf("") }
     var correo by remember { mutableStateOf("") }
     var contrasena by remember { mutableStateOf("") }
     var verificarContrasena by remember { mutableStateOf("") }
-    var fraseSeguridad by remember { mutableStateOf("") } // NUEVO CAMPO
+    var fraseSeguridad by remember { mutableStateOf("") }
     var dia by remember { mutableStateOf("") }
     var mes by remember { mutableStateOf("") }
     var anio by remember { mutableStateOf("") }
     var genero by remember { mutableStateOf<String?>(null) }
     var errorFecha by remember { mutableStateOf<String?>(null) }
 
-    // Google Sign-In launcher
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -72,7 +70,7 @@ fun RegistroUsuario(
                 auth.signInWithCredential(credential)
                     .addOnCompleteListener { signInTask ->
                         if (signInTask.isSuccessful) {
-                            navController.navigate("inicio") {
+                            navController.navigate("cargando") {
                                 popUpTo("registro_usuario") { inclusive = true }
                             }
                         } else {
@@ -88,7 +86,6 @@ fun RegistroUsuario(
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        // Fondo
         Image(
             painter = painterResource(id = R.drawable.registro),
             contentDescription = "Fondo de registro",
@@ -96,7 +93,6 @@ fun RegistroUsuario(
             contentScale = ContentScale.Crop
         )
 
-        // Flecha volver
         Image(
             painter = painterResource(id = R.drawable.flechaazul),
             contentDescription = "Volver",
@@ -107,7 +103,6 @@ fun RegistroUsuario(
                 .clickable { navController.popBackStack() }
         )
 
-        // Contenido principal
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -117,7 +112,6 @@ fun RegistroUsuario(
         ) {
             Spacer(modifier = Modifier.height(40.dp))
 
-            // Campos de texto
             CampoTextoAzul("Nombre", nombre) { nombre = it }
             Spacer(modifier = Modifier.height(12.dp))
             CampoTextoAzul("Apellido", apellido) { apellido = it }
@@ -128,11 +122,9 @@ fun RegistroUsuario(
             Spacer(modifier = Modifier.height(12.dp))
             CampoTextoAzul("Verificar contraseña", verificarContrasena, true) { verificarContrasena = it }
             Spacer(modifier = Modifier.height(12.dp))
-            // NUEVO CAMPO: Frase de seguridad
             CampoTextoAzul("Frase de seguridad", fraseSeguridad) { fraseSeguridad = it }
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Fecha de nacimiento
             Text(
                 text = "Fecha de nacimiento",
                 color = Blanco,
@@ -158,7 +150,6 @@ fun RegistroUsuario(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Género
             Text(
                 text = "Género",
                 color = Blanco,
@@ -229,20 +220,26 @@ fun RegistroUsuario(
 
             Spacer(modifier = Modifier.height(25.dp))
 
-            // Botón continuar
             CustomButton(
                 text = "Continuar",
                 color = Azul3,
                 onClick = {
+                    if (contrasena != verificarContrasena) {
+                        Toast.makeText(context, "❌ Las contraseñas no coinciden", Toast.LENGTH_SHORT).show()
+                        return@CustomButton
+                    }
+
+                    if (nombre.isBlank() || apellido.isBlank() || correo.isBlank() ||
+                        contrasena.isBlank() || verificarContrasena.isBlank() ||
+                        fraseSeguridad.isBlank() || dia.isBlank() || mes.isBlank() || anio.isBlank() ||
+                        genero.isNullOrBlank()
+                    ) {
+                        Toast.makeText(context, "⚠️ Por favor completa todos los campos antes de continuar", Toast.LENGTH_SHORT).show()
+                        return@CustomButton
+                    }
+
                     errorFecha = validarFechaNacimiento(dia, mes, anio)
                     if (errorFecha == null) {
-
-                        // 🔒 Verificar contraseñas coinciden
-                        if (contrasena != verificarContrasena) {
-                            Toast.makeText(context, "❌ Las contraseñas no coinciden", Toast.LENGTH_SHORT).show()
-                            return@CustomButton
-                        }
-
                         val fechaNacimiento = "$dia/$mes/$anio"
                         guardarUsuarioEnFirestore(
                             auth = auth,
@@ -264,7 +261,6 @@ fun RegistroUsuario(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Google Sign-In
             Text(
                 text = if (isLoading) "Creando cuenta con Google..." else "Registrarse con Google",
                 color = Blanco,
@@ -331,7 +327,7 @@ fun guardarUsuarioEnFirestore(
                             "Cuenta creada con éxito",
                             Toast.LENGTH_SHORT
                         ).show()
-                        navController.navigate("inicio") {
+                        navController.navigate("cargando") {
                             popUpTo("registro_usuario") { inclusive = true }
                         }
                     }
@@ -354,7 +350,6 @@ fun guardarUsuarioEnFirestore(
 }
 
 // ---------------------------------------------------------------------
-// Validar fecha
 fun validarFechaNacimiento(dia: String, mes: String, anio: String): String? {
     if (dia.isBlank() || mes.isBlank() || anio.isBlank()) return "Por favor completa la fecha"
     val d = dia.toIntOrNull() ?: return "Día inválido"
@@ -382,8 +377,6 @@ fun esBisiesto(anio: Int): Boolean {
 }
 
 // ---------------------------------------------------------------------
-// Componentes reutilizables
-
 @Composable
 fun CampoTextoAzul(
     placeholder: String,
