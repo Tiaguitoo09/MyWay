@@ -51,6 +51,7 @@ fun RegistroUsuario(
     var correo by remember { mutableStateOf("") }
     var contrasena by remember { mutableStateOf("") }
     var verificarContrasena by remember { mutableStateOf("") }
+    var fraseSeguridad by remember { mutableStateOf("") } // NUEVO CAMPO
     var dia by remember { mutableStateOf("") }
     var mes by remember { mutableStateOf("") }
     var anio by remember { mutableStateOf("") }
@@ -124,6 +125,9 @@ fun RegistroUsuario(
             CampoTextoAzul("Contraseña", contrasena, true) { contrasena = it }
             Spacer(modifier = Modifier.height(12.dp))
             CampoTextoAzul("Verificar contraseña", verificarContrasena, true) { verificarContrasena = it }
+            Spacer(modifier = Modifier.height(12.dp))
+            // NUEVO CAMPO: Frase de seguridad
+            CampoTextoAzul("Frase de seguridad", fraseSeguridad) { fraseSeguridad = it }
             Spacer(modifier = Modifier.height(20.dp))
 
             // Fecha de nacimiento
@@ -223,7 +227,7 @@ fun RegistroUsuario(
 
             Spacer(modifier = Modifier.height(25.dp))
 
-            // Botón continuar (🔥 aquí se guarda en Firestore y navega al inicio)
+            // Botón continuar (aquí se guarda en Firestore y navega al inicio)
             CustomButton(
                 text = "Continuar",
                 color = Azul3,
@@ -240,6 +244,7 @@ fun RegistroUsuario(
                             contrasena = contrasena,
                             fechaNacimiento = fechaNacimiento,
                             genero = genero,
+                            fraseSeguridad = fraseSeguridad,
                             context = context
                         )
                     } else {
@@ -268,10 +273,10 @@ fun RegistroUsuario(
             )
         }
     }
-}
+} // <- cierre correcto de RegistroUsuario
 
 // ---------------------------------------------------------------------
-// 🔹 Guardar usuario en Firestore (sin duplicar cuentas)
+// Guardar usuario en Firestore (ahora con frase de seguridad)
 fun guardarUsuarioEnFirestore(
     auth: FirebaseAuth,
     navController: NavController,
@@ -281,6 +286,7 @@ fun guardarUsuarioEnFirestore(
     contrasena: String,
     fechaNacimiento: String,
     genero: String?,
+    fraseSeguridad: String,
     context: Context
 ) {
     val db = FirebaseFirestore.getInstance()
@@ -304,6 +310,7 @@ fun guardarUsuarioEnFirestore(
                     "contrasena" to contrasena,
                     "fechaNacimiento" to fechaNacimiento,
                     "genero" to genero,
+                    "fraseSeguridad" to fraseSeguridad,
                     "fechaRegistro" to System.currentTimeMillis()
                 )
 
