@@ -273,7 +273,7 @@ fun RegistroUsuario(
             )
         }
     }
-} // <- cierre correcto de RegistroUsuario
+}
 
 // ---------------------------------------------------------------------
 // Guardar usuario en Firestore (ahora con frase de seguridad)

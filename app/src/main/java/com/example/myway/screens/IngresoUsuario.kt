@@ -27,6 +27,7 @@ import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
 
 @Composable
@@ -159,26 +160,50 @@ fun IngresoUsuario(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
+                // 🔹 BOTÓN DE INGRESAR (CONECTADO CON FIRESTORE)
                 CustomButton(
                     text = "Ingresar",
                     color = Azul3,
                     modifier = Modifier.width(140.dp),
                     onClick = {
                         if (email.value.isNotEmpty() && password.value.isNotEmpty()) {
-                            scope.launch {
-                                auth.signInWithEmailAndPassword(email.value, password.value)
-                                    .addOnCompleteListener { task ->
-                                        if (task.isSuccessful) {
-                                            navController.navigate("inicio") {
-                                                popUpTo("ingreso_usuario") { inclusive = true }
-                                            }
-                                        } else {
-                                            Toast.makeText(context, "Error al iniciar sesión", Toast.LENGTH_SHORT).show()
+                            val db = FirebaseFirestore.getInstance()
+
+                            db.collection("usuarios")
+                                .whereEqualTo("correo", email.value)
+                                .whereEqualTo("contrasena", password.value)
+                                .get()
+                                .addOnSuccessListener { documents ->
+                                    if (!documents.isEmpty) {
+                                        Toast.makeText(
+                                            context,
+                                            "Inicio de sesión exitoso",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                        navController.navigate("inicio") {
+                                            popUpTo("ingreso_usuario") { inclusive = true }
                                         }
+                                    } else {
+                                        Toast.makeText(
+                                            context,
+                                            "Correo o contraseña incorrectos",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
                                     }
-                            }
+                                }
+                                .addOnFailureListener { e ->
+                                    Toast.makeText(
+                                        context,
+                                        "Error al iniciar sesión: ${e.message}",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
                         } else {
-                            Toast.makeText(context, "Completa todos los campos", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(
+                                context,
+                                "Completa todos los campos",
+                                Toast.LENGTH_SHORT
+                            ).show()
                         }
                     }
                 )
@@ -205,7 +230,7 @@ fun IngresoUsuario(
                 modifier = Modifier.clickable(enabled = !isLoading) {
                     isLoading = true
 
-                    // 🔹 Forzar selector de cuentas
+                    // Forzar selector de cuentas
                     googleSignInClient.signOut()
                     auth.signOut()
 
@@ -213,7 +238,6 @@ fun IngresoUsuario(
                     launcher.launch(signInIntent)
                 }
             )
-
         }
     }
 }
