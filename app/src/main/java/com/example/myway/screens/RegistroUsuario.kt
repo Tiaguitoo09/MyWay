@@ -234,6 +234,13 @@ fun RegistroUsuario(
                 onClick = {
                     errorFecha = validarFechaNacimiento(dia, mes, anio)
                     if (errorFecha == null) {
+
+                        // 🔒 Verificar contraseñas coinciden
+                        if (contrasena != verificarContrasena) {
+                            Toast.makeText(context, "❌ Las contraseñas no coinciden", Toast.LENGTH_SHORT).show()
+                            return@CustomButton
+                        }
+
                         val fechaNacimiento = "$dia/$mes/$anio"
                         guardarUsuarioEnFirestore(
                             auth = auth,
