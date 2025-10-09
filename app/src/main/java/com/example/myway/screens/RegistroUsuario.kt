@@ -332,8 +332,7 @@ fun CampoFecha(
     valor: String,
     onChange: (String) -> Unit
 ) {
-    // Definimos el límite máximo de año fijo en 2025
-    val MAX_ANIO = 2025
+    val MAX_ANIO = 2026
 
     OutlinedTextField(
         value = valor,
@@ -355,14 +354,22 @@ fun CampoFecha(
                     "año" -> {
                         if (nuevoValor.length <= 4) {
                             val num = nuevoValor.toIntOrNull()
-                            // Control de entrada: solo permite hasta el año 2025
-                            if (num == null || num in 1900..MAX_ANIO) onChange(nuevoValor)
+                            // ✅ solo validar límite cuando ya hay 4 cifras
+                            if (num == null || nuevoValor.length < 4 || num in 1900..MAX_ANIO) {
+                                onChange(nuevoValor)
+                            }
                         }
                     }
                 }
             }
         },
-        placeholder = { Text(placeholder, color = Azul3, textAlign = TextAlign.Center) },
+        placeholder = {
+            Text(
+                placeholder,
+                color = Azul3,
+                textAlign = TextAlign.Center
+            )
+        },
         singleLine = true,
         textStyle = TextStyle(color = Azul3, textAlign = TextAlign.Center),
         modifier = Modifier
