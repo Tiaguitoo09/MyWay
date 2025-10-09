@@ -1,4 +1,4 @@
-package com.example.myway.screens
+package com.example.myway.screens.modulo1
 
 import android.content.Context
 import android.widget.Toast
@@ -21,12 +21,14 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.myway.R
+import com.example.myway.screens.CustomButton
 import com.example.myway.ui.theme.*
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
@@ -388,7 +390,7 @@ fun CampoTextoAzul(
         placeholder = { Text(placeholder, color = Azul3) },
         singleLine = true,
         textStyle = TextStyle(color = Azul3),
-        visualTransformation = if (isPassword) PasswordVisualTransformation() else androidx.compose.ui.text.input.VisualTransformation.None,
+        visualTransformation = if (isPassword) PasswordVisualTransformation() else VisualTransformation.None,
         modifier = Modifier
             .width(320.dp)
             .height(55.dp),

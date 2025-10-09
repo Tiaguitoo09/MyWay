@@ -1,4 +1,4 @@
-package com.example.myway.screens
+package com.example.myway.screens.modulo1
 
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -20,6 +20,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.myway.R
+import com.example.myway.screens.CustomButton
+import com.example.myway.screens.CustomTextField
 import com.example.myway.ui.theme.Azul3
 import com.example.myway.ui.theme.Blanco
 import com.example.myway.ui.theme.Nunito

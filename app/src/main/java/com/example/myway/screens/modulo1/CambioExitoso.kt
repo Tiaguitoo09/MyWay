@@ -1,4 +1,4 @@
-package com.example.myway.screens
+package com.example.myway.screens.modulo1
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
@@ -14,14 +14,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.myway.R
+import com.example.myway.screens.CustomTitleText
 import com.example.myway.ui.theme.Blanco
 import com.example.myway.ui.theme.Nunito
+import kotlinx.coroutines.delay
 
 @Composable
 fun CambioExitoso(navController: NavController) {
     // Espera unos segundos y redirige a la pantalla de ingreso
     LaunchedEffect(Unit) {
-        kotlinx.coroutines.delay(3500) // más rápido y fluido (3.5 s)
+        delay(3500) // más rápido y fluido (3.5 s)
         navController.navigate("ingreso_usuario") {
             popUpTo("cambio_exitoso") { inclusive = true }
         }
@@ -49,7 +51,7 @@ fun CambioExitoso(navController: NavController) {
             Image(
                 painter = painterResource(id = R.drawable.circuloconfirmacion),
                 contentDescription = "Confirmación",
-                modifier = Modifier.size(180.dp) // un poco más pequeño, centrado visualmente
+                modifier = Modifier.size(220.dp) // un poco más pequeño, centrado visualmente
             )
 
             Spacer(modifier = Modifier.height(32.dp))

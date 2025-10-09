@@ -1,4 +1,4 @@
-package com.example.myway.screens
+package com.example.myway.screens.modulo1
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
@@ -13,6 +13,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.myway.R
+import com.example.myway.screens.CustomButton
+import com.example.myway.screens.CustomTitleText
 import com.example.myway.ui.theme.Azul3
 import com.example.myway.ui.theme.Blanco
 import com.example.myway.ui.theme.Nunito

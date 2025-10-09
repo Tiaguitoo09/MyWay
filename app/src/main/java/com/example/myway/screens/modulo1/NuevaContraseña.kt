@@ -1,25 +1,23 @@
-package com.example.myway.screens
+package com.example.myway.screens.modulo1
 
 import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.myway.R
+import com.example.myway.screens.CustomButton
+import com.example.myway.screens.CustomTextField
 import com.example.myway.ui.theme.*
 import com.google.firebase.firestore.FirebaseFirestore
 
@@ -39,7 +37,7 @@ fun NuevaContraseña(navController: NavController, correo: String) {
             painter = painterResource(id = R.drawable.fondo2),
             contentDescription = "Fondo",
             modifier = Modifier.fillMaxSize(),
-            contentScale = androidx.compose.ui.layout.ContentScale.Crop
+            contentScale = ContentScale.Crop
         )
 
         // Flecha volver
@@ -127,7 +125,8 @@ fun NuevaContraseña(navController: NavController, correo: String) {
                     }
 
                     if (nueva != confirmar) {
-                        Toast.makeText(context, "Las contraseñas no coinciden", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "Las contraseñas no coinciden", Toast.LENGTH_SHORT)
+                            .show()
                         return@CustomButton
                     }
 
@@ -158,14 +157,20 @@ fun NuevaContraseña(navController: NavController, correo: String) {
                                         navController.navigate("cambio_exitoso")
                                     }
                                     .addOnFailureListener {
-                                        Toast.makeText(context, "Error al actualizar contraseña", Toast.LENGTH_SHORT).show()
+                                        Toast.makeText(
+                                            context,
+                                            "Error al actualizar contraseña",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
                                     }
                             } else {
-                                Toast.makeText(context, "Usuario no encontrado", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, "Usuario no encontrado", Toast.LENGTH_SHORT)
+                                    .show()
                             }
                         }
                         .addOnFailureListener {
-                            Toast.makeText(context, "Error en la base de datos", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "Error en la base de datos", Toast.LENGTH_SHORT)
+                                .show()
                         }
                 }
 

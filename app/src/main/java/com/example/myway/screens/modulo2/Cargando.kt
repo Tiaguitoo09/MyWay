@@ -1,4 +1,4 @@
-package com.example.myway.screens
+package com.example.myway.screens.modulo2
 
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Image

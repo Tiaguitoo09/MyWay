@@ -1,6 +1,5 @@
-package com.example.myway.screens
+package com.example.myway.screens.modulo1
 
-import android.app.Activity
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -19,6 +18,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.myway.R
+import com.example.myway.screens.CustomButton
+import com.example.myway.screens.CustomTextField
 import com.example.myway.temporalUser.UsuarioTemporal
 import com.example.myway.ui.theme.Azul3
 import com.example.myway.ui.theme.Blanco
@@ -154,20 +155,40 @@ fun OlvidoContraseña(
 
                                         if (correo.isNotEmpty()) {
                                             UsuarioTemporal.correo = correo
-                                            Toast.makeText(context, "Frase válida. Redirigiendo...", Toast.LENGTH_SHORT).show()
+                                            Toast.makeText(
+                                                context,
+                                                "Frase válida. Redirigiendo...",
+                                                Toast.LENGTH_SHORT
+                                            ).show()
                                             navController.navigate("nueva_contraseña/${correo}")
                                         } else {
-                                            Toast.makeText(context, "Correo no encontrado", Toast.LENGTH_SHORT).show()
+                                            Toast.makeText(
+                                                context,
+                                                "Correo no encontrado",
+                                                Toast.LENGTH_SHORT
+                                            ).show()
                                         }
                                     } else {
-                                        Toast.makeText(context, "Frase incorrecta o no registrada", Toast.LENGTH_SHORT).show()
+                                        Toast.makeText(
+                                            context,
+                                            "Frase incorrecta o no registrada",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
                                     }
                                 }
                                 .addOnFailureListener {
-                                    Toast.makeText(context, "Error al buscar la frase", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(
+                                        context,
+                                        "Error al buscar la frase",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
                                 }
                         } else {
-                            Toast.makeText(context, "Ingresa tu frase de seguridad", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(
+                                context,
+                                "Ingresa tu frase de seguridad",
+                                Toast.LENGTH_SHORT
+                            ).show()
                         }
                     }
                 )

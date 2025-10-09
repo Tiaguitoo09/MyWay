@@ -1,4 +1,4 @@
-package com.example.myway.screens
+package com.example.myway.screens.modulo2
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
@@ -25,8 +25,6 @@ fun Home(navController: NavController) {
             contentScale = ContentScale.Crop
         )
 
-        // Aquí podrás agregar el contenido del Home más adelante
-        // Ejemplo:
-        // Text(text = "Bienvenido a MyWay", color = Blanco, fontSize = 24.sp)
+
     }
 }
