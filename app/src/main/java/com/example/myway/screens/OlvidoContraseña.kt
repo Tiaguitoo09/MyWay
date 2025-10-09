@@ -115,7 +115,7 @@ fun OlvidoContraseña(
                             Toast.makeText(context, "Código enviado: $code", Toast.LENGTH_LONG).show()
 
                             // 4. Navegar a pantalla de verificación
-                            navController.navigate("verificacion_codigo")
+                            navController.navigate("verificacion_contraseña")
                         } else {
                             Toast.makeText(context, "Ingresa tu correo", Toast.LENGTH_SHORT).show()
                         }

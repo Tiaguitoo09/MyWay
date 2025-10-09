@@ -8,6 +8,7 @@ import com.example.myway.screens.InicioPantalla
 import com.example.myway.screens.IngresoUsuario
 import com.example.myway.screens.OlvidoContraseña
 import com.example.myway.screens.RegistroUsuario
+import com.example.myway.screens.VerificacionContraseña
 import com.google.firebase.auth.FirebaseAuth
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 
@@ -41,6 +42,9 @@ fun MyWayAppNavigation(
 
         composable("olvide_contraseña") {
             OlvidoContraseña(navController = navController, auth=auth)
+        }
+        composable("verificacion_contraseña_") {
+            VerificacionContraseña(navController = navController)
         }
     }
 }

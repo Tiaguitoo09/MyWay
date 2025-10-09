@@ -27,7 +27,7 @@ import androidx.compose.ui.platform.LocalContext
 
 
 @Composable
-fun VerificacionCodigo(navController: NavController) {
+fun VerificacionContraseña(navController: NavController) {
     var code1 by remember { mutableStateOf("") }
     var code2 by remember { mutableStateOf("") }
     var code3 by remember { mutableStateOf("") }
@@ -119,7 +119,7 @@ fun VerificacionCodigo(navController: NavController) {
 
                     if (codeIngresado == codeCorrecto) {
                         Toast.makeText(context, "Código verificado correctamente", Toast.LENGTH_SHORT).show()
-                        navController.navigate("nueva_contraseña") // Aquí iría la pantalla siguiente
+                        navController.navigate("")
                     } else {
                         Toast.makeText(context, "Código incorrecto", Toast.LENGTH_SHORT).show()
                     }
