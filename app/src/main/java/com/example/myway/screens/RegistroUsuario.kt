@@ -1,5 +1,7 @@
 package com.example.myway.screens
 
+import android.content.Context
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
@@ -14,6 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -39,10 +42,8 @@ fun RegistroUsuario(
     googleSignInClient: GoogleSignInClient
 ) {
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
     var isLoading by remember { mutableStateOf(false) }
-
-    // Instancia de Firestore
-    val db = FirebaseFirestore.getInstance()
 
     // Variables de usuario
     var nombre by remember { mutableStateOf("") }
@@ -116,20 +117,13 @@ fun RegistroUsuario(
             // Campos de texto
             CampoTextoAzul("Nombre", nombre) { nombre = it }
             Spacer(modifier = Modifier.height(12.dp))
-
             CampoTextoAzul("Apellido", apellido) { apellido = it }
             Spacer(modifier = Modifier.height(12.dp))
-
             CampoTextoAzul("Correo electrónico", correo) { correo = it }
             Spacer(modifier = Modifier.height(12.dp))
-
             CampoTextoAzul("Contraseña", contrasena, true) { contrasena = it }
             Spacer(modifier = Modifier.height(12.dp))
-
-            CampoTextoAzul("Verificar contraseña", verificarContrasena, true) {
-                verificarContrasena = it
-            }
-
+            CampoTextoAzul("Verificar contraseña", verificarContrasena, true) { verificarContrasena = it }
             Spacer(modifier = Modifier.height(20.dp))
 
             // Fecha de nacimiento
@@ -141,9 +135,7 @@ fun RegistroUsuario(
                 fontSize = 16.sp,
                 modifier = Modifier.align(Alignment.Start)
             )
-
             Spacer(modifier = Modifier.height(6.dp))
-
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -169,9 +161,7 @@ fun RegistroUsuario(
                 fontSize = 16.sp,
                 modifier = Modifier.align(Alignment.Start)
             )
-
             Spacer(modifier = Modifier.height(6.dp))
-
             Row(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -233,24 +223,27 @@ fun RegistroUsuario(
 
             Spacer(modifier = Modifier.height(25.dp))
 
-            // Botón continuar
+            // Botón continuar (🔥 aquí se guarda en Firestore y navega al inicio)
             CustomButton(
                 text = "Continuar",
                 color = Azul3,
                 onClick = {
                     errorFecha = validarFechaNacimiento(dia, mes, anio)
                     if (errorFecha == null) {
+                        val fechaNacimiento = "$dia/$mes/$anio"
                         guardarUsuarioEnFirestore(
-                            db,
-                            nombre,
-                            apellido,
-                            correo,
-                            contrasena,
-                            dia,
-                            mes,
-                            anio,
-                            genero
+                            auth = auth,
+                            navController = navController,
+                            nombre = nombre,
+                            apellido = apellido,
+                            correo = correo,
+                            contrasena = contrasena,
+                            fechaNacimiento = fechaNacimiento,
+                            genero = genero,
+                            context = context
                         )
+                    } else {
+                        Toast.makeText(context, errorFecha, Toast.LENGTH_SHORT).show()
                     }
                 }
             )
@@ -278,12 +271,76 @@ fun RegistroUsuario(
 }
 
 // ---------------------------------------------------------------------
-// Funciones de utilidad
-// ---------------------------------------------------------------------
+// 🔹 Guardar usuario en Firestore (sin duplicar cuentas)
+fun guardarUsuarioEnFirestore(
+    auth: FirebaseAuth,
+    navController: NavController,
+    nombre: String,
+    apellido: String,
+    correo: String,
+    contrasena: String,
+    fechaNacimiento: String,
+    genero: String?,
+    context: Context
+) {
+    val db = FirebaseFirestore.getInstance()
 
+    db.collection("usuarios")
+        .whereEqualTo("correo", correo)
+        .get()
+        .addOnSuccessListener { documents ->
+            if (!documents.isEmpty) {
+                Toast.makeText(
+                    context,
+                    "⚠️ Este correo ya está registrado. Usa otro o inicia sesión.",
+                    Toast.LENGTH_LONG
+                ).show()
+            } else {
+                val userId = auth.currentUser?.uid ?: db.collection("usuarios").document().id
+                val usuarioData = hashMapOf(
+                    "nombre" to nombre,
+                    "apellido" to apellido,
+                    "correo" to correo,
+                    "contrasena" to contrasena,
+                    "fechaNacimiento" to fechaNacimiento,
+                    "genero" to genero,
+                    "fechaRegistro" to System.currentTimeMillis()
+                )
+
+                db.collection("usuarios").document(userId)
+                    .set(usuarioData)
+                    .addOnSuccessListener {
+                        Toast.makeText(
+                            context,
+                            "✅ Cuenta creada con éxito",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                        navController.navigate("inicio") {
+                            popUpTo("registro_usuario") { inclusive = true }
+                        }
+                    }
+                    .addOnFailureListener { e ->
+                        Toast.makeText(
+                            context,
+                            "❌ Error al guardar usuario: ${e.message}",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+            }
+        }
+        .addOnFailureListener { e ->
+            Toast.makeText(
+                context,
+                "❌ Error al verificar el correo: ${e.message}",
+                Toast.LENGTH_LONG
+            ).show()
+        }
+}
+
+// ---------------------------------------------------------------------
+// Validar fecha
 fun validarFechaNacimiento(dia: String, mes: String, anio: String): String? {
     if (dia.isBlank() || mes.isBlank() || anio.isBlank()) return "Por favor completa la fecha"
-
     val d = dia.toIntOrNull() ?: return "Día inválido"
     val m = mes.toIntOrNull() ?: return "Mes inválido"
     val a = anio.toIntOrNull() ?: return "Año inválido"
@@ -309,43 +366,7 @@ fun esBisiesto(anio: Int): Boolean {
 }
 
 // ---------------------------------------------------------------------
-// 🔹 NUEVA FUNCIÓN PARA GUARDAR USUARIO EN FIRESTORE
-// ---------------------------------------------------------------------
-
-fun guardarUsuarioEnFirestore(
-    db: FirebaseFirestore,
-    nombre: String,
-    apellido: String,
-    correo: String,
-    contrasena: String,
-    dia: String,
-    mes: String,
-    anio: String,
-    genero: String?
-) {
-    val usuario = hashMapOf(
-        "nombre" to nombre,
-        "apellido" to apellido,
-        "correo" to correo,
-        "contrasena" to contrasena, // ⚠️ Idealmente NO guardar en texto plano
-        "fechaNacimiento" to "$dia/$mes/$anio",
-        "genero" to (genero ?: "No especificado"),
-        "fechaRegistro" to System.currentTimeMillis()
-    )
-
-    db.collection("usuarios")
-        .add(usuario)
-        .addOnSuccessListener { documentRef ->
-            println("✅ Usuario guardado con ID: ${documentRef.id}")
-        }
-        .addOnFailureListener { e ->
-            println("❌ Error al guardar usuario: ${e.message}")
-        }
-}
-
-// ---------------------------------------------------------------------
-// Componentes Componibles
-// ---------------------------------------------------------------------
+// Componentes reutilizables
 
 @Composable
 fun CampoTextoAzul(
@@ -360,8 +381,7 @@ fun CampoTextoAzul(
         placeholder = { Text(placeholder, color = Azul3) },
         singleLine = true,
         textStyle = TextStyle(color = Azul3),
-        visualTransformation = if (isPassword)
-            PasswordVisualTransformation() else androidx.compose.ui.text.input.VisualTransformation.None,
+        visualTransformation = if (isPassword) PasswordVisualTransformation() else androidx.compose.ui.text.input.VisualTransformation.None,
         modifier = Modifier
             .width(320.dp)
             .height(55.dp),
@@ -377,44 +397,38 @@ fun CampoTextoAzul(
 }
 
 @Composable
-fun CampoFecha(
-    placeholder: String,
-    valor: String,
-    onChange: (String) -> Unit
-) {
+fun CampoFecha(placeholder: String, valor: String, onChange: (String) -> Unit) {
     val MAX_ANIO = 2026
     OutlinedTextField(
         value = valor,
         onValueChange = { nuevoValor ->
             if (nuevoValor.all { it.isDigit() }) {
                 when (placeholder.lowercase()) {
-                    "día" -> {
-                        if (nuevoValor.length <= 2) {
-                            val num = nuevoValor.toIntOrNull()
-                            if (num == null || num in 1..31) onChange(nuevoValor)
-                        }
+                    "día" -> if (nuevoValor.length <= 2) {
+                        val num = nuevoValor.toIntOrNull()
+                        if (num == null || num in 1..31) onChange(nuevoValor)
                     }
 
-                    "mes" -> {
-                        if (nuevoValor.length <= 2) {
-                            val num = nuevoValor.toIntOrNull()
-                            if (num == null || num in 1..12) onChange(nuevoValor)
-                        }
+                    "mes" -> if (nuevoValor.length <= 2) {
+                        val num = nuevoValor.toIntOrNull()
+                        if (num == null || num in 1..12) onChange(nuevoValor)
                     }
 
-                    "año" -> {
-                        if (nuevoValor.length <= 4) {
-                            val num = nuevoValor.toIntOrNull()
-                            if (num == null || nuevoValor.length < 4 || num in 1900..MAX_ANIO) {
-                                onChange(nuevoValor)
-                            }
+                    "año" -> if (nuevoValor.length <= 4) {
+                        val num = nuevoValor.toIntOrNull()
+                        if (num == null || nuevoValor.length < 4 || num in 1900..MAX_ANIO) {
+                            onChange(nuevoValor)
                         }
                     }
                 }
             }
         },
         placeholder = {
-            Text(placeholder, color = Azul3, textAlign = TextAlign.Center)
+            Text(
+                placeholder,
+                color = Azul3,
+                textAlign = TextAlign.Center
+            )
         },
         singleLine = true,
         textStyle = TextStyle(color = Azul3, textAlign = TextAlign.Center),
