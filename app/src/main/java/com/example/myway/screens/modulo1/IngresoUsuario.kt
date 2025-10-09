@@ -1,4 +1,4 @@
-package com.example.myway.screens
+package com.example.myway.screens.modulo1
 
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -20,6 +20,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.myway.R
+import com.example.myway.screens.CustomButton
+import com.example.myway.screens.CustomTextField
 import com.example.myway.ui.theme.Azul3
 import com.example.myway.ui.theme.Blanco
 import com.example.myway.ui.theme.Nunito
@@ -55,7 +57,7 @@ fun IngresoUsuario(
                 auth.signInWithCredential(credential)
                     .addOnCompleteListener { signInTask ->
                         if (signInTask.isSuccessful) {
-                            navController.navigate("inicio") {
+                            navController.navigate("cargando") {
                                 popUpTo("ingreso_usuario") { inclusive = true }
                             }
                         } else {
@@ -160,7 +162,7 @@ fun IngresoUsuario(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                // 🔹 BOTÓN DE INGRESAR (CONECTADO CON FIRESTORE)
+                // 🔹 BOTÓN DE INGRESAR
                 CustomButton(
                     text = "Ingresar",
                     color = Azul3,
@@ -180,7 +182,7 @@ fun IngresoUsuario(
                                             "Inicio de sesión exitoso",
                                             Toast.LENGTH_SHORT
                                         ).show()
-                                        navController.navigate("inicio") {
+                                        navController.navigate("cargando") {
                                             popUpTo("ingreso_usuario") { inclusive = true }
                                         }
                                     } else {

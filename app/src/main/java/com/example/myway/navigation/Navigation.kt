@@ -4,11 +4,14 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import com.example.myway.screens.InicioPantalla
-import com.example.myway.screens.IngresoUsuario
-import com.example.myway.screens.OlvidoContraseña
-import com.example.myway.screens.RegistroUsuario
-import com.example.myway.screens.VerificacionContraseña
+import com.example.myway.screens.modulo1.CambioExitoso
+import com.example.myway.screens.modulo1.IngresoUsuario
+import com.example.myway.screens.modulo1.InicioPantalla
+import com.example.myway.screens.modulo1.NuevaContraseña
+import com.example.myway.screens.modulo1.OlvidoContraseña
+import com.example.myway.screens.modulo1.RegistroUsuario
+import com.example.myway.screens.modulo2.Cargando
+import com.example.myway.screens.modulo2.Home
 import com.google.firebase.auth.FirebaseAuth
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 
@@ -31,7 +34,6 @@ fun MyWayAppNavigation(
             )
         }
 
-        // ✅ Aquí agregamos auth y googleSignInClient también
         composable("registro_usuario") {
             RegistroUsuario(
                 navController = navController,
@@ -41,10 +43,30 @@ fun MyWayAppNavigation(
         }
 
         composable("olvide_contraseña") {
-            OlvidoContraseña(navController = navController, auth=auth)
+            OlvidoContraseña(
+                navController = navController,
+                auth = auth,
+                googleSignInClient = googleSignInClient
+            )
         }
-        composable("verificacion_contraseña_") {
-            VerificacionContraseña(navController = navController)
+
+        composable("nueva_contraseña/{correo}") { backStackEntry ->
+            val correo = backStackEntry.arguments?.getString("correo") ?: ""
+            NuevaContraseña(navController, correo)
+        }
+
+        composable("cambio_exitoso") {
+            CambioExitoso(navController = navController)
+        }
+
+
+        composable("cargando") {
+            Cargando(navController)
+        }
+
+
+        composable("home") {
+            Home(navController)
         }
     }
 }

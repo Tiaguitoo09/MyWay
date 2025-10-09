@@ -1,8 +1,7 @@
 // Ruta sugerida: com.example.myway.utils.CodigoTemporal.kt
 
-package com.example.myway.temporalCode
+package com.example.myway.temporalUser
 
-object CodigoTemporal {
-    var codigo: String? = null
+object UsuarioTemporal {
     var correo: String? = null
 }
