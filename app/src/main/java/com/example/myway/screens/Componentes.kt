@@ -1,6 +1,7 @@
 package com.example.myway.screens
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -24,6 +25,7 @@ import com.example.myway.ui.theme.Azul3
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 
 // ------------------- Botón reutilizable -------------------
 @Composable
@@ -93,13 +95,17 @@ fun CustomTitleText(
     color: Color,
     fontSize: TextUnit = 80.sp,
     fontFamily: FontFamily = Nunito,
-    fontWeight: FontWeight = FontWeight.Normal
+    fontWeight: FontWeight = FontWeight.Normal,
+    textAlign: TextAlign = TextAlign.Start
 ) {
     Text(
         text = text,
         color = color,
         fontFamily = fontFamily,
         fontSize = fontSize,
-        fontWeight = fontWeight
+        fontWeight = fontWeight,
+        textAlign = textAlign, // 👈 se aplica la alineación
+        modifier = Modifier.fillMaxWidth() // 👈 permite que el texto se centre realmente
     )
 }
+

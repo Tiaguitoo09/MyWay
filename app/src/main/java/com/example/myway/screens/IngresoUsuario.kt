@@ -55,7 +55,7 @@ fun IngresoUsuario(
                 auth.signInWithCredential(credential)
                     .addOnCompleteListener { signInTask ->
                         if (signInTask.isSuccessful) {
-                            navController.navigate("inicio") {
+                            navController.navigate("cargando") {
                                 popUpTo("ingreso_usuario") { inclusive = true }
                             }
                         } else {
@@ -160,7 +160,7 @@ fun IngresoUsuario(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                // 🔹 BOTÓN DE INGRESAR (CONECTADO CON FIRESTORE)
+                // 🔹 BOTÓN DE INGRESAR
                 CustomButton(
                     text = "Ingresar",
                     color = Azul3,
@@ -180,7 +180,7 @@ fun IngresoUsuario(
                                             "Inicio de sesión exitoso",
                                             Toast.LENGTH_SHORT
                                         ).show()
-                                        navController.navigate("inicio") {
+                                        navController.navigate("cargando") {
                                             popUpTo("ingreso_usuario") { inclusive = true }
                                         }
                                     } else {

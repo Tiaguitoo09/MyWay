@@ -9,6 +9,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
@@ -18,16 +19,17 @@ import com.example.myway.ui.theme.Nunito
 
 @Composable
 fun CambioExitoso(navController: NavController) {
-    // Espera 2.5 segundos y redirige a la pantalla de ingreso
+    // Espera unos segundos y redirige a la pantalla de ingreso
     LaunchedEffect(Unit) {
-        kotlinx.coroutines.delay(2500)
-        navController.navigate("ingresoUsuario") {
-            popUpTo("cambioExitoso") { inclusive = true } // Elimina esta pantalla del stack
+        kotlinx.coroutines.delay(3500) // más rápido y fluido (3.5 s)
+        navController.navigate("ingreso_usuario") {
+            popUpTo("cambio_exitoso") { inclusive = true }
         }
     }
 
     Box(
-        modifier = Modifier.fillMaxSize()
+        modifier = Modifier
+            .fillMaxSize()
     ) {
         // Fondo de la app
         Image(
@@ -38,27 +40,37 @@ fun CambioExitoso(navController: NavController) {
         )
 
         Column(
-            modifier = Modifier.align(Alignment.Center),
+            modifier = Modifier
+                .align(Alignment.Center)
+                .fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Imagen de círculo
+            // Imagen de círculo con check
             Image(
                 painter = painterResource(id = R.drawable.circuloconfirmacion),
-                contentDescription = "Círculo Confirmación",
-                modifier = Modifier.size(240.dp)
+                contentDescription = "Confirmación",
+                modifier = Modifier.size(180.dp) // un poco más pequeño, centrado visualmente
             )
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
-            // Texto principal reutilizable
+            // Texto principal
             CustomTitleText(
-                text = "Cambio de contraseña exitoso",
+                text = "Cambio de contraseña\nexitoso",
                 color = Blanco,
-                fontSize = 30.sp,
+                fontSize = 28.sp,
                 fontFamily = Nunito,
-                fontWeight = FontWeight.ExtraBold
+                fontWeight = FontWeight.ExtraBold,
+                textAlign = TextAlign.Center
             )
+
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+
+
         }
     }
 }
+
 

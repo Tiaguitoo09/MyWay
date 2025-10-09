@@ -4,12 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import com.example.myway.screens.InicioPantalla
-import com.example.myway.screens.IngresoUsuario
-import com.example.myway.screens.OlvidoContraseña
-import com.example.myway.screens.RegistroUsuario
-import com.example.myway.screens.NuevaContraseña
-import com.example.myway.screens.CambioExitoso
+import com.example.myway.screens.*
 import com.google.firebase.auth.FirebaseAuth
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 
@@ -32,7 +27,6 @@ fun MyWayAppNavigation(
             )
         }
 
-        // ✅ Aquí agregamos auth y googleSignInClient también
         composable("registro_usuario") {
             RegistroUsuario(
                 navController = navController,
@@ -42,14 +36,30 @@ fun MyWayAppNavigation(
         }
 
         composable("olvide_contraseña") {
-            OlvidoContraseña(navController = navController, auth=auth)
+            OlvidoContraseña(
+                navController = navController,
+                auth = auth,
+                googleSignInClient = googleSignInClient
+            )
         }
+
         composable("nueva_contraseña/{correo}") { backStackEntry ->
             val correo = backStackEntry.arguments?.getString("correo") ?: ""
             NuevaContraseña(navController, correo)
         }
+
         composable("cambio_exitoso") {
             CambioExitoso(navController = navController)
+        }
+
+
+        composable("cargando") {
+            Cargando(navController)
+        }
+
+
+        composable("home") {
+            Home(navController)
         }
     }
 }
