@@ -1,4 +1,4 @@
-package com.example.myway.navigation
+package com.example.myway.utils
 
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController

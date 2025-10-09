@@ -20,7 +20,7 @@ import androidx.navigation.NavController
 import com.example.myway.R
 import com.example.myway.screens.CustomButton
 import com.example.myway.screens.CustomTextField
-import com.example.myway.temporalUser.UsuarioTemporal
+import com.example.myway.utils.UsuarioTemporal
 import com.example.myway.ui.theme.Azul3
 import com.example.myway.ui.theme.Blanco
 import com.example.myway.ui.theme.Negro

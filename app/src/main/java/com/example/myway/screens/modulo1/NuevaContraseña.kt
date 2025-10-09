@@ -141,7 +141,7 @@ fun NuevaContraseña(navController: NavController, correo: String) {
 
                     val db = FirebaseFirestore.getInstance()
                     db.collection("usuarios")
-                        .whereEqualTo("correo", correo) // 👈 este correo viene por parámetro
+                        .whereEqualTo("correo", correo)
                         .get()
                         .addOnSuccessListener { docs ->
                             if (!docs.isEmpty) {

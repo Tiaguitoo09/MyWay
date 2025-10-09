@@ -44,7 +44,7 @@ fun IngresoUsuario(
     val email = remember { mutableStateOf("") }
     val password = remember { mutableStateOf("") }
 
-    // 🔹 Google launcher
+    // Google launcher
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -141,7 +141,7 @@ fun IngresoUsuario(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Texto "Olvidé mi contraseña"
+            // Texto
             Text(
                 text = "Olvidé mi contraseña",
                 color = Blanco,
@@ -162,7 +162,7 @@ fun IngresoUsuario(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                // 🔹 BOTÓN DE INGRESAR
+                // Boton de ingresar
                 CustomButton(
                     text = "Ingresar",
                     color = Azul3,
