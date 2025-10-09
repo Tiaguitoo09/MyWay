@@ -21,7 +21,7 @@ import com.example.myway.ui.theme.Blanco
 import com.example.myway.ui.theme.Negro
 import com.example.myway.ui.theme.Nunito
 import com.google.firebase.auth.FirebaseAuth
-
+import com.example.myway.temporalCode.CodigoTemporal
 
 @Composable
 fun OlvidoContraseña(
@@ -58,7 +58,7 @@ fun OlvidoContraseña(
                 .padding(horizontal = 32.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // 🟡 Título arriba con espacio
+
             Spacer(modifier = Modifier.height(60.dp))
             Text(
                 text = "Olvide mi contraseña",
@@ -70,7 +70,7 @@ fun OlvidoContraseña(
 
             Spacer(modifier = Modifier.height(40.dp))
 
-            // 🔵 Contenido centrado abajo del título
+
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(20.dp),
@@ -104,27 +104,23 @@ fun OlvidoContraseña(
                         .height(45.dp),
                     onClick = {
                         if (email.isNotEmpty()) {
-                            auth.sendPasswordResetEmail(email)
-                                .addOnCompleteListener { task ->
-                                    if (task.isSuccessful) {
-                                        Toast.makeText(
-                                            context,
-                                            "Correo de recuperación enviado",
-                                            Toast.LENGTH_LONG
-                                        ).show()
-                                        navController.popBackStack()
-                                    } else {
-                                        Toast.makeText(
-                                            context,
-                                            "Error: ${task.exception?.message}",
-                                            Toast.LENGTH_LONG
-                                        ).show()
-                                    }
-                                }
+                            // 1. Generar código aleatorio
+                            val code = (1000..9999).random().toString()
+
+                            // 2. Guardar código y correo temporalmente
+                            CodigoTemporal.codigo = code
+                            CodigoTemporal.correo = email
+
+                            // 3. Simular el envío (esto en producción se hace con un servicio de email real)
+                            Toast.makeText(context, "Código enviado: $code", Toast.LENGTH_LONG).show()
+
+                            // 4. Navegar a pantalla de verificación
+                            navController.navigate("verificacion_codigo")
                         } else {
                             Toast.makeText(context, "Ingresa tu correo", Toast.LENGTH_SHORT).show()
                         }
                     }
+
                 )
 
                 // Imagen Google

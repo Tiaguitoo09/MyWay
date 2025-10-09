@@ -21,6 +21,10 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.myway.R
 import com.example.myway.ui.theme.*
+import com.example.myway.temporalCode.CodigoTemporal
+import android.widget.Toast
+import androidx.compose.ui.platform.LocalContext
+
 
 @Composable
 fun VerificacionCodigo(navController: NavController) {
@@ -57,6 +61,7 @@ fun VerificacionCodigo(navController: NavController) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Top
         ) {
+            val context = LocalContext.current
             Spacer(modifier = Modifier.height(70.dp))
 
             Text(
@@ -109,9 +114,17 @@ fun VerificacionCodigo(navController: NavController) {
                     .width(200.dp)
                     .height(45.dp),
                 onClick = {
-                    val code = code1 + code2 + code3 + code4
-                    // lógica de verificación de código
+                    val codeIngresado = code1 + code2 + code3 + code4
+                    val codeCorrecto = CodigoTemporal.codigo
+
+                    if (codeIngresado == codeCorrecto) {
+                        Toast.makeText(context, "Código verificado correctamente", Toast.LENGTH_SHORT).show()
+                        navController.navigate("nueva_contraseña") // Aquí iría la pantalla siguiente
+                    } else {
+                        Toast.makeText(context, "Código incorrecto", Toast.LENGTH_SHORT).show()
+                    }
                 }
+
             )
 
             Spacer(modifier = Modifier.height(30.dp))
