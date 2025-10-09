@@ -8,7 +8,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -40,7 +40,20 @@ fun RegistroUsuario(
     val scope = rememberCoroutineScope()
     var isLoading by remember { mutableStateOf(false) }
 
-    // 🔹 Lanzador del Intent de Google Sign-In
+    // Variables de usuario
+    var nombre by remember { mutableStateOf("") }
+    var apellido by remember { mutableStateOf("") }
+    var correo by remember { mutableStateOf("") }
+    var contrasena by remember { mutableStateOf("") }
+    var verificarContrasena by remember { mutableStateOf("") }
+    var dia by remember { mutableStateOf("") }
+    var mes by remember { mutableStateOf("") }
+    var anio by remember { mutableStateOf("") }
+    var genero by remember { mutableStateOf<String?>(null) }
+
+    var errorFecha by remember { mutableStateOf<String?>(null) }
+
+    // Google Sign-In launcher
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -49,12 +62,10 @@ fun RegistroUsuario(
             val account = task.result
             val credential = GoogleAuthProvider.getCredential(account.idToken, null)
 
-            // 🔹 Registrar o iniciar sesión con Firebase
             scope.launch {
                 auth.signInWithCredential(credential)
                     .addOnCompleteListener { signInTask ->
                         if (signInTask.isSuccessful) {
-                            // Si el usuario no existía, Firebase lo crea automáticamente
                             navController.navigate("inicio") {
                                 popUpTo("registro_usuario") { inclusive = true }
                             }
@@ -98,16 +109,6 @@ fun RegistroUsuario(
                 .padding(horizontal = 32.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            var nombre by remember { mutableStateOf("") }
-            var apellido by remember { mutableStateOf("") }
-            var correo by remember { mutableStateOf("") }
-            var contrasena by remember { mutableStateOf("") }
-            var verificarContrasena by remember { mutableStateOf("") }
-            var dia by remember { mutableStateOf("") }
-            var mes by remember { mutableStateOf("") }
-            var anio by remember { mutableStateOf("") }
-            var genero by remember { mutableStateOf<String?>(null) }
-
             Spacer(modifier = Modifier.height(40.dp))
 
             // Campos de texto
@@ -144,6 +145,11 @@ fun RegistroUsuario(
                 CampoFecha("Año", anio) { anio = it }
             }
 
+            errorFecha?.let {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(text = it, color = Color.Red, fontSize = 14.sp)
+            }
+
             Spacer(modifier = Modifier.height(20.dp))
 
             // Género
@@ -162,7 +168,6 @@ fun RegistroUsuario(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Masculino
                 Box(
                     modifier = Modifier
                         .size(90.dp, 55.dp)
@@ -181,12 +186,11 @@ fun RegistroUsuario(
                     )
                 }
 
-                // Femenino
                 Box(
                     modifier = Modifier
                         .size(90.dp, 55.dp)
                         .background(
-                            if (genero == "femenino") Color(0xFFFFC0CB).copy(alpha = 0.4f) else Blanco,
+                            if (genero == "femenino") PurpuraSua.copy(alpha = 0.5f) else Blanco,
                             shape = RoundedCornerShape(20.dp)
                         )
                         .border(2.dp, Azul3, shape = RoundedCornerShape(20.dp))
@@ -199,47 +203,100 @@ fun RegistroUsuario(
                         modifier = Modifier.size(30.dp)
                     )
                 }
+
+                Box(
+                    modifier = Modifier
+                        .size(90.dp, 55.dp)
+                        .background(
+                            if (genero == "no_binario") Rosado.copy(alpha = 0.5f) else Blanco,
+                            shape = RoundedCornerShape(20.dp)
+                        )
+                        .border(2.dp, Azul3, shape = RoundedCornerShape(20.dp))
+                        .clickable { genero = "no_binario" },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.icono_no_binario),
+                        contentDescription = "No binario",
+                        modifier = Modifier.size(30.dp)
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(25.dp))
 
-            // Botón de registro manual
+            // Botón continuar
             CustomButton(
                 text = "Continuar",
                 color = Azul3,
                 onClick = {
-                    // Aquí luego agregaremos validación y registro manual (email/password)
+                    errorFecha = validarFechaNacimiento(dia, mes, anio)
                 }
             )
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // 🔹 Botón funcional de Google
+            // Google Sign-In
             Text(
                 text = if (isLoading) "Creando cuenta con Google..." else "Registrarse con Google",
-                color = Blanco, // <- cambia Azul1 por Blanco
+                color = Blanco,
                 fontFamily = Nunito,
                 fontWeight = FontWeight.Bold,
                 fontSize = 16.sp,
                 textDecoration = TextDecoration.Underline,
                 modifier = Modifier.clickable(enabled = !isLoading) {
                     isLoading = true
-
                     googleSignInClient.signOut()
                     auth.signOut()
-
                     val signInIntent = googleSignInClient.signInIntent
                     launcher.launch(signInIntent)
                 }
             )
-
         }
     }
 }
 
+// ---------------------------------------------------------------------
+// Funciones de utilidad
 
+// ✅ Validar fecha correctamente (con años bisiestos y límite 2025)
+fun validarFechaNacimiento(dia: String, mes: String, anio: String): String? {
+    if (dia.isBlank() || mes.isBlank() || anio.isBlank()) return "Por favor completa la fecha"
 
-// Reutilizable: Campo con fondo blanco, texto azul y esquinas redondeadas
+    val d = dia.toIntOrNull() ?: return "Día inválido"
+    val m = mes.toIntOrNull() ?: return "Mes inválido"
+    val a = anio.toIntOrNull() ?: return "Año inválido"
+
+    // Definición del límite máximo solicitado
+    val MAX_ANIO = 2025
+
+    if (m !in 1..12) return "Mes inválido"
+    // Validamos el rango de años
+    if (a !in 1900..MAX_ANIO) return "Año inválido (debe estar entre 1900 y $MAX_ANIO)"
+
+    val diasEnMes = when (m) {
+        1, 3, 5, 7, 8, 10, 12 -> 31
+        4, 6, 9, 11 -> 30
+        2 -> if (esBisiesto(a)) 29 else 28
+        else -> 0
+    }
+
+    if (d !in 1..diasEnMes) {
+        return "El mes $m solo tiene $diasEnMes días"
+    }
+
+    return null // ✅ Fecha válida
+}
+
+// 🔹 Determina si un año es bisiesto
+fun esBisiesto(anio: Int): Boolean {
+    return (anio % 4 == 0 && (anio % 100 != 0 || anio % 400 == 0))
+}
+
+// ---------------------------------------------------------------------
+// Componentes Componibles
+
+// Campo de texto normal
 @Composable
 fun CampoTextoAzul(
     placeholder: String,
@@ -247,7 +304,7 @@ fun CampoTextoAzul(
     isPassword: Boolean = false,
     onChange: (String) -> Unit
 ) {
-    androidx.compose.material3.OutlinedTextField(
+    OutlinedTextField(
         value = valor,
         onValueChange = onChange,
         placeholder = { Text(placeholder, color = Azul3) },
@@ -257,7 +314,7 @@ fun CampoTextoAzul(
         modifier = Modifier
             .width(320.dp)
             .height(55.dp),
-        colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
+        colors = OutlinedTextFieldDefaults.colors(
             focusedBorderColor = Azul3,
             unfocusedBorderColor = Azul3,
             cursorColor = Azul3,
@@ -268,18 +325,41 @@ fun CampoTextoAzul(
     )
 }
 
-// Campo de fecha pequeño (día, mes, año)
+// Campo de fecha con límites (incluyendo el límite de año hasta 2025)
 @Composable
 fun CampoFecha(
     placeholder: String,
     valor: String,
     onChange: (String) -> Unit
 ) {
-    androidx.compose.material3.OutlinedTextField(
+    // Definimos el límite máximo de año fijo en 2025
+    val MAX_ANIO = 2025
+
+    OutlinedTextField(
         value = valor,
-        onValueChange = {
-            if (it.length <= 4 && it.all { c -> c.isDigit() }) {
-                onChange(it)
+        onValueChange = { nuevoValor ->
+            if (nuevoValor.all { it.isDigit() }) {
+                when (placeholder.lowercase()) {
+                    "día" -> {
+                        if (nuevoValor.length <= 2) {
+                            val num = nuevoValor.toIntOrNull()
+                            if (num == null || num in 1..31) onChange(nuevoValor)
+                        }
+                    }
+                    "mes" -> {
+                        if (nuevoValor.length <= 2) {
+                            val num = nuevoValor.toIntOrNull()
+                            if (num == null || num in 1..12) onChange(nuevoValor)
+                        }
+                    }
+                    "año" -> {
+                        if (nuevoValor.length <= 4) {
+                            val num = nuevoValor.toIntOrNull()
+                            // Control de entrada: solo permite hasta el año 2025
+                            if (num == null || num in 1900..MAX_ANIO) onChange(nuevoValor)
+                        }
+                    }
+                }
             }
         },
         placeholder = { Text(placeholder, color = Azul3, textAlign = TextAlign.Center) },
@@ -288,7 +368,7 @@ fun CampoFecha(
         modifier = Modifier
             .width(90.dp)
             .height(55.dp),
-        colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
+        colors = OutlinedTextFieldDefaults.colors(
             focusedBorderColor = Azul3,
             unfocusedBorderColor = Azul3,
             cursorColor = Azul3,
