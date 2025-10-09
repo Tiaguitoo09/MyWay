@@ -229,7 +229,7 @@ fun RegistroUsuario(
 
             Spacer(modifier = Modifier.height(25.dp))
 
-            // Botón continuar (aquí se guarda en Firestore y navega al inicio)
+            // Botón continuar
             CustomButton(
                 text = "Continuar",
                 color = Azul3,
@@ -278,7 +278,7 @@ fun RegistroUsuario(
 }
 
 // ---------------------------------------------------------------------
-// Guardar usuario en Firestore (ahora con frase de seguridad)
+// Guardar usuario en Firestore
 fun guardarUsuarioEnFirestore(
     auth: FirebaseAuth,
     navController: NavController,
@@ -321,7 +321,7 @@ fun guardarUsuarioEnFirestore(
                     .addOnSuccessListener {
                         Toast.makeText(
                             context,
-                            "✅ Cuenta creada con éxito",
+                            "Cuenta creada con éxito",
                             Toast.LENGTH_SHORT
                         ).show()
                         navController.navigate("inicio") {
@@ -331,7 +331,7 @@ fun guardarUsuarioEnFirestore(
                     .addOnFailureListener { e ->
                         Toast.makeText(
                             context,
-                            "❌ Error al guardar usuario: ${e.message}",
+                            "Error al guardar usuario: ${e.message}",
                             Toast.LENGTH_LONG
                         ).show()
                     }
@@ -340,7 +340,7 @@ fun guardarUsuarioEnFirestore(
         .addOnFailureListener { e ->
             Toast.makeText(
                 context,
-                "❌ Error al verificar el correo: ${e.message}",
+                "Error al verificar el correo: ${e.message}",
                 Toast.LENGTH_LONG
             ).show()
         }

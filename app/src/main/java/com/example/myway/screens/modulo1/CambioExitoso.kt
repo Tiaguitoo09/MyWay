@@ -23,7 +23,7 @@ import kotlinx.coroutines.delay
 fun CambioExitoso(navController: NavController) {
     // Espera unos segundos y redirige a la pantalla de ingreso
     LaunchedEffect(Unit) {
-        delay(3500) // más rápido y fluido (3.5 s)
+        delay(3500)
         navController.navigate("ingreso_usuario") {
             popUpTo("cambio_exitoso") { inclusive = true }
         }
@@ -51,7 +51,7 @@ fun CambioExitoso(navController: NavController) {
             Image(
                 painter = painterResource(id = R.drawable.circuloconfirmacion),
                 contentDescription = "Confirmación",
-                modifier = Modifier.size(220.dp) // un poco más pequeño, centrado visualmente
+                modifier = Modifier.size(220.dp)
             )
 
             Spacer(modifier = Modifier.height(32.dp))

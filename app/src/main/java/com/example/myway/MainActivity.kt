@@ -5,7 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.Composable
 import androidx.navigation.compose.rememberNavController
-import com.example.myway.navigation.MyWayAppNavigation
+import com.example.myway.utils.MyWayAppNavigation
 import com.example.myway.ui.theme.MyWayTheme
 import com.google.firebase.auth.FirebaseAuth
 import com.google.android.gms.auth.api.signin.GoogleSignIn
