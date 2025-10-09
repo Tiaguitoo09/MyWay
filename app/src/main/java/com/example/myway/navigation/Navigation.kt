@@ -8,7 +8,8 @@ import com.example.myway.screens.InicioPantalla
 import com.example.myway.screens.IngresoUsuario
 import com.example.myway.screens.OlvidoContraseña
 import com.example.myway.screens.RegistroUsuario
-import com.example.myway.screens.VerificacionContraseña
+import com.example.myway.screens.NuevaContraseña
+import com.example.myway.screens.CambioExitoso
 import com.google.firebase.auth.FirebaseAuth
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 
@@ -43,8 +44,12 @@ fun MyWayAppNavigation(
         composable("olvide_contraseña") {
             OlvidoContraseña(navController = navController, auth=auth)
         }
-        composable("verificacion_contraseña_") {
-            VerificacionContraseña(navController = navController)
+        composable("nueva_contraseña/{correo}") { backStackEntry ->
+            val correo = backStackEntry.arguments?.getString("correo") ?: ""
+            NuevaContraseña(navController, correo)
+        }
+        composable("cambio_exitoso") {
+            CambioExitoso(navController = navController)
         }
     }
 }

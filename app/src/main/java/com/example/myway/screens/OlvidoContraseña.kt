@@ -21,20 +21,21 @@ import com.example.myway.ui.theme.Blanco
 import com.example.myway.ui.theme.Negro
 import com.example.myway.ui.theme.Nunito
 import com.google.firebase.auth.FirebaseAuth
-import com.example.myway.temporalCode.CodigoTemporal
+import com.example.myway.temporalUser.UsuarioTemporal
+import com.google.firebase.firestore.FirebaseFirestore
 
 @Composable
 fun OlvidoContraseña(
     navController: NavController,
     auth: FirebaseAuth
 ) {
-    var email by remember { mutableStateOf("") }
+    var fraseSeguridad by remember { mutableStateOf("") }
     val context = LocalContext.current
 
     Box(modifier = Modifier.fillMaxSize()) {
         // Fondo
         Image(
-            painter = painterResource(id = R.drawable.fondo1),
+            painter = painterResource(id = R.drawable.fondo2),
             contentDescription = "Fondo",
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop
@@ -78,22 +79,23 @@ fun OlvidoContraseña(
                     .fillMaxWidth()
             ) {
                 Text(
-                    text = "Ingrese su correo electrónico",
+                    text = "Ingrese su frase de seguridad",
                     fontFamily = Nunito,
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 18.sp,
                     color = Blanco
                 )
 
-                // Campo de correo
+                // Campo de frase
                 CustomTextField(
-                    placeholder = "Correo electrónico",
-                    text = email,
-                    onTextChange = { email = it },
+                    placeholder = "Frase de seguridad",
+                    text = fraseSeguridad,
+                    onTextChange = { fraseSeguridad = it },
                     color = Blanco,
                     textColor = Negro,
                     isPassword = false
                 )
+
 
                 // Botón enviar
                 CustomButton(
@@ -103,25 +105,37 @@ fun OlvidoContraseña(
                         .width(200.dp)
                         .height(45.dp),
                     onClick = {
-                        if (email.isNotEmpty()) {
-                            // 1. Generar código aleatorio
-                            val code = (1000..9999).random().toString()
+                        if (fraseSeguridad.isNotEmpty()) {
+                            val db = FirebaseFirestore.getInstance()
+                            db.collection("usuarios")
+                                .whereEqualTo("fraseSeguridad", fraseSeguridad)
+                                .get()
+                                .addOnSuccessListener { documentos ->
+                                    if (!documentos.isEmpty) {
+                                        val usuario = documentos.documents.first()
+                                        val correo = usuario.getString("correo") ?: ""
 
-                            // 2. Guardar código y correo temporalmente
-                            CodigoTemporal.codigo = code
-                            CodigoTemporal.correo = email
-
-                            // 3. Simular el envío (esto en producción se hace con un servicio de email real)
-                            Toast.makeText(context, "Código enviado: $code", Toast.LENGTH_LONG).show()
-
-                            // 4. Navegar a pantalla de verificación
-                            navController.navigate("verificacion_contraseña")
+                                        if (correo.isNotEmpty()) {
+                                            UsuarioTemporal.correo = correo
+                                            Toast.makeText(context, "Frase válida. Redirigiendo...", Toast.LENGTH_SHORT).show()
+                                            navController.navigate("nueva_contraseña/${correo}")
+                                        } else {
+                                            Toast.makeText(context, "Correo no encontrado en base de datos", Toast.LENGTH_SHORT).show()
+                                        }
+                                    } else {
+                                        Toast.makeText(context, "Frase incorrecta o no registrada", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                                .addOnFailureListener {
+                                    Toast.makeText(context, "Error al buscar la frase", Toast.LENGTH_SHORT).show()
+                                }
                         } else {
-                            Toast.makeText(context, "Ingresa tu correo", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "Ingresa tu frase de seguridad", Toast.LENGTH_SHORT).show()
                         }
                     }
-
                 )
+
+
 
                 // Imagen Google
                 Image(
@@ -153,9 +167,3 @@ fun OlvidoContraseña(
         }
     }
 }
-
-
-
-
-
-
