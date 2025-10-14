@@ -12,6 +12,7 @@ import com.example.myway.screens.modulo1.OlvidoContraseña
 import com.example.myway.screens.modulo1.RegistroUsuario
 import com.example.myway.screens.modulo2.Cargando
 import com.example.myway.screens.modulo2.Home
+import com.example.myway.screens.modulo2.PerfilAjustes
 import com.google.firebase.auth.FirebaseAuth
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 
@@ -59,14 +60,16 @@ fun MyWayAppNavigation(
             CambioExitoso(navController = navController)
         }
 
-
         composable("cargando") {
             Cargando(navController)
         }
 
-
         composable("home") {
             Home(navController)
+        }
+
+        composable("perfil_ajustes") {
+            PerfilAjustes(navController= navController)
         }
     }
 }
