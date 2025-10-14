@@ -43,7 +43,7 @@ fun OlvidoContraseña(
     val scope = rememberCoroutineScope()
     var isLoading by remember { mutableStateOf(false) }
 
-    // 🔹 Launcher para Google Sign-In
+    // Launcher para Google Sign-In
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -195,7 +195,7 @@ fun OlvidoContraseña(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // 🔹 Imagen Google con inicio de sesión
+                // Imagen Google con inicio de sesión
                 Image(
                     painter = painterResource(id = R.drawable.google_image),
                     contentDescription = "Google",
