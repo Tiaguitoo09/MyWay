@@ -53,9 +53,9 @@ fun PerfilAjustes(navController: NavController) {
                 .fillMaxSize()
                 .padding(horizontal = 32.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            //verticalArrangement = Arrangement.Center
         ) {
             Spacer(modifier = Modifier.height(60.dp))
+
             // Imagen de perfil
             Image(
                 painter = painterResource(id = R.drawable.icono_perfil2),
@@ -67,7 +67,8 @@ fun PerfilAjustes(navController: NavController) {
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            val nombreUsuario = UsuarioTemporal.nombre?.trim()?.lowercase()?.replaceFirstChar { it.uppercase() } ?: "Usuario"
+            val nombreUsuario = UsuarioTemporal.nombre?.trim()?.lowercase()
+                ?.replaceFirstChar { it.uppercase() } ?: "Usuario"
 
             // Mostrar Nombre
             Text(
@@ -95,23 +96,9 @@ fun PerfilAjustes(navController: NavController) {
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Botones
+            // Botón Soporte
             CustomButton(
                 text = "Soporte",
-                color = Azul3,
-                fontSize = 22.sp,
-                modifier = Modifier
-                    .fillMaxWidth(0.85f) // ancho más grande (85% del ancho de pantalla)
-                    .height(70.dp),       // más altos
-                fontWeight = FontWeight.ExtraBold,
-                onClick = {
-                    navController.navigate("")
-                }
-            )
-
-            Spacer(modifier = Modifier.height(18.dp))
-            CustomButton(
-                text = "Ajustes",
                 color = Azul3,
                 fontSize = 22.sp,
                 modifier = Modifier
@@ -123,9 +110,25 @@ fun PerfilAjustes(navController: NavController) {
                 }
             )
 
+            Spacer(modifier = Modifier.height(18.dp))
+
+            // ✅ Botón Ajustes (con navegación configurada)
+            CustomButton(
+                text = "Ajustes",
+                color = Azul3,
+                fontSize = 22.sp,
+                modifier = Modifier
+                    .fillMaxWidth(0.85f)
+                    .height(70.dp),
+                fontWeight = FontWeight.ExtraBold,
+                onClick = {
+                    navController.navigate("ajustes")
+                }
+            )
 
             Spacer(modifier = Modifier.height(18.dp))
 
+            // Botón Eliminar cuenta
             CustomButton(
                 text = "Eliminar Cuenta",
                 color = Rojo,
@@ -138,7 +141,6 @@ fun PerfilAjustes(navController: NavController) {
                     navController.navigate("eliminar_cuenta")
                 }
             )
-
 
             Spacer(modifier = Modifier.height(40.dp))
 
@@ -161,7 +163,8 @@ fun PerfilAjustes(navController: NavController) {
                 textDecoration = TextDecoration.Underline,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Normal,
-                modifier = Modifier.padding(top = 8.dp)
+                modifier = Modifier
+                    .padding(top = 8.dp)
                     .clickable {
                         navController.navigate("cerrar_sesion")
                     }

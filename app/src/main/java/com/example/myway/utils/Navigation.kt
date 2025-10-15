@@ -16,6 +16,7 @@ import com.example.myway.screens.modulo2.CerrarSesion
 import com.example.myway.screens.modulo2.EliminarCuenta
 import com.example.myway.screens.modulo2.Home
 import com.example.myway.screens.modulo2.PerfilAjustes
+import com.example.myway.screens.modulo2.Ajustes
 import com.example.myway.screens.modulo2.VerPerfil
 import com.google.firebase.auth.FirebaseAuth
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
@@ -27,6 +28,7 @@ fun MyWayAppNavigation(
     googleSignInClient: GoogleSignInClient
 ) {
     NavHost(navController = navController, startDestination = "inicio") {
+
         composable("inicio") {
             InicioPantalla(navController)
         }
@@ -73,25 +75,28 @@ fun MyWayAppNavigation(
         }
 
         composable("perfil_ajustes") {
-            PerfilAjustes(navController= navController)
+            PerfilAjustes(navController = navController)
         }
 
         composable("eliminar_cuenta") {
-            EliminarCuenta(navController= navController)
+            EliminarCuenta(navController = navController)
         }
 
         composable("cerrar_sesion") {
-            CerrarSesion(navController= navController)
+            CerrarSesion(navController = navController)
         }
+
         composable("ver_perfil") {
-            VerPerfil(navController= navController)
+            VerPerfil(navController = navController)
         }
 
         composable("cambio_contraseña") {
-            CambioContrasena(navController= navController)
-
-        }
+            CambioContrasena(navController = navController)
         }
 
-
+        // 🚀 Nueva pantalla de Ajustes
+        composable("ajustes") {
+            Ajustes(navController = navController)
+        }
+    }
 }
