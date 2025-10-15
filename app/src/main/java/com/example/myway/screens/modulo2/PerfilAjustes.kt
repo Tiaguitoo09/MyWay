@@ -63,11 +63,13 @@ fun PerfilAjustes(navController: NavController) {
                     .padding(bottom = 8.dp)
             )
 
-            // Nombre del usuario
+            val nombreUsuario = UsuarioTemporal.nombre?.trim()?.lowercase()?.replaceFirstChar { it.uppercase() } ?: "Usuario"
+
+            // Mostrar Nombre
             Text(
-                text = UsuarioTemporal.nombre ?: "Usuario",
+                text = "Hola, $nombreUsuario",
                 color = Blanco,
-                fontSize = 22.sp,
+                fontSize = 24.sp,
                 fontWeight = FontWeight.Bold
             )
 

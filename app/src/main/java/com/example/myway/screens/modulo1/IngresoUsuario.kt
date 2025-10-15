@@ -25,6 +25,7 @@ import com.example.myway.screens.CustomTextField
 import com.example.myway.ui.theme.Azul3
 import com.example.myway.ui.theme.Blanco
 import com.example.myway.ui.theme.Nunito
+import com.example.myway.utils.UsuarioTemporal
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.firebase.auth.FirebaseAuth
@@ -44,7 +45,7 @@ fun IngresoUsuario(
     val email = remember { mutableStateOf("") }
     val password = remember { mutableStateOf("") }
 
-    // Google launcher
+    // 🔹 Google launcher
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -61,7 +62,6 @@ fun IngresoUsuario(
                                 popUpTo("ingreso_usuario") { inclusive = true }
                             }
                         } else {
-                            signInTask.exception?.printStackTrace()
                             Toast.makeText(context, "Error al iniciar sesión con Google", Toast.LENGTH_SHORT).show()
                         }
                     }
@@ -141,7 +141,7 @@ fun IngresoUsuario(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Texto
+            // Texto de olvido contraseña
             Text(
                 text = "Olvidé mi contraseña",
                 color = Blanco,
@@ -149,76 +149,65 @@ fun IngresoUsuario(
                 fontWeight = FontWeight.Bold,
                 textDecoration = TextDecoration.Underline,
                 textAlign = TextAlign.Center,
-                modifier = Modifier
-                    .clickable {
-                        navController.navigate("olvide_contraseña")
-                    }
+                modifier = Modifier.clickable {
+                    navController.navigate("olvide_contraseña")
+                }
             )
 
             Spacer(modifier = Modifier.height(34.dp))
 
-            // Botones
+            // Botones principales
             Row(
-                    modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-            // Boton de ingresar
-            CustomButton(
-                text = "Ingresar",
-                color = Azul3,
-                modifier = Modifier.width(140.dp),
-                onClick = {
-                    if (email.value.isNotEmpty() && password.value.isNotEmpty()) {
-                        val db = FirebaseFirestore.getInstance()
+                // Botón ingresar
+                CustomButton(
+                    text = "Ingresar",
+                    color = Azul3,
+                    modifier = Modifier.width(140.dp),
+                    onClick = {
+                        if (email.value.isNotEmpty() && password.value.isNotEmpty()) {
+                            val db = FirebaseFirestore.getInstance()
 
-                        db.collection("usuarios")
-                            .whereEqualTo("correo", email.value)
-                            .whereEqualTo("contrasena", password.value)
-                            .get()
-                            .addOnSuccessListener { documents ->
-                                if (!documents.isEmpty) {
-                                    Toast.makeText(
-                                        context,
-                                        "Inicio de sesión exitoso",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
-                                    navController.navigate("cargando") {
-                                        popUpTo("ingreso_usuario") { inclusive = true }
+                            db.collection("usuarios")
+                                .whereEqualTo("correo", email.value)
+                                .whereEqualTo("contrasena", password.value)
+                                .get()
+                                .addOnSuccessListener { documents ->
+                                    if (!documents.isEmpty) {
+                                        val userDoc = documents.documents[0]
+                                        // Guardar temporalmente el usuario
+                                        UsuarioTemporal.correo = email.value
+                                        UsuarioTemporal.nombre = userDoc.getString("nombre") ?: "Usuario"
+
+                                        Toast.makeText(context, "Inicio de sesión exitoso", Toast.LENGTH_SHORT).show()
+                                        navController.navigate("cargando") {
+                                            popUpTo("ingreso_usuario") { inclusive = true }
+                                        }
+                                    } else {
+                                        Toast.makeText(context, "Correo o contraseña incorrectos", Toast.LENGTH_SHORT).show()
                                     }
-                                } else {
-                                    Toast.makeText(
-                                        context,
-                                        "Correo o contraseña incorrectos",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
                                 }
-                            }
-                            .addOnFailureListener { e ->
-                                Toast.makeText(
-                                    context,
-                                    "Error al iniciar sesión: ${e.message}",
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                            }
-                    } else {
-                        Toast.makeText(
-                            context,
-                            "Completa todos los campos",
-                            Toast.LENGTH_SHORT
-                        ).show()
+                                .addOnFailureListener { e ->
+                                    Toast.makeText(context, "Error al iniciar sesión: ${e.message}", Toast.LENGTH_SHORT).show()
+                                }
+                        } else {
+                            Toast.makeText(context, "Completa todos los campos", Toast.LENGTH_SHORT).show()
+                        }
                     }
-                }
-            )
+                )
 
-            CustomButton(
-                text = "Registrarse",
-                color = Azul3,
-                modifier = Modifier.width(140.dp),
-                onClick = {
-                    navController.navigate("registro_usuario")
-                }
-            )
-        }
+                // Botón registrarse
+                CustomButton(
+                    text = "Registrarse",
+                    color = Azul3,
+                    modifier = Modifier.width(140.dp),
+                    onClick = {
+                        navController.navigate("registro_usuario")
+                    }
+                )
+            }
 
             Spacer(modifier = Modifier.height(24.dp))
 
@@ -231,11 +220,8 @@ fun IngresoUsuario(
                 textDecoration = TextDecoration.Underline,
                 modifier = Modifier.clickable(enabled = !isLoading) {
                     isLoading = true
-
-                    // Forzar selector de cuentas
                     googleSignInClient.signOut()
                     auth.signOut()
-
                     val signInIntent = googleSignInClient.signInIntent
                     launcher.launch(signInIntent)
                 }

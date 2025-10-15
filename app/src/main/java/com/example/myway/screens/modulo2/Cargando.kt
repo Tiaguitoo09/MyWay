@@ -25,22 +25,22 @@ import kotlinx.coroutines.delay
 @Composable
 fun Cargando(navController: NavController) {
 
-    // 🔹 Recuperamos información del usuario (Google o correo normal)
     LaunchedEffect(Unit) {
         val auth = FirebaseAuth.getInstance()
         val db = FirebaseFirestore.getInstance()
         val usuarioActual = auth.currentUser
+        val correoTemporal = UsuarioTemporal.correo
 
         if (usuarioActual != null) {
             val correo = usuarioActual.email
             val nombreGoogle = usuarioActual.displayName
 
             if (nombreGoogle != null) {
-                // 🟢 Inicio con Google
+                // 🟢 Login con Google
                 UsuarioTemporal.nombre = nombreGoogle
                 UsuarioTemporal.correo = correo ?: ""
             } else if (correo != null) {
-                // 🔵 Inicio con correo/contraseña (app propia)
+                // 🔵 Login con correo Firebase
                 db.collection("usuarios")
                     .whereEqualTo("correo", correo)
                     .get()
@@ -51,16 +51,26 @@ fun Cargando(navController: NavController) {
                         }
                     }
             }
+        } else if (!correoTemporal.isNullOrEmpty()) {
+            // 🟣 Login manual (sin FirebaseAuth)
+            db.collection("usuarios")
+                .whereEqualTo("correo", correoTemporal)
+                .get()
+                .addOnSuccessListener { docs ->
+                    if (!docs.isEmpty) {
+                        UsuarioTemporal.nombre = docs.documents[0].getString("nombre") ?: "Usuario"
+                    }
+                }
         }
 
-        // Espera antes de navegar
+        // Pequeña espera antes de navegar
         delay(3000)
         navController.navigate("home") {
             popUpTo("cargando") { inclusive = true }
         }
     }
 
-    // 🔁 Animación de rotación
+    // Animación rotatoria
     val infiniteTransition = rememberInfiniteTransition(label = "rotacionPalito")
     val rotacion by infiniteTransition.animateFloat(
         initialValue = -90f,
@@ -72,9 +82,8 @@ fun Cargando(navController: NavController) {
         label = "angulo"
     )
 
-    // 🔁 Animación de puntos "..."
+    // Animación puntos "..."
     var puntos by remember { mutableStateOf("") }
-
     LaunchedEffect(Unit) {
         while (true) {
             puntos = ""
@@ -92,7 +101,6 @@ fun Cargando(navController: NavController) {
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
-        // Fondo
         Image(
             painter = painterResource(id = R.drawable.fondo1),
             contentDescription = "Fondo de la app",
@@ -100,18 +108,13 @@ fun Cargando(navController: NavController) {
             contentScale = ContentScale.Crop
         )
 
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Box(contentAlignment = Alignment.Center) {
-
                 Image(
                     painter = painterResource(id = R.drawable.circulobrujula),
                     contentDescription = "Círculo brújula",
                     modifier = Modifier.size(270.dp)
                 )
-
                 Image(
                     painter = painterResource(id = R.drawable.palitobrujula),
                     contentDescription = "Palito brújula",
@@ -123,8 +126,6 @@ fun Cargando(navController: NavController) {
             }
 
             Spacer(modifier = Modifier.height(20.dp))
-
-            // Texto con animación de puntos
             Text(
                 text = "Cargando$puntos",
                 color = Blanco,
