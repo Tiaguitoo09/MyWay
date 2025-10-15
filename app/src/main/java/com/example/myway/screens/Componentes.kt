@@ -108,8 +108,8 @@ fun CustomTitleText(
         fontFamily = fontFamily,
         fontSize = fontSize,
         fontWeight = fontWeight,
-        textAlign = textAlign, // 👈 se aplica la alineación
-        modifier = Modifier.fillMaxWidth() // 👈 permite que el texto se centre realmente
+        textAlign = textAlign,
+        modifier = Modifier.fillMaxWidth()
     )
 }
 

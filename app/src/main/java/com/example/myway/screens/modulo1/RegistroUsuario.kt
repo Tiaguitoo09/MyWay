@@ -9,6 +9,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -37,9 +39,6 @@ import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
 import com.example.myway.utils.UsuarioTemporal
-
-
-
 
 @Composable
 fun RegistroUsuario(
@@ -107,11 +106,13 @@ fun RegistroUsuario(
                 .clickable { navController.popBackStack() }
         )
 
+        // 👇 Aquí se agregó el scroll, sin tocar nada más
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.Center)
-                .padding(horizontal = 32.dp),
+                .padding(horizontal = 32.dp)
+                .verticalScroll(rememberScrollState()), // ← añadido para scroll
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Spacer(modifier = Modifier.height(40.dp))
@@ -285,7 +286,6 @@ fun RegistroUsuario(
 }
 
 // ---------------------------------------------------------------------
-// Guardar usuario en Firestore
 fun guardarUsuarioEnFirestore(
     auth: FirebaseAuth,
     navController: NavController,
@@ -338,8 +338,6 @@ fun guardarUsuarioEnFirestore(
                             popUpTo("registro_usuario") { inclusive = true }
                         }
                     }
-
-
                     .addOnFailureListener { e ->
                         Toast.makeText(
                             context,
