@@ -17,23 +17,29 @@ import com.example.myway.R
 import com.example.myway.screens.CustomTitleText
 import com.example.myway.ui.theme.Blanco
 import com.example.myway.ui.theme.Nunito
+import com.example.myway.utils.UsuarioTemporal
 import kotlinx.coroutines.delay
 
 @Composable
 fun CambioExitoso(navController: NavController) {
-    // Espera unos segundos y redirige a la pantalla de ingreso
     LaunchedEffect(Unit) {
-        delay(3500)
+        kotlinx.coroutines.delay(3500)
+
+        // Cerrar sesión de Firebase (si la usas)
+        com.google.firebase.auth.FirebaseAuth.getInstance().signOut()
+        com.example.myway.utils.UsuarioTemporal.correo = ""
+        com.example.myway.utils.UsuarioTemporal.nombre = ""
+        com.example.myway.utils.UsuarioTemporal.fechaNacimiento = ""
+        UsuarioTemporal.apellido = ""
+        // Redirigir a la pantalla de ingreso
         navController.navigate("ingreso_usuario") {
-            popUpTo("cambio_exitoso") { inclusive = true }
+            popUpTo(0) { inclusive = true } // Limpia el historial de navegación
         }
     }
 
     Box(
-        modifier = Modifier
-            .fillMaxSize()
+        modifier = Modifier.fillMaxSize()
     ) {
-        // Fondo de la app
         Image(
             painter = painterResource(id = R.drawable.fondo1),
             contentDescription = "Fondo de la app",
@@ -47,7 +53,6 @@ fun CambioExitoso(navController: NavController) {
                 .fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Imagen de círculo con check
             Image(
                 painter = painterResource(id = R.drawable.circuloconfirmacion),
                 contentDescription = "Confirmación",
@@ -56,7 +61,6 @@ fun CambioExitoso(navController: NavController) {
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // Texto principal
             CustomTitleText(
                 text = "Cambio de contraseña\nexitoso",
                 color = Blanco,
@@ -65,14 +69,9 @@ fun CambioExitoso(navController: NavController) {
                 fontWeight = FontWeight.ExtraBold,
                 textAlign = TextAlign.Center
             )
-
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-
-
         }
     }
 }
+
 
 
