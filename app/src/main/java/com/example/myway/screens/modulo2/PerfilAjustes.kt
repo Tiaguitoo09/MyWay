@@ -81,7 +81,7 @@ fun PerfilAjustes(navController: NavController) {
                 modifier = Modifier
                     .padding(top = 4.dp, bottom = 24.dp)
                     .clickable {
-                        navController.navigate("")
+                        navController.navigate("ver_perfil")
                     }
             )
 

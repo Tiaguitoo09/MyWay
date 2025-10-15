@@ -15,6 +15,7 @@ import com.example.myway.screens.modulo2.CerrarSesion
 import com.example.myway.screens.modulo2.EliminarCuenta
 import com.example.myway.screens.modulo2.Home
 import com.example.myway.screens.modulo2.PerfilAjustes
+import com.example.myway.screens.modulo2.VerPerfil
 import com.google.firebase.auth.FirebaseAuth
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 
@@ -80,6 +81,9 @@ fun MyWayAppNavigation(
 
         composable("cerrar_sesion") {
             CerrarSesion(navController= navController)
+        }
+        composable("ver_perfil") {
+            VerPerfil(navController= navController)
         }
     }
 }
