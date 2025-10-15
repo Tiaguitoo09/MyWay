@@ -22,6 +22,7 @@ import androidx.navigation.NavController
 import com.example.myway.R
 import com.example.myway.screens.CustomButton
 import com.example.myway.screens.CustomTextField
+import com.example.myway.ui.theme.Azul2
 import com.example.myway.utils.UsuarioTemporal
 import com.example.myway.ui.theme.Azul3
 import com.example.myway.ui.theme.Blanco
@@ -134,17 +135,19 @@ fun OlvidoContraseña(
                     text = fraseSeguridad,
                     onTextChange = { fraseSeguridad = it },
                     color = Blanco,
-                    textColor = Negro,
-                    isPassword = false
+                    textColor = Azul2,
+                    isPassword = false,
+                    showBorder = false
                 )
+
 
                 // Botón enviar
                 CustomButton(
                     text = "Enviar",
                     color = Azul3,
                     modifier = Modifier
-                        .width(200.dp)
-                        .height(45.dp),
+                        .width(220.dp)
+                        .height(55.dp),
                     onClick = {
                         if (fraseSeguridad.isNotEmpty()) {
                             val db = FirebaseFirestore.getInstance()
@@ -228,8 +231,8 @@ fun OlvidoContraseña(
                     text = "Iniciar Sesión",
                     color = Azul3,
                     modifier = Modifier
-                        .width(200.dp)
-                        .height(45.dp),
+                        .width(220.dp)
+                        .height(55.dp),
                     onClick = {
                         navController.navigate("ingreso_usuario")
                     }

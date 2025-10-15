@@ -88,8 +88,10 @@ fun NuevaContraseña(navController: NavController, correo: String) {
                 text = nueva,
                 onTextChange = { nueva = it },
                 color = Blanco,
-                textColor = Negro,
-                isPassword = true
+                textColor = Azul2,
+                isPassword = true,
+                showBorder = false
+
             )
 
             Spacer(modifier = Modifier.height(20.dp))
@@ -99,7 +101,8 @@ fun NuevaContraseña(navController: NavController, correo: String) {
                 fontSize = 16.sp,
                 fontFamily = Nunito,
                 fontWeight = FontWeight.SemiBold,
-                color = Blanco
+                color = Blanco,
+
             )
 
             CustomTextField(
@@ -107,8 +110,9 @@ fun NuevaContraseña(navController: NavController, correo: String) {
                 text = confirmar,
                 onTextChange = { confirmar = it },
                 color = Blanco,
-                textColor = Negro,
-                isPassword = true
+                textColor = Azul2,
+                isPassword = true,
+                showBorder = false
             )
 
             Spacer(modifier = Modifier.height(30.dp))
@@ -118,7 +122,7 @@ fun NuevaContraseña(navController: NavController, correo: String) {
                 color = Azul3,
                 modifier = Modifier
                     .width(220.dp)
-                    .height(45.dp),
+                    .height(55.dp),
                 onClick = {
                     // Validaciones
                     when {

@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.myway.R
 import com.example.myway.screens.CustomButton
+import com.example.myway.ui.theme.Azul1
 import com.example.myway.ui.theme.Azul3
 import com.example.myway.ui.theme.Blanco
 import com.example.myway.ui.theme.Negro
@@ -82,7 +83,8 @@ fun PerfilAjustes(navController: NavController) {
             Text(
                 text = "Ver Perfil",
                 color = Blanco,
-                fontSize = 16.sp,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Normal,
                 textDecoration = TextDecoration.Underline,
                 modifier = Modifier
                     .padding(top = 4.dp, bottom = 24.dp)
@@ -91,48 +93,54 @@ fun PerfilAjustes(navController: NavController) {
                     }
             )
 
-            Spacer(modifier = Modifier.height(45.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
             // Botones
             CustomButton(
                 text = "Soporte",
                 color = Azul3,
+                fontSize = 22.sp,
                 modifier = Modifier
                     .fillMaxWidth(0.85f) // ancho más grande (85% del ancho de pantalla)
-                    .height(60.dp),       // más altos
+                    .height(70.dp),       // más altos
+                fontWeight = FontWeight.ExtraBold,
                 onClick = {
                     navController.navigate("")
                 }
             )
 
             Spacer(modifier = Modifier.height(18.dp))
-
             CustomButton(
                 text = "Ajustes",
                 color = Azul3,
+                fontSize = 22.sp,
                 modifier = Modifier
                     .fillMaxWidth(0.85f)
-                    .height(60.dp),
+                    .height(70.dp),
+                fontWeight = FontWeight.ExtraBold,
                 onClick = {
                     navController.navigate("")
                 }
             )
+
 
             Spacer(modifier = Modifier.height(18.dp))
 
             CustomButton(
                 text = "Eliminar Cuenta",
                 color = Rojo,
+                fontSize = 22.sp,
                 modifier = Modifier
                     .fillMaxWidth(0.85f)
-                    .height(60.dp),
+                    .height(70.dp),
+                fontWeight = FontWeight.ExtraBold,
                 onClick = {
                     navController.navigate("eliminar_cuenta")
                 }
             )
 
 
-            Spacer(modifier = Modifier.height(30.dp))
+            Spacer(modifier = Modifier.height(40.dp))
 
             // Icono cerrar sesión
             Image(
@@ -145,11 +153,14 @@ fun PerfilAjustes(navController: NavController) {
                     }
             )
 
+            Spacer(modifier = Modifier.height(30.dp))
+
             Text(
                 text = "Cerrar Sesión",
-                color = Azul3,
+                color = Azul1,
                 textDecoration = TextDecoration.Underline,
-                fontSize = 16.sp,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Normal,
                 modifier = Modifier.padding(top = 8.dp)
                     .clickable {
                         navController.navigate("cerrar_sesion")

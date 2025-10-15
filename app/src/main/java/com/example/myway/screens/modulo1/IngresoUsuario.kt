@@ -47,7 +47,7 @@ fun IngresoUsuario(
     val email = remember { mutableStateOf("") }
     val password = remember { mutableStateOf("") }
 
-    // Google launcher
+    // Launcher para Google Sign-In
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -60,18 +60,24 @@ fun IngresoUsuario(
                 auth.signInWithCredential(credential)
                     .addOnCompleteListener { signInTask ->
                         if (signInTask.isSuccessful) {
+                            // Actualizamos UsuarioTemporal
+                            val user = auth.currentUser
+                            UsuarioTemporal.correo = user?.email
+                            UsuarioTemporal.nombre = user?.displayName ?: "Usuario"
+
+                            Toast.makeText(context, "Inicio de sesión exitoso", Toast.LENGTH_SHORT).show()
                             navController.navigate("cargando") {
                                 popUpTo("ingreso_usuario") { inclusive = true }
                             }
                         } else {
                             Toast.makeText(context, "Error al iniciar sesión con Google", Toast.LENGTH_SHORT).show()
                         }
+                        isLoading = false
                     }
             }
         } catch (e: Exception) {
             e.printStackTrace()
-            Toast.makeText(context, "Error al autenticar", Toast.LENGTH_SHORT).show()
-        } finally {
+            Toast.makeText(context, "Error al autenticar con Google", Toast.LENGTH_SHORT).show()
             isLoading = false
         }
     }
@@ -96,14 +102,13 @@ fun IngresoUsuario(
                 .clickable { navController.popBackStack() }
         )
 
-        // Contenido con scroll
         Column(
             modifier = Modifier
                 .align(Alignment.Center)
                 .padding(horizontal = 32.dp)
-                .verticalScroll(rememberScrollState())   // 👈 Habilita desplazamiento vertical
+                .verticalScroll(rememberScrollState())
                 .fillMaxWidth()
-                .padding(vertical = 40.dp),              // 👈 Espacio arriba/abajo opcional
+                .padding(vertical = 40.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Image(
@@ -113,7 +118,6 @@ fun IngresoUsuario(
             )
 
             Spacer(modifier = Modifier.height(24.dp))
-
             Text(
                 text = "MyWay",
                 fontSize = 80.sp,
@@ -121,7 +125,6 @@ fun IngresoUsuario(
                 fontFamily = Nunito,
                 color = Blanco
             )
-
             Spacer(modifier = Modifier.height(32.dp))
 
             // Inputs
@@ -132,9 +135,7 @@ fun IngresoUsuario(
                 text = email.value,
                 onTextChange = { email.value = it }
             )
-
             Spacer(modifier = Modifier.height(16.dp))
-
             CustomTextField(
                 placeholder = "Contraseña",
                 color = Azul3,
@@ -144,29 +145,25 @@ fun IngresoUsuario(
                 onTextChange = { password.value = it }
             )
 
-            Spacer(modifier = Modifier.height(20.dp))
-
-            // Texto de olvido contraseña
+            Spacer(modifier = Modifier.height(30.dp))
             Text(
                 text = "Olvidé mi contraseña",
                 color = Blanco,
-                fontSize = 14.sp,
+                fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 textDecoration = TextDecoration.Underline,
                 textAlign = TextAlign.Center,
-                modifier = Modifier.clickable {
-                    navController.navigate("olvide_contraseña")
-                }
+                modifier = Modifier.clickable { navController.navigate("olvide_contraseña") }
             )
 
-            Spacer(modifier = Modifier.height(34.dp))
+            Spacer(modifier = Modifier.height(30.dp))
 
             // Botones principales
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                // Botón ingresar
+                // Ingresar con correo Firestore
                 CustomButton(
                     text = "Ingresar",
                     color = Azul3,
@@ -174,7 +171,6 @@ fun IngresoUsuario(
                     onClick = {
                         if (email.value.isNotEmpty() && password.value.isNotEmpty()) {
                             val db = FirebaseFirestore.getInstance()
-
                             db.collection("usuarios")
                                 .whereEqualTo("correo", email.value)
                                 .whereEqualTo("contrasena", password.value)
@@ -184,6 +180,16 @@ fun IngresoUsuario(
                                         val userDoc = documents.documents[0]
                                         UsuarioTemporal.correo = email.value
                                         UsuarioTemporal.nombre = userDoc.getString("nombre") ?: "Usuario"
+
+                                        // Opcional: crear usuario en FirebaseAuth si no existe
+                                        auth.fetchSignInMethodsForEmail(email.value)
+                                            .addOnCompleteListener { task ->
+                                                val methods = task.result?.signInMethods ?: emptyList<String>()
+                                                if (methods.isEmpty()) {
+                                                    // Crear usuario en FirebaseAuth
+                                                    auth.createUserWithEmailAndPassword(email.value, password.value)
+                                                }
+                                            }
 
                                         Toast.makeText(context, "Inicio de sesión exitoso", Toast.LENGTH_SHORT).show()
                                         navController.navigate("cargando") {
@@ -202,14 +208,12 @@ fun IngresoUsuario(
                     }
                 )
 
-                // Botón registrarse
+                // Registrarse
                 CustomButton(
                     text = "Registrarse",
                     color = Azul3,
                     modifier = Modifier.width(140.dp),
-                    onClick = {
-                        navController.navigate("registro_usuario")
-                    }
+                    onClick = { navController.navigate("registro_usuario") }
                 )
             }
 
@@ -219,7 +223,7 @@ fun IngresoUsuario(
             Text(
                 text = if (isLoading) "Iniciando sesión..." else "Iniciar sesión con Google",
                 color = Blanco,
-                fontSize = 16.sp,
+                fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 textDecoration = TextDecoration.Underline,
                 modifier = Modifier.clickable(enabled = !isLoading) {

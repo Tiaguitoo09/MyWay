@@ -8,26 +8,21 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.myway.R
-import com.example.myway.ui.theme.Azul3
-import com.example.myway.ui.theme.Blanco
-import com.example.myway.ui.theme.Negro
-import com.example.myway.ui.theme.Nunito
+import com.example.myway.ui.theme.*
 import com.example.myway.utils.UsuarioTemporal
 import com.google.firebase.firestore.FirebaseFirestore
-import kotlinx.coroutines.tasks.await
 
 @Composable
-fun CambioContrasena(navController: NavController, ) {
-    val correo = UsuarioTemporal.correo
+fun CambioContrasena(navController: NavController) {
     val context = LocalContext.current
     val db = FirebaseFirestore.getInstance()
 
@@ -41,7 +36,7 @@ fun CambioContrasena(navController: NavController, ) {
             painter = painterResource(id = R.drawable.fondo2),
             contentDescription = "Fondo",
             modifier = Modifier.fillMaxSize(),
-            contentScale = androidx.compose.ui.layout.ContentScale.Crop
+            contentScale = ContentScale.Crop
         )
 
         // Flecha volver
@@ -68,13 +63,12 @@ fun CambioContrasena(navController: NavController, ) {
                 text = "Cambiar Contraseña",
                 fontSize = 26.sp,
                 fontFamily = Nunito,
-                fontWeight = FontWeight.Bold,
+                fontWeight = FontWeight.ExtraBold,
                 color = Blanco
             )
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // 🔹 Contraseña actual
             Text(
                 text = "Contraseña actual",
                 fontSize = 16.sp,
@@ -87,13 +81,13 @@ fun CambioContrasena(navController: NavController, ) {
                 text = actual,
                 onTextChange = { actual = it },
                 color = Blanco,
-                textColor = Negro,
-                isPassword = true
+                textColor = Azul2,
+                isPassword = true,
+                showBorder = false
             )
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // 🔹 Nueva contraseña
             Text(
                 text = "Nueva contraseña",
                 fontSize = 16.sp,
@@ -106,13 +100,13 @@ fun CambioContrasena(navController: NavController, ) {
                 text = nueva,
                 onTextChange = { nueva = it },
                 color = Blanco,
-                textColor = Negro,
-                isPassword = true
+                textColor = Azul2,
+                isPassword = true,
+                showBorder = false
             )
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // 🔹 Confirmar nueva contraseña
             Text(
                 text = "Confirma la contraseña",
                 fontSize = 16.sp,
@@ -125,13 +119,13 @@ fun CambioContrasena(navController: NavController, ) {
                 text = confirmar,
                 onTextChange = { confirmar = it },
                 color = Blanco,
-                textColor = Negro,
-                isPassword = true
+                textColor = Azul2,
+                isPassword = true,
+                showBorder = false
             )
 
             Spacer(modifier = Modifier.height(30.dp))
 
-            // 🔹 Botón de actualizar
             CustomButton(
                 text = "Actualizar",
                 color = Azul3,
@@ -139,6 +133,9 @@ fun CambioContrasena(navController: NavController, ) {
                     .width(220.dp)
                     .height(45.dp),
                 onClick = {
+                    val correo = UsuarioTemporal.correo
+
+                    // 🔹 Validaciones iniciales
                     when {
                         actual.isBlank() || nueva.isBlank() || confirmar.isBlank() -> {
                             Toast.makeText(context, "Rellena todos los campos", Toast.LENGTH_SHORT).show()
@@ -158,45 +155,46 @@ fun CambioContrasena(navController: NavController, ) {
                         }
                     }
 
-                    // 🔸 Verificar la contraseña actual y actualizar
+                    // 🔹 Buscar el usuario en Firestore por correo y verificar la contraseña actual
                     db.collection("usuarios")
                         .whereEqualTo("correo", correo)
                         .get()
                         .addOnSuccessListener { docs ->
                             if (!docs.isEmpty) {
                                 val doc = docs.documents[0]
-                                val contrasenaActual = doc.getString("contrasena") ?: ""
+                                val contrasenaActualDB = doc.getString("contrasena") ?: ""
 
-                                if (actual != contrasenaActual) {
+                                if (contrasenaActualDB != actual) {
                                     Toast.makeText(context, "La contraseña actual es incorrecta", Toast.LENGTH_SHORT).show()
                                     return@addOnSuccessListener
                                 }
 
-                                val id = doc.id
-                                db.collection("usuarios").document(id)
+                                // 🔹 Actualizar contraseña en Firestore
+                                db.collection("usuarios").document(doc.id)
                                     .update("contrasena", nueva)
                                     .addOnSuccessListener {
                                         Toast.makeText(context, "Contraseña actualizada correctamente", Toast.LENGTH_SHORT).show()
-                                        navController.navigate("cambio_exitoso")
+                                        navController.navigate("cambio_exitoso") {
+                                            popUpTo("cambio_contrasena") { inclusive = true }
+                                        }
                                     }
                                     .addOnFailureListener {
-                                        Toast.makeText(context, "Error al actualizar contraseña", Toast.LENGTH_SHORT).show()
+                                        Toast.makeText(context, "Error al actualizar la contraseña", Toast.LENGTH_SHORT).show()
                                     }
                             } else {
                                 Toast.makeText(context, "Usuario no encontrado", Toast.LENGTH_SHORT).show()
                             }
                         }
                         .addOnFailureListener {
-                            Toast.makeText(context, "Error al acceder a la base de datos", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "Error en la base de datos", Toast.LENGTH_SHORT).show()
                         }
                 }
             )
-
         }
     }
 }
 
-// 🔒 Validación de contraseña segura (igual a la de NuevaContraseña)
+// 🔒 Validación de contraseña segura
 fun esContrasenaValida(password: String): Boolean {
     val regex = Regex(
         "^(?=.*[A-Z])(?=.*[a-z])(?=.*\\d)(?=.*[!@#\$%^&*(),.?\":{}|<>])[A-Za-z\\d!@#\$%^&*(),.?\":{}|<>]{8,}\$"

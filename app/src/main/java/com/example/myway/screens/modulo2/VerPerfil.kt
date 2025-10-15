@@ -73,8 +73,8 @@ fun VerPerfil(navController: NavController) {
             Text(
                 text = "Cambiar contraseña",
                 color = Blanco,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Normal,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
                 textDecoration = TextDecoration.Underline,
                 modifier = Modifier
                     .padding(top = 16.dp)
