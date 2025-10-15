@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import com.example.myway.screens.CambioContrasena
 import com.example.myway.screens.modulo1.CambioExitoso
 import com.example.myway.screens.modulo1.IngresoUsuario
 import com.example.myway.screens.modulo1.InicioPantalla
@@ -85,5 +86,12 @@ fun MyWayAppNavigation(
         composable("ver_perfil") {
             VerPerfil(navController= navController)
         }
-    }
+
+        composable("cambio_contraseña") {
+            CambioContrasena(navController= navController)
+
+        }
+        }
+
+
 }

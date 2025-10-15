@@ -82,6 +82,8 @@ fun CerrarSesion(navController: NavController) {
                         // Limpia los datos temporales
                         UsuarioTemporal.correo = ""
                         UsuarioTemporal.nombre = ""
+                        UsuarioTemporal.fechaNacimiento = ""
+                        UsuarioTemporal.apellido = ""
 
                         Toast.makeText(context, "Sesión cerrada correctamente", Toast.LENGTH_SHORT)
                             .show()

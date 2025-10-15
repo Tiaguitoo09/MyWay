@@ -59,7 +59,7 @@ fun PerfilAjustes(navController: NavController) {
                 painter = painterResource(id = R.drawable.icono_perfil2),
                 contentDescription = "Icono de perfil",
                 modifier = Modifier
-                    .size(90.dp)
+                    .size(150.dp)
                     .padding(bottom = 8.dp)
             )
 

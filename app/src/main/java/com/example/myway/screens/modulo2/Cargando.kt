@@ -36,8 +36,15 @@ fun Cargando(navController: NavController) {
             val nombreGoogle = usuarioActual.displayName
 
             if (nombreGoogle != null) {
-                // 🟢 Login con Google
-                UsuarioTemporal.nombre = nombreGoogle
+                // 🟢 Login con Google → separar nombre y apellido
+                val partesNombre = nombreGoogle.split(" ")
+
+                UsuarioTemporal.nombre = partesNombre.firstOrNull() ?: "Usuario"
+                UsuarioTemporal.apellido = if (partesNombre.size > 1)
+                    partesNombre.subList(1, partesNombre.size).joinToString(" ")
+                else
+                    ""
+
                 UsuarioTemporal.correo = correo ?: ""
             } else if (correo != null) {
                 // 🔵 Login con correo Firebase
@@ -46,7 +53,11 @@ fun Cargando(navController: NavController) {
                     .get()
                     .addOnSuccessListener { docs ->
                         if (!docs.isEmpty) {
-                            UsuarioTemporal.nombre = docs.documents[0].getString("nombre") ?: "Usuario"
+                            val doc = docs.documents[0]
+
+                            UsuarioTemporal.nombre = doc.getString("nombre") ?: "Usuario"
+                            UsuarioTemporal.apellido = doc.getString("apellido") ?: ""
+                            UsuarioTemporal.fechaNacimiento = doc.getString("fechaNacimiento") ?: ""
                             UsuarioTemporal.correo = correo
                         }
                     }
@@ -58,12 +69,15 @@ fun Cargando(navController: NavController) {
                 .get()
                 .addOnSuccessListener { docs ->
                     if (!docs.isEmpty) {
-                        UsuarioTemporal.nombre = docs.documents[0].getString("nombre") ?: "Usuario"
+                        val doc = docs.documents[0]
+                        UsuarioTemporal.nombre = doc.getString("nombre") ?: "Usuario"
+                        UsuarioTemporal.apellido = doc.getString("apellido") ?: ""
+                        UsuarioTemporal.fechaNacimiento = doc.getString("fechaNacimiento") ?: ""
                     }
                 }
         }
 
-        // Pequeña espera antes de navegar
+        // Espera antes de navegar
         delay(3000)
         navController.navigate("home") {
             popUpTo("cargando") { inclusive = true }

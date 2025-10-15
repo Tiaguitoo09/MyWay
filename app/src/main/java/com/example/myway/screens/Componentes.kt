@@ -1,8 +1,11 @@
 package com.example.myway.screens
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -26,6 +29,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
+import com.example.myway.ui.theme.Azul2
 
 // ------------------- Botón reutilizable -------------------
 @Composable
@@ -108,4 +112,32 @@ fun CustomTitleText(
         modifier = Modifier.fillMaxWidth() // 👈 permite que el texto se centre realmente
     )
 }
+
+@Composable
+fun InfoBlock(
+    label: String,
+    value: String
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp)
+            .background(Blanco.copy(alpha = 0.8f), RoundedCornerShape(16.dp)) // ✅
+            .padding(horizontal = 20.dp, vertical = 12.dp)
+    ) {
+        Text(
+            text = label,
+            color = Azul2,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Bold
+        )
+        Text(
+            text = value,
+            color = Azul1,
+            fontSize = 16.sp,
+            modifier = Modifier.padding(top = 4.dp)
+        )
+    }
+}
+
 
