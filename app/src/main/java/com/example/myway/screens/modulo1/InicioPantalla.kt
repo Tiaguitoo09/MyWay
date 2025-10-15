@@ -2,6 +2,8 @@ package com.example.myway.screens.modulo1
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -32,8 +34,13 @@ fun InicioPantalla(navController: NavController) {
             contentScale = ContentScale.Crop
         )
 
+        // Hacemos que la columna sea desplazable
         Column(
-            modifier = Modifier.align(Alignment.Center),
+            modifier = Modifier
+                .align(Alignment.Center)
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(vertical = 40.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // Imagen de brújula
@@ -53,7 +60,6 @@ fun InicioPantalla(navController: NavController) {
                 fontFamily = Nunito,
                 fontWeight = FontWeight.ExtraBold,
                 textAlign = TextAlign.Center
-
             )
 
             Spacer(modifier = Modifier.height(30.dp))

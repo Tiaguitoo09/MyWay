@@ -6,6 +6,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -45,7 +47,7 @@ fun IngresoUsuario(
     val email = remember { mutableStateOf("") }
     val password = remember { mutableStateOf("") }
 
-    // 🔹 Google launcher
+    // Google launcher
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -94,11 +96,14 @@ fun IngresoUsuario(
                 .clickable { navController.popBackStack() }
         )
 
-        // Contenido
+        // Contenido con scroll
         Column(
             modifier = Modifier
                 .align(Alignment.Center)
-                .padding(horizontal = 32.dp),
+                .padding(horizontal = 32.dp)
+                .verticalScroll(rememberScrollState())   // 👈 Habilita desplazamiento vertical
+                .fillMaxWidth()
+                .padding(vertical = 40.dp),              // 👈 Espacio arriba/abajo opcional
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Image(
@@ -177,7 +182,6 @@ fun IngresoUsuario(
                                 .addOnSuccessListener { documents ->
                                     if (!documents.isEmpty) {
                                         val userDoc = documents.documents[0]
-                                        // Guardar temporalmente el usuario
                                         UsuarioTemporal.correo = email.value
                                         UsuarioTemporal.nombre = userDoc.getString("nombre") ?: "Usuario"
 

@@ -4,6 +4,8 @@ import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -51,10 +53,12 @@ fun NuevaContraseña(navController: NavController, correo: String) {
                 .clickable { navController.popBackStack() }
         )
 
+        // 👇 Aquí añadimos el scroll sin cambiar tu estructura
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 32.dp),
+                .padding(horizontal = 32.dp)
+                .verticalScroll(rememberScrollState()), // ← habilita el scroll
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Spacer(modifier = Modifier.height(60.dp))
@@ -173,14 +177,12 @@ fun NuevaContraseña(navController: NavController, correo: String) {
                                 .show()
                         }
                 }
-
             )
-
         }
     }
 }
+
 fun esContrasenaValida(password: String): Boolean {
     val regex = Regex("^(?=.*[A-Z])(?=.*[a-z])(?=.*\\d)(?=.*[!@#\$%^&*(),.?\":{}|<>])[A-Za-z\\d!@#\$%^&*(),.?\":{}|<>]{8,}\$")
     return password.matches(regex)
 }
-
