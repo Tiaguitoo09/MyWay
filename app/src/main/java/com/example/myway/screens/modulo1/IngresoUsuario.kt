@@ -159,66 +159,66 @@ fun IngresoUsuario(
 
             // Botones
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
+                    modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                // Boton de ingresar
-                CustomButton(
-                    text = "Ingresar",
-                    color = Azul3,
-                    modifier = Modifier.width(140.dp),
-                    onClick = {
-                        if (email.value.isNotEmpty() && password.value.isNotEmpty()) {
-                            val db = FirebaseFirestore.getInstance()
+            // Boton de ingresar
+            CustomButton(
+                text = "Ingresar",
+                color = Azul3,
+                modifier = Modifier.width(140.dp),
+                onClick = {
+                    if (email.value.isNotEmpty() && password.value.isNotEmpty()) {
+                        val db = FirebaseFirestore.getInstance()
 
-                            db.collection("usuarios")
-                                .whereEqualTo("correo", email.value)
-                                .whereEqualTo("contrasena", password.value)
-                                .get()
-                                .addOnSuccessListener { documents ->
-                                    if (!documents.isEmpty) {
-                                        Toast.makeText(
-                                            context,
-                                            "Inicio de sesión exitoso",
-                                            Toast.LENGTH_SHORT
-                                        ).show()
-                                        navController.navigate("cargando") {
-                                            popUpTo("ingreso_usuario") { inclusive = true }
-                                        }
-                                    } else {
-                                        Toast.makeText(
-                                            context,
-                                            "Correo o contraseña incorrectos",
-                                            Toast.LENGTH_SHORT
-                                        ).show()
-                                    }
-                                }
-                                .addOnFailureListener { e ->
+                        db.collection("usuarios")
+                            .whereEqualTo("correo", email.value)
+                            .whereEqualTo("contrasena", password.value)
+                            .get()
+                            .addOnSuccessListener { documents ->
+                                if (!documents.isEmpty) {
                                     Toast.makeText(
                                         context,
-                                        "Error al iniciar sesión: ${e.message}",
+                                        "Inicio de sesión exitoso",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                    navController.navigate("cargando") {
+                                        popUpTo("ingreso_usuario") { inclusive = true }
+                                    }
+                                } else {
+                                    Toast.makeText(
+                                        context,
+                                        "Correo o contraseña incorrectos",
                                         Toast.LENGTH_SHORT
                                     ).show()
                                 }
-                        } else {
-                            Toast.makeText(
-                                context,
-                                "Completa todos los campos",
-                                Toast.LENGTH_SHORT
-                            ).show()
-                        }
+                            }
+                            .addOnFailureListener { e ->
+                                Toast.makeText(
+                                    context,
+                                    "Error al iniciar sesión: ${e.message}",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                    } else {
+                        Toast.makeText(
+                            context,
+                            "Completa todos los campos",
+                            Toast.LENGTH_SHORT
+                        ).show()
                     }
-                )
+                }
+            )
 
-                CustomButton(
-                    text = "Registrarse",
-                    color = Azul3,
-                    modifier = Modifier.width(140.dp),
-                    onClick = {
-                        navController.navigate("registro_usuario")
-                    }
-                )
-            }
+            CustomButton(
+                text = "Registrarse",
+                color = Azul3,
+                modifier = Modifier.width(140.dp),
+                onClick = {
+                    navController.navigate("registro_usuario")
+                }
+            )
+        }
 
             Spacer(modifier = Modifier.height(24.dp))
 

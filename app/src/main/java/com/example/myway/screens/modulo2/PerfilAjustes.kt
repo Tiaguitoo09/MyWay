@@ -64,7 +64,6 @@ fun PerfilAjustes(navController: NavController) {
             )
 
             // Nombre del usuario
-            // Nombre del usuario
             Text(
                 text = UsuarioTemporal.nombre ?: "Usuario",
                 color = Blanco,
@@ -76,7 +75,7 @@ fun PerfilAjustes(navController: NavController) {
             // Ver perfil
             Text(
                 text = "Ver Perfil",
-                color = Azul3,
+                color = Blanco,
                 fontSize = 16.sp,
                 textDecoration = TextDecoration.Underline,
                 modifier = Modifier
@@ -130,7 +129,8 @@ fun PerfilAjustes(navController: NavController) {
 
             Text(
                 text = "Cerrar Sesión",
-                color = Blanco,
+                color = Azul3,
+                textDecoration = TextDecoration.Underline,
                 fontSize = 16.sp,
                 modifier = Modifier.padding(top = 8.dp)
             )

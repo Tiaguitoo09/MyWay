@@ -11,6 +11,8 @@ import com.example.myway.screens.modulo1.NuevaContraseña
 import com.example.myway.screens.modulo1.OlvidoContraseña
 import com.example.myway.screens.modulo1.RegistroUsuario
 import com.example.myway.screens.modulo2.Cargando
+import com.example.myway.screens.modulo2.CerrarSesion
+import com.example.myway.screens.modulo2.EliminarCuenta
 import com.example.myway.screens.modulo2.Home
 import com.example.myway.screens.modulo2.PerfilAjustes
 import com.google.firebase.auth.FirebaseAuth
@@ -70,6 +72,14 @@ fun MyWayAppNavigation(
 
         composable("perfil_ajustes") {
             PerfilAjustes(navController= navController)
+        }
+
+        composable("eliminar_cuenta") {
+            EliminarCuenta(navController= navController)
+        }
+
+        composable("cerrar_sesion") {
+            CerrarSesion(navController= navController)
         }
     }
 }
