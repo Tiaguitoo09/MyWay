@@ -36,6 +36,10 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
+import com.example.myway.utils.UsuarioTemporal
+
+
+
 
 @Composable
 fun RegistroUsuario(
@@ -322,6 +326,9 @@ fun guardarUsuarioEnFirestore(
                 db.collection("usuarios").document(userId)
                     .set(usuarioData)
                     .addOnSuccessListener {
+                        UsuarioTemporal.correo = correo
+                        UsuarioTemporal.nombre = nombre
+
                         Toast.makeText(
                             context,
                             "Cuenta creada con éxito",
@@ -331,6 +338,8 @@ fun guardarUsuarioEnFirestore(
                             popUpTo("registro_usuario") { inclusive = true }
                         }
                     }
+
+
                     .addOnFailureListener { e ->
                         Toast.makeText(
                             context,

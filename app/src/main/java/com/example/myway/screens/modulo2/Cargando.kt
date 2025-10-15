@@ -17,20 +17,50 @@ import androidx.navigation.NavController
 import com.example.myway.R
 import com.example.myway.ui.theme.Blanco
 import com.example.myway.ui.theme.Nunito
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+import com.example.myway.utils.UsuarioTemporal
 import kotlinx.coroutines.delay
 
 @Composable
 fun Cargando(navController: NavController) {
+    val auth = FirebaseAuth.getInstance()
+    val db = FirebaseFirestore.getInstance()
+    val correoUsuario = auth.currentUser?.email
 
-
+    // 🔹 Cargar datos del usuario desde Firestore
     LaunchedEffect(Unit) {
-        delay(3000)
-        navController.navigate("home") {
-            popUpTo("cargando") { inclusive = true }
+        if (correoUsuario != null) {
+            db.collection("usuarios")
+                .whereEqualTo("correo", correoUsuario)
+                .get()
+                .addOnSuccessListener { documents ->
+                    if (!documents.isEmpty) {
+                        val nombreUsuario = documents.documents[0].getString("nombre")
+                        UsuarioTemporal.correo = correoUsuario
+                        UsuarioTemporal.nombre = nombreUsuario ?: ""
+                    }
+                    // Navegar a Home después de cargar los datos
+                    navController.navigate("home") {
+                        popUpTo("cargando") { inclusive = true }
+                    }
+                }
+                .addOnFailureListener {
+                    // Si falla la carga, igual navega al Home
+                    navController.navigate("home") {
+                        popUpTo("cargando") { inclusive = true }
+                    }
+                }
+        } else {
+            // Si no hay usuario autenticado, ir al login
+            delay(1500)
+            navController.navigate("login_usuario") {
+                popUpTo("cargando") { inclusive = true }
+            }
         }
     }
 
-    //Animación de rotación
+    // 🔹 Animación de rotación
     val infiniteTransition = rememberInfiniteTransition(label = "rotacionPalito")
     val rotacion by infiniteTransition.animateFloat(
         initialValue = -90f,
@@ -42,9 +72,8 @@ fun Cargando(navController: NavController) {
         label = "angulo"
     )
 
-    //Animación  puntos del
+    // 🔹 Animación de puntos
     var puntos by remember { mutableStateOf("") }
-
     LaunchedEffect(Unit) {
         while (true) {
             puntos = ""
@@ -58,11 +87,11 @@ fun Cargando(navController: NavController) {
         }
     }
 
+    // 🔹 Interfaz visual
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
-        // Fondo
         Image(
             painter = painterResource(id = R.drawable.fondo1),
             contentDescription = "Fondo de la app",
@@ -75,7 +104,6 @@ fun Cargando(navController: NavController) {
             verticalArrangement = Arrangement.Center
         ) {
             Box(contentAlignment = Alignment.Center) {
-
                 Image(
                     painter = painterResource(id = R.drawable.circulobrujula),
                     contentDescription = "Círculo brújula",
@@ -94,7 +122,6 @@ fun Cargando(navController: NavController) {
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Texto con animación de puntos
             Text(
                 text = "Cargando$puntos",
                 color = Blanco,
