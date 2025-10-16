@@ -72,6 +72,9 @@ dependencies {
     implementation(libs.androidx.compose.ui.text)
     implementation(libs.sceneform.base)
     implementation(libs.androidx.compose.foundation)
+    implementation(libs.androidx.foundation)
+    implementation(libs.androidx.ui.text)
+    implementation(libs.androidx.ui)
 
     // Tests
     testImplementation(libs.junit)
