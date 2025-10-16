@@ -95,7 +95,7 @@ fun PerfilAjustes(navController: NavController) {
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // ✅ Botón Soporte (navega a pantalla soporte)
+            // Botón Soporte (navega a pantalla soporte)
             CustomButton(
                 text = "Soporte",
                 color = Azul3,

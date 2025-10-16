@@ -45,10 +45,10 @@ fun Ajustes(navController: NavController) {
     val context = LocalContext.current
     val controller = remember { AjustesController(context, navController) }
 
-    // Lista de opciones (rutas vacías por ahora)
+    // Lista de opciones con ruta en "Silenciar Notificaciones"
     val opciones = listOf(
         OpcionAjuste("Activar Modo Copiloto", ""),
-        OpcionAjuste("Silenciar Notificaciones", ""),
+        OpcionAjuste("Silenciar Notificaciones", "silenciar_notificaciones"),
         OpcionAjuste("Preferencias de Viaje", ""),
         OpcionAjuste("Permisos", "")
     )
