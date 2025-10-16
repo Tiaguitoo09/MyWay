@@ -17,6 +17,7 @@ import com.example.myway.screens.modulo2.EliminarCuenta
 import com.example.myway.screens.modulo2.Home
 import com.example.myway.screens.modulo2.PerfilAjustes
 import com.example.myway.screens.modulo2.Ajustes
+import com.example.myway.screens.modulo2.Soporte
 import com.example.myway.screens.modulo2.VerPerfil
 import com.google.firebase.auth.FirebaseAuth
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
@@ -94,9 +95,13 @@ fun MyWayAppNavigation(
             CambioContrasena(navController = navController)
         }
 
-        // 🚀 Nueva pantalla de Ajustes
         composable("ajustes") {
             Ajustes(navController = navController)
+        }
+
+
+        composable("soporte") {
+            Soporte(navController = navController)
         }
     }
 }

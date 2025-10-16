@@ -20,7 +20,6 @@ import com.example.myway.screens.CustomButton
 import com.example.myway.ui.theme.Azul1
 import com.example.myway.ui.theme.Azul3
 import com.example.myway.ui.theme.Blanco
-import com.example.myway.ui.theme.Negro
 import com.example.myway.ui.theme.Rojo
 import com.example.myway.utils.UsuarioTemporal
 
@@ -96,7 +95,7 @@ fun PerfilAjustes(navController: NavController) {
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Botón Soporte
+            // ✅ Botón Soporte (navega a pantalla soporte)
             CustomButton(
                 text = "Soporte",
                 color = Azul3,
@@ -106,13 +105,13 @@ fun PerfilAjustes(navController: NavController) {
                     .height(70.dp),
                 fontWeight = FontWeight.ExtraBold,
                 onClick = {
-                    navController.navigate("")
+                    navController.navigate("soporte")
                 }
             )
 
             Spacer(modifier = Modifier.height(18.dp))
 
-            // ✅ Botón Ajustes (con navegación configurada)
+            // Botón Ajustes
             CustomButton(
                 text = "Ajustes",
                 color = Azul3,
