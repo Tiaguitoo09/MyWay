@@ -61,17 +61,27 @@ fun IngresoUsuario(
                 auth.signInWithCredential(credential)
                     .addOnCompleteListener { signInTask ->
                         if (signInTask.isSuccessful) {
-                            // Actualizamos UsuarioTemporal
                             val user = auth.currentUser
-                            UsuarioTemporal.correo = user?.email
-                            UsuarioTemporal.nombre = user?.displayName ?: "Usuario"
 
-                            Toast.makeText(context,
-                                context.getString(R.string.toast_sesion_exitosa), Toast.LENGTH_SHORT).show()
+                            // 🔹 Limpiamos todos los datos antes de reasignar
+                            UsuarioTemporal.apply {
+                                correo = user?.email
+                                nombre = user?.displayName ?: "Usuario"
+                                apellido = null
+                                fechaNacimiento = null
+                            }
+
+                            Toast.makeText(
+                                context,
+                                context.getString(R.string.toast_sesion_exitosa),
+                                Toast.LENGTH_SHORT
+                            ).show()
+
                             navController.navigate("cargando") {
                                 popUpTo("ingreso_usuario") { inclusive = true }
                             }
-                        } else {
+                        }
+ else {
                             Toast.makeText(context,
                                 context.getString(R.string.toast_error_login_google), Toast.LENGTH_SHORT).show()
                         }

@@ -28,16 +28,7 @@ fun Home(navController: NavController) {
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop
         )
-        // Flecha volver
-        Image(
-            painter = painterResource(id = R.drawable.flecha),
-            contentDescription = "Volver",
-            modifier = Modifier
-                .align(Alignment.TopStart)
-                .padding(16.dp)
-                .size(40.dp)
-                .clickable { navController.popBackStack() }
-        )
+
         // Imagen Perfil
         Image(
             painter = painterResource(id = R.drawable.icono_perfil),
