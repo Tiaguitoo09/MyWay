@@ -1,5 +1,6 @@
 package com.example.myway.screens.modulo2
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -17,6 +18,10 @@ import com.example.myway.R
 
 @Composable
 fun Home(navController: NavController) {
+    BackHandler(enabled = true) {
+
+    }
+
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
@@ -29,7 +34,7 @@ fun Home(navController: NavController) {
             contentScale = ContentScale.Crop
         )
 
-        // Imagen Perfil
+        // Imagen Perfil (navega a ajustes/perfil)
         Image(
             painter = painterResource(id = R.drawable.icono_perfil),
             contentDescription = "Perfil",
@@ -37,8 +42,9 @@ fun Home(navController: NavController) {
                 .align(Alignment.TopEnd)
                 .padding(16.dp)
                 .size(40.dp)
-                .clickable { navController.navigate("perfil_ajustes") }
+                .clickable {
+                    navController.navigate("perfil_ajustes")
+                }
         )
-
     }
 }

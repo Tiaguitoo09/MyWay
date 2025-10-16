@@ -1,5 +1,6 @@
 package com.example.myway.screens.modulo2
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
@@ -25,6 +26,9 @@ import kotlinx.coroutines.delay
 @Composable
 fun Cargando(navController: NavController) {
 
+    BackHandler(enabled = true) {
+        // No hacer nada
+    }
     LaunchedEffect(Unit) {
         val auth = FirebaseAuth.getInstance()
         val db = FirebaseFirestore.getInstance()
@@ -80,8 +84,10 @@ fun Cargando(navController: NavController) {
         // Espera antes de navegar
         delay(3000)
         navController.navigate("home") {
-            popUpTo("cargando") { inclusive = true }
+            popUpTo(0) // 🔹 Limpia toda la pila de navegación
+            launchSingleTop = true
         }
+
     }
 
     // Animación rotatoria
