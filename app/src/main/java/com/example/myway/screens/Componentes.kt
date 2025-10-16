@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.OutlinedTextField
@@ -96,14 +98,16 @@ fun CustomTextField(
     textColor: Color = Color.White,
     onTextChange: (String) -> Unit,
     text: String,
-    showBorder: Boolean = true // ← NUEVO parámetro opcional
+    showBorder: Boolean = true, // ← parámetro que ya tenías
+    modifier: Modifier = Modifier, // ← nuevo
+    keyboardOptions: KeyboardOptions = KeyboardOptions.Default, // ← nuevo
+    keyboardActions: KeyboardActions = KeyboardActions.Default // ← nuevo
 ) {
     OutlinedTextField(
         value = text,
         onValueChange = onTextChange,
         placeholder = {
             if (showBorder) {
-                // Placeholder con borde azul
                 Box(contentAlignment = Alignment.CenterStart) {
                     Text(
                         text = placeholder,
@@ -124,7 +128,6 @@ fun CustomTextField(
                     )
                 }
             } else {
-                // Placeholder normal
                 Text(
                     text = placeholder,
                     color = textColor,
@@ -136,7 +139,7 @@ fun CustomTextField(
         },
         singleLine = true,
         textStyle = TextStyle(color = textColor),
-        modifier = Modifier
+        modifier = modifier
             .width(320.dp)
             .height(55.dp)
             .then(
@@ -156,9 +159,12 @@ fun CustomTextField(
             focusedContainerColor = color,
             unfocusedContainerColor = color
         ),
-        visualTransformation = if (isPassword) PasswordVisualTransformation() else VisualTransformation.None
+        visualTransformation = if (isPassword) PasswordVisualTransformation() else VisualTransformation.None,
+        keyboardOptions = keyboardOptions, // ← se agregan aquí
+        keyboardActions = keyboardActions  // ← y aquí
     )
 }
+
 
 
 

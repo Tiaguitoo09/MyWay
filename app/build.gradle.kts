@@ -1,5 +1,3 @@
-
-
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -47,19 +45,17 @@ android {
 
 dependencies {
 
-    // Firebase BOM — gestiona las versiones automáticamente
+    // 🔥 Firebase (BOM gestiona versiones)
     implementation(platform("com.google.firebase:firebase-bom:33.5.1"))
-
-    // 🔥 Firebase
     implementation("com.google.firebase:firebase-analytics")
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.firebase:firebase-firestore-ktx")
-    implementation("com.google.firebase:firebase-storage-ktx") // ✅ ESTA ES LA QUE FALTABA
+    implementation("com.google.firebase:firebase-storage-ktx")
 
     // 🔐 Google Sign-In
     implementation("com.google.android.gms:play-services-auth:21.2.0")
 
-    // Jetpack Compose
+    // 🧩 Jetpack Compose
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
@@ -67,16 +63,15 @@ dependencies {
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
-    implementation("androidx.navigation:navigation-compose:2.7.4")
-    implementation("androidx.compose.material3:material3:1.1.0")
-    implementation(libs.androidx.material3)
-    implementation(libs.androidx.ui.graphics)
-    implementation(libs.androidx.compose.ui.text)
-    implementation(libs.sceneform.base)
     implementation(libs.androidx.compose.foundation)
+    implementation(libs.androidx.material3)
+    implementation(libs.sceneform.base)
+    implementation("androidx.navigation:navigation-compose:2.7.4")
+
+    // 🖼️ Coil (carga de imágenes)
     implementation("io.coil-kt:coil-compose:2.5.0")
 
-    // Tests
+    // 🧪 Tests
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -85,4 +80,3 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 }
-
