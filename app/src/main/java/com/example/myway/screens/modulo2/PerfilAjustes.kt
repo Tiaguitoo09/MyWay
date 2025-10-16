@@ -1,6 +1,9 @@
 package com.example.myway.screens.modulo2
 
+import android.content.Context
+import android.graphics.Bitmap
 import android.net.Uri
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
@@ -22,6 +25,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.FileProvider
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.myway.R
@@ -30,31 +34,43 @@ import com.example.myway.ui.theme.Azul1
 import com.example.myway.ui.theme.Azul3
 import com.example.myway.ui.theme.Blanco
 import com.example.myway.ui.theme.Rojo
+import com.example.myway.utils.ImageStorage
 import com.example.myway.utils.UsuarioTemporal
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.storage.FirebaseStorage
+import java.io.File
+import java.io.FileOutputStream
+import java.util.UUID
 
 @Composable
 fun PerfilAjustes(navController: NavController) {
     val context = LocalContext.current
     var showDialog by remember { mutableStateOf(false) }
-    var imageUri by remember { mutableStateOf<Uri?>(UsuarioTemporal.fotoLocalUri) }
+    var imageUri by remember { mutableStateOf<Uri?>(ImageStorage.obtenerImagenUri(context)) }
 
-    // 📷 Launcher para abrir galería
+    // 📷 Abrir galería
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri?.let {
             imageUri = it
             UsuarioTemporal.fotoLocalUri = it
+            ImageStorage.guardarImagenUri(context, it)
+            subirFotoAFirebase(it)
         }
     }
 
-    // 📸 Launcher para abrir cámara
+    // 📸 Tomar foto
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicturePreview()
     ) { bitmap ->
         bitmap?.let {
-            val uri = Uri.parse(it.toString()) // (temporal, solo en memoria)
+            val uri = saveBitmapToCache(context, it)
+            imageUri = uri
             UsuarioTemporal.fotoLocalUri = uri
+            ImageStorage.guardarImagenUri(context, uri)
+            subirFotoAFirebase(uri)
         }
     }
 
@@ -83,7 +99,7 @@ fun PerfilAjustes(navController: NavController) {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 32.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Spacer(modifier = Modifier.height(60.dp))
 
@@ -92,11 +108,11 @@ fun PerfilAjustes(navController: NavController) {
                 modifier = Modifier
                     .size(150.dp)
                     .padding(bottom = 8.dp)
-                    .border(width = 6.dp, color = Azul1, shape = CircleShape)
+                    .border(width = 6.dp, color = Blanco, shape = CircleShape)
                     .clip(CircleShape)
                     .clickable {
                         if (UsuarioTemporal.fotoUrl == null) {
-                            showDialog = true // solo para los que no son de Google
+                            showDialog = true
                         }
                     },
                 contentAlignment = Alignment.Center
@@ -105,7 +121,7 @@ fun PerfilAjustes(navController: NavController) {
                     UsuarioTemporal.fotoUrl != null -> {
                         AsyncImage(
                             model = UsuarioTemporal.fotoUrl,
-                            contentDescription = "Foto de perfil de Google",
+                            contentDescription = "Foto de perfil (Firebase)",
                             contentScale = ContentScale.Crop,
                             modifier = Modifier
                                 .size(150.dp)
@@ -113,10 +129,10 @@ fun PerfilAjustes(navController: NavController) {
                         )
                     }
 
-                    UsuarioTemporal.fotoLocalUri != null -> {
+                    imageUri != null -> {
                         AsyncImage(
-                            model = UsuarioTemporal.fotoLocalUri,
-                            contentDescription = "Foto de perfil local",
+                            model = imageUri,
+                            contentDescription = "Foto local",
                             contentScale = ContentScale.Crop,
                             modifier = Modifier
                                 .size(150.dp)
@@ -141,7 +157,6 @@ fun PerfilAjustes(navController: NavController) {
             val nombreUsuario = UsuarioTemporal.nombre?.trim()?.lowercase()
                 ?.replaceFirstChar { it.uppercase() } ?: "Usuario"
 
-            // Mostrar Nombre
             Text(
                 text = "Hola, $nombreUsuario",
                 color = Blanco,
@@ -155,13 +170,10 @@ fun PerfilAjustes(navController: NavController) {
                 text = "Ver Perfil",
                 color = Blanco,
                 fontSize = 18.sp,
-                fontWeight = FontWeight.Normal,
                 textDecoration = TextDecoration.Underline,
                 modifier = Modifier
-                    .padding(top = 4.dp, bottom = 24.dp)
-                    .clickable {
-                        navController.navigate("ver_perfil")
-                    }
+                    .padding(bottom = 24.dp)
+                    .clickable { navController.navigate("ver_perfil") }
             )
 
             Spacer(modifier = Modifier.height(20.dp))
@@ -174,9 +186,7 @@ fun PerfilAjustes(navController: NavController) {
                     .fillMaxWidth(0.85f)
                     .height(70.dp),
                 fontWeight = FontWeight.ExtraBold,
-                onClick = {
-                    navController.navigate("soporte")
-                }
+                onClick = { navController.navigate("soporte") }
             )
 
             Spacer(modifier = Modifier.height(18.dp))
@@ -189,9 +199,7 @@ fun PerfilAjustes(navController: NavController) {
                     .fillMaxWidth(0.85f)
                     .height(70.dp),
                 fontWeight = FontWeight.ExtraBold,
-                onClick = {
-                    navController.navigate("ajustes")
-                }
+                onClick = { navController.navigate("ajustes") }
             )
 
             Spacer(modifier = Modifier.height(18.dp))
@@ -204,9 +212,7 @@ fun PerfilAjustes(navController: NavController) {
                     .fillMaxWidth(0.85f)
                     .height(70.dp),
                 fontWeight = FontWeight.ExtraBold,
-                onClick = {
-                    navController.navigate("eliminar_cuenta")
-                }
+                onClick = { navController.navigate("eliminar_cuenta") }
             )
 
             Spacer(modifier = Modifier.height(40.dp))
@@ -228,12 +234,9 @@ fun PerfilAjustes(navController: NavController) {
                 color = Azul1,
                 textDecoration = TextDecoration.Underline,
                 fontSize = 20.sp,
-                fontWeight = FontWeight.Normal,
-                modifier = Modifier
-                    .padding(top = 8.dp)
-                    .clickable {
-                        navController.navigate("cerrar_sesion")
-                    }
+                modifier = Modifier.clickable {
+                    navController.navigate("cerrar_sesion")
+                }
             )
         }
     }
@@ -249,16 +252,12 @@ fun PerfilAjustes(navController: NavController) {
                     Button(onClick = {
                         galleryLauncher.launch("image/*")
                         showDialog = false
-                    }) {
-                        Text("Elegir desde galería")
-                    }
+                    }) { Text("Elegir desde galería") }
                     Spacer(modifier = Modifier.height(8.dp))
                     Button(onClick = {
                         cameraLauncher.launch(null)
                         showDialog = false
-                    }) {
-                        Text("Tomar foto con cámara")
-                    }
+                    }) { Text("Tomar foto con cámara") }
                 }
             },
             dismissButton = {
@@ -268,4 +267,47 @@ fun PerfilAjustes(navController: NavController) {
             }
         )
     }
+}
+
+// 🧩 Guardar el bitmap tomado con cámara
+fun saveBitmapToCache(context: Context, bitmap: Bitmap): Uri {
+    val file = File(context.cacheDir, "perfil_${System.currentTimeMillis()}.jpg")
+    FileOutputStream(file).use { out ->
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
+    }
+    return FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
+}
+
+// 🔥 Subir imagen a Firebase Storage y guardar su URL en Firestore
+fun subirFotoAFirebase(uri: Uri) {
+    val user = FirebaseAuth.getInstance().currentUser
+    if (user == null) {
+        Log.e("Firebase", "❌ No hay usuario autenticado")
+        return
+    }
+
+    val userId = user.uid
+    val storageRef = FirebaseStorage.getInstance().reference
+    val imageRef = storageRef.child("fotos_usuarios/$userId.jpg")
+
+    imageRef.putFile(uri)
+        .addOnSuccessListener {
+            imageRef.downloadUrl.addOnSuccessListener { url ->
+                val fotoUrl = url.toString()
+                UsuarioTemporal.fotoUrl = fotoUrl // para actualizar en la UI
+
+                val db = FirebaseFirestore.getInstance()
+                db.collection("usuarios").document(userId)
+                    .update("fotoPerfil", fotoUrl)
+                    .addOnSuccessListener {
+                        Log.d("Firebase", "✅ URL guardada correctamente")
+                    }
+                    .addOnFailureListener {
+                        Log.e("Firebase", "❌ Error guardando URL en Firestore", it)
+                    }
+            }
+        }
+        .addOnFailureListener {
+            Log.e("Firebase", "❌ Error subiendo imagen", it)
+        }
 }

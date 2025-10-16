@@ -46,6 +46,7 @@ android {
 }
 
 dependencies {
+
     // Firebase BOM — gestiona las versiones automáticamente
     implementation(platform("com.google.firebase:firebase-bom:33.5.1"))
 
@@ -53,6 +54,7 @@ dependencies {
     implementation("com.google.firebase:firebase-analytics")
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.firebase:firebase-firestore-ktx")
+    implementation("com.google.firebase:firebase-storage-ktx") // ✅ ESTA ES LA QUE FALTABA
 
     // 🔐 Google Sign-In
     implementation("com.google.android.gms:play-services-auth:21.2.0")
@@ -83,3 +85,4 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 }
+
