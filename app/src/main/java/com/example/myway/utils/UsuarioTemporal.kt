@@ -1,5 +1,7 @@
 package com.example.myway.utils
 
+import android.net.Uri
+
 object UsuarioTemporal {
     var correo: String? = null
 
@@ -7,5 +9,9 @@ object UsuarioTemporal {
     var nombre: String? = null
 
     var fechaNacimiento: String? = null
+
+    var fotoUrl: String? = null
+    var fotoLocalUri: Uri? = null
+
 
 }

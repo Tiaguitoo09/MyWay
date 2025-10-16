@@ -69,6 +69,7 @@ fun IngresoUsuario(
                                 nombre = user?.displayName ?: "Usuario"
                                 apellido = null
                                 fechaNacimiento = null
+                                fotoUrl = user?.photoUrl?.toString() // 🟢 Guardamos la URL de la foto de perfil
                             }
 
                             Toast.makeText(
@@ -81,6 +82,7 @@ fun IngresoUsuario(
                                 popUpTo("ingreso_usuario") { inclusive = true }
                             }
                         }
+
  else {
                             Toast.makeText(context,
                                 context.getString(R.string.toast_error_login_google), Toast.LENGTH_SHORT).show()

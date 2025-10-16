@@ -72,6 +72,7 @@ dependencies {
     implementation(libs.androidx.compose.ui.text)
     implementation(libs.sceneform.base)
     implementation(libs.androidx.compose.foundation)
+    implementation("io.coil-kt:coil-compose:2.5.0")
 
     // Tests
     testImplementation(libs.junit)
