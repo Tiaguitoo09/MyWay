@@ -7,16 +7,23 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
@@ -47,6 +54,8 @@ fun IngresoUsuario(
     var isLoading by remember { mutableStateOf(false) }
     val email = remember { mutableStateOf("") }
     val password = remember { mutableStateOf("") }
+    val passwordFocusRequester = remember { FocusRequester() }
+    val focusManager = LocalFocusManager.current
 
     // Launcher para Google Sign-In
     val launcher = rememberLauncherForActivityResult(
@@ -147,17 +156,35 @@ fun IngresoUsuario(
                 color = Azul3,
                 textColor = Blanco,
                 text = email.value,
-                onTextChange = { email.value = it }
+                onTextChange = { email.value = it },
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Email,
+                    imeAction = ImeAction.Next
+                ),
+                keyboardActions = KeyboardActions(
+                    onNext = { passwordFocusRequester.requestFocus() }
+                )
             )
+
             Spacer(modifier = Modifier.height(16.dp))
+
             CustomTextField(
                 placeholder = stringResource(R.string.contrasena),
                 color = Azul3,
                 textColor = Blanco,
                 isPassword = true,
                 text = password.value,
-                onTextChange = { password.value = it }
+                onTextChange = { password.value = it },
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Password,
+                    imeAction = ImeAction.Done
+                ),
+                keyboardActions = KeyboardActions(
+                    onDone = { focusManager.clearFocus() }
+                ),
+                modifier = Modifier.focusRequester(passwordFocusRequester)
             )
+
 
             Spacer(modifier = Modifier.height(30.dp))
             Text(
@@ -254,3 +281,5 @@ fun IngresoUsuario(
         }
     }
 }
+
+
