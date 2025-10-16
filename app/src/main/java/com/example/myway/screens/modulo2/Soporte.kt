@@ -1,5 +1,7 @@
 package com.example.myway.screens.modulo2
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -14,6 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -197,6 +200,8 @@ fun DesplegableCard(
 
 @Composable
 fun SoporteButton(icono: Int, texto: String) {
+    val context = LocalContext.current
+
     Surface(
         color = Azul4,
         shape = RoundedCornerShape(12.dp),
@@ -204,6 +209,24 @@ fun SoporteButton(icono: Int, texto: String) {
         modifier = Modifier
             .fillMaxWidth()
             .height(50.dp)
+            .clickable {
+                when {
+                    texto.contains("@") -> {
+                        // Abrir correo
+                        val intent = Intent(Intent.ACTION_SENDTO).apply {
+                            data = Uri.parse("mailto:$texto")
+                        }
+                        context.startActivity(intent)
+                    }
+                    texto.contains("(") || texto.contains(")") || texto.contains("345") -> {
+                        // Abrir teléfono
+                        val intent = Intent(Intent.ACTION_DIAL).apply {
+                            data = Uri.parse("tel:6013458500")
+                        }
+                        context.startActivity(intent)
+                    }
+                }
+            }
     ) {
         Row(
             modifier = Modifier
