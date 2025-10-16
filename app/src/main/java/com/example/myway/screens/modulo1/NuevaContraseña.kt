@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -39,7 +40,7 @@ fun NuevaContraseña(navController: NavController, correo: String) {
         // Fondo
         Image(
             painter = painterResource(id = R.drawable.fondo2),
-            contentDescription = "Fondo",
+            contentDescription = stringResource(R.string.fondo_app),
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop
         )
@@ -47,7 +48,7 @@ fun NuevaContraseña(navController: NavController, correo: String) {
         // Flecha volver
         Image(
             painter = painterResource(id = R.drawable.flecha),
-            contentDescription = "Volver",
+            contentDescription = stringResource(R.string.volver),
             modifier = Modifier
                 .align(Alignment.TopStart)
                 .padding(16.dp)
@@ -66,7 +67,7 @@ fun NuevaContraseña(navController: NavController, correo: String) {
             Spacer(modifier = Modifier.height(60.dp))
 
             Text(
-                text = "Nueva Contraseña",
+                text = stringResource(R.string.nueva_contrasena),
                 fontSize = 26.sp,
                 fontFamily = Nunito,
                 fontWeight = FontWeight.Bold,
@@ -76,7 +77,7 @@ fun NuevaContraseña(navController: NavController, correo: String) {
             Spacer(modifier = Modifier.height(24.dp))
 
             Text(
-                text = "Ingresa la nueva contraseña",
+                text = stringResource(R.string.ingresa_nueva_contrasena),
                 fontSize = 16.sp,
                 fontFamily = Nunito,
                 fontWeight = FontWeight.SemiBold,
@@ -84,7 +85,7 @@ fun NuevaContraseña(navController: NavController, correo: String) {
             )
 
             CustomTextField(
-                placeholder = "Mín. 8 caracteres, 1 mayús, 1 minús, 1 número y 1 símbolo*",
+                placeholder = stringResource(R.string.simbolos),
                 text = nueva,
                 onTextChange = { nueva = it },
                 color = Blanco,
@@ -97,7 +98,7 @@ fun NuevaContraseña(navController: NavController, correo: String) {
             Spacer(modifier = Modifier.height(20.dp))
 
             Text(
-                text = "Confirma la contraseña",
+                text = stringResource(R.string.confirma_contrasena),
                 fontSize = 16.sp,
                 fontFamily = Nunito,
                 fontWeight = FontWeight.SemiBold,
@@ -106,7 +107,7 @@ fun NuevaContraseña(navController: NavController, correo: String) {
             )
 
             CustomTextField(
-                placeholder = "***********",
+                placeholder = stringResource(R.string.simbolos_contrasena),
                 text = confirmar,
                 onTextChange = { confirmar = it },
                 color = Blanco,
@@ -118,7 +119,7 @@ fun NuevaContraseña(navController: NavController, correo: String) {
             Spacer(modifier = Modifier.height(30.dp))
 
             CustomButton(
-                text = "Actualizar",
+                text = stringResource(R.string.actualizar),
                 color = Azul3,
                 modifier = Modifier
                     .width(220.dp)
@@ -127,17 +128,18 @@ fun NuevaContraseña(navController: NavController, correo: String) {
                     // Validaciones
                     when {
                         nueva.isBlank() || confirmar.isBlank() -> {
-                            Toast.makeText(context, "Rellena ambos campos", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, context.getString(R.string.toast_campos_incompletos), Toast.LENGTH_SHORT).show()
                             return@CustomButton
                         }
                         nueva != confirmar -> {
-                            Toast.makeText(context, "Las contraseñas no coinciden", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context,
+                                context.getString(R.string.contrasenas_no_coinciden), Toast.LENGTH_SHORT).show()
                             return@CustomButton
                         }
                         !esContrasenaValida(nueva) -> {
                             Toast.makeText(
                                 context,
-                                "Debe tener 8 caracteres, una mayúscula, una minúscula, un número y un símbolo.",
+                                context.getString(R.string.debe_tener_contrasena),
                                 Toast.LENGTH_LONG
                             ).show()
                             return@CustomButton
@@ -156,26 +158,30 @@ fun NuevaContraseña(navController: NavController, correo: String) {
                                     .addOnSuccessListener {
                                         Toast.makeText(
                                             context,
-                                            "Contraseña actualizada correctamente",
+                                            context.getString(R.string.contrasena_actualizada),
                                             Toast.LENGTH_SHORT
                                         ).show()
                                         navController.navigate("cambio_exitoso")
                                     }
                                     .addOnFailureListener {
-                                        Toast.makeText(context, "Error al actualizar contraseña", Toast.LENGTH_SHORT).show()
+                                        Toast.makeText(context,
+                                            context.getString(R.string.error_actualizar_contrasena), Toast.LENGTH_SHORT).show()
                                     }
                             } else {
-                                Toast.makeText(context, "Usuario no encontrado", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context,
+                                    context.getString(R.string.usuario_no_encontrado), Toast.LENGTH_SHORT).show()
                             }
                         }
                         .addOnFailureListener {
-                            Toast.makeText(context, "Error en la base de datos", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context,
+                                context.getString(R.string.error_base_datos), Toast.LENGTH_SHORT).show()
                         }
                 }
             )
         }
     }
 }
+
 
 // 🔒 Validación de contraseña segura
 fun esContrasenaValida(password: String): Boolean {

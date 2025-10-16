@@ -9,6 +9,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -29,7 +30,7 @@ fun InicioPantalla(navController: NavController) {
         // Fondo de la app
         Image(
             painter = painterResource(id = R.drawable.fondo1),
-            contentDescription = "Fondo de la app",
+            contentDescription = stringResource(R.string.fondo_app),
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop
         )
@@ -46,7 +47,7 @@ fun InicioPantalla(navController: NavController) {
             // Imagen de brújula
             Image(
                 painter = painterResource(id = R.drawable.brujula),
-                contentDescription = "Ícono de brújula",
+                contentDescription = stringResource(R.string.icono_brujula),
                 modifier = Modifier.size(240.dp)
             )
 
@@ -54,7 +55,7 @@ fun InicioPantalla(navController: NavController) {
 
             // Texto principal reutilizable
             CustomTitleText(
-                text = "MyWay",
+                text = stringResource(R.string.app_name),
                 color = Blanco,
                 fontSize = 80.sp,
                 fontFamily = Nunito,
@@ -66,7 +67,7 @@ fun InicioPantalla(navController: NavController) {
 
             // Botón reutilizable
             CustomButton(
-                text = "Pulsa para comenzar",
+                text = stringResource(R.string.pulsa_para_comenzar),
                 color = Azul3,
                 onClick = { navController.navigate("ingreso_usuario") }
             )

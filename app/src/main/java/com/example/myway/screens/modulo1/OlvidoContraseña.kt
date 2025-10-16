@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -59,19 +60,21 @@ fun OlvidoContraseña(
                 auth.signInWithCredential(credential)
                     .addOnCompleteListener { signInTask ->
                         if (signInTask.isSuccessful) {
-                            Toast.makeText(context, "Inicio de sesión con Google exitoso", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context,
+                                context.getString(R.string.toast_inicio_sesion_google_exitoso), Toast.LENGTH_SHORT).show()
                             navController.navigate("inicio") {
                                 popUpTo("olvide_contraseña") { inclusive = true }
                             }
                         } else {
                             signInTask.exception?.printStackTrace()
-                            Toast.makeText(context, "Error al iniciar sesión con Google", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context,
+                                context.getString(R.string.toast_error_iniciar_sesion_google), Toast.LENGTH_SHORT).show()
                         }
                     }
             }
         } catch (e: Exception) {
             e.printStackTrace()
-            Toast.makeText(context, "Error al autenticar con Google", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(R.string.toast_autenticar_google), Toast.LENGTH_SHORT).show()
         } finally {
             isLoading = false
         }
@@ -81,7 +84,7 @@ fun OlvidoContraseña(
         // Fondo
         Image(
             painter = painterResource(id = R.drawable.fondo2),
-            contentDescription = "Fondo",
+            contentDescription = stringResource(R.string.fondo_app),
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop
         )
@@ -89,7 +92,7 @@ fun OlvidoContraseña(
         // Flecha volver
         Image(
             painter = painterResource(id = R.drawable.flecha),
-            contentDescription = "Volver",
+            contentDescription = stringResource(R.string.volver),
             modifier = Modifier
                 .align(Alignment.TopStart)
                 .padding(16.dp)
@@ -97,17 +100,16 @@ fun OlvidoContraseña(
                 .clickable { navController.popBackStack() }
         )
 
-        // 👇 Aquí se agregó el scroll vertical
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 32.dp)
-                .verticalScroll(rememberScrollState()), // ← habilita scroll
+                .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Spacer(modifier = Modifier.height(60.dp))
             Text(
-                text = "Olvidé mi contraseña",
+                text = stringResource(R.string.olvide_contrasena),
                 fontFamily = Nunito,
                 fontWeight = FontWeight.Bold,
                 fontSize = 26.sp,
@@ -122,7 +124,7 @@ fun OlvidoContraseña(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
-                    text = "Ingrese su frase de seguridad",
+                    text = stringResource(R.string.frase_seguridad),
                     fontFamily = Nunito,
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 18.sp,
@@ -131,7 +133,7 @@ fun OlvidoContraseña(
 
                 // Campo de frase
                 CustomTextField(
-                    placeholder = "Frase de seguridad",
+                    placeholder = stringResource(R.string.frase_de_seguridad),
                     text = fraseSeguridad,
                     onTextChange = { fraseSeguridad = it },
                     color = Blanco,
@@ -143,7 +145,7 @@ fun OlvidoContraseña(
 
                 // Botón enviar
                 CustomButton(
-                    text = "Enviar",
+                    text = stringResource(R.string.enviar),
                     color = Azul3,
                     modifier = Modifier
                         .width(220.dp)
@@ -163,21 +165,21 @@ fun OlvidoContraseña(
                                             UsuarioTemporal.correo = correo
                                             Toast.makeText(
                                                 context,
-                                                "Frase válida. Redirigiendo...",
+                                                context.getString(R.string.frase_valida),
                                                 Toast.LENGTH_SHORT
                                             ).show()
                                             navController.navigate("nueva_contraseña/${correo}")
                                         } else {
                                             Toast.makeText(
                                                 context,
-                                                "Correo no encontrado",
+                                                context.getString(R.string.correo_no_encontrado),
                                                 Toast.LENGTH_SHORT
                                             ).show()
                                         }
                                     } else {
                                         Toast.makeText(
                                             context,
-                                            "Frase incorrecta o no registrada",
+                                            context.getString(R.string.frase_incorrecta),
                                             Toast.LENGTH_SHORT
                                         ).show()
                                     }
@@ -185,14 +187,14 @@ fun OlvidoContraseña(
                                 .addOnFailureListener {
                                     Toast.makeText(
                                         context,
-                                        "Error al buscar la frase",
+                                        context.getString(R.string.error_buscar_frase),
                                         Toast.LENGTH_SHORT
                                     ).show()
                                 }
                         } else {
                             Toast.makeText(
                                 context,
-                                "Ingresa tu frase de seguridad",
+                                context.getString(R.string.ingresa_frase_seguridad),
                                 Toast.LENGTH_SHORT
                             ).show()
                         }
@@ -204,7 +206,7 @@ fun OlvidoContraseña(
                 // Imagen Google con inicio de sesión
                 Image(
                     painter = painterResource(id = R.drawable.google_image),
-                    contentDescription = "Google",
+                    contentDescription = stringResource(R.string.google_image),
                     modifier = Modifier
                         .size(90.dp)
                         .clickable(enabled = !isLoading) {
@@ -220,7 +222,7 @@ fun OlvidoContraseña(
 
                 // ¿Tienes una cuenta?
                 Text(
-                    text = "¿Tienes una cuenta?",
+                    text = stringResource(R.string.tienes_cuenta),
                     color = Blanco,
                     fontSize = 14.sp,
                     fontFamily = Nunito
@@ -228,7 +230,7 @@ fun OlvidoContraseña(
 
                 // Botón Iniciar sesión
                 CustomButton(
-                    text = "Iniciar Sesión",
+                    text = stringResource(R.string.iniciar_sesion),
                     color = Azul3,
                     modifier = Modifier
                         .width(220.dp)

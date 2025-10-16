@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -91,14 +92,14 @@ fun RegistroUsuario(
     Box(modifier = Modifier.fillMaxSize()) {
         Image(
             painter = painterResource(id = R.drawable.registro),
-            contentDescription = "Fondo de registro",
+            contentDescription = stringResource(R.string.fondo_app),
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop
         )
 
         Image(
             painter = painterResource(id = R.drawable.flechaazul),
-            contentDescription = "Volver",
+            contentDescription = stringResource(R.string.volver),
             modifier = Modifier
                 .align(Alignment.TopStart)
                 .padding(16.dp)
@@ -106,32 +107,25 @@ fun RegistroUsuario(
                 .clickable { navController.popBackStack() }
         )
 
-        // 👇 Aquí se agregó el scroll, sin tocar nada más
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.Center)
                 .padding(horizontal = 32.dp)
-                .verticalScroll(rememberScrollState()), // ← añadido para scroll
+                .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Spacer(modifier = Modifier.height(40.dp))
 
-            CampoTextoAzul("Nombre", nombre) { nombre = it }
-            Spacer(modifier = Modifier.height(12.dp))
-            CampoTextoAzul("Apellido", apellido) { apellido = it }
-            Spacer(modifier = Modifier.height(12.dp))
-            CampoTextoAzul("Correo electrónico", correo) { correo = it }
-            Spacer(modifier = Modifier.height(12.dp))
-            CampoTextoAzul("Contraseña", contrasena, true) { contrasena = it }
-            Spacer(modifier = Modifier.height(12.dp))
-            CampoTextoAzul("Verificar contraseña", verificarContrasena, true) { verificarContrasena = it }
-            Spacer(modifier = Modifier.height(12.dp))
-            CampoTextoAzul("Frase de seguridad", fraseSeguridad) { fraseSeguridad = it }
-            Spacer(modifier = Modifier.height(20.dp))
+            CampoTextoAzul(stringResource(R.string.campo_nombre), nombre) { nombre = it }
+            CampoTextoAzul(stringResource(R.string.campo_apellido), apellido) { apellido = it }
+            CampoTextoAzul(stringResource(R.string.campo_correo), correo) { correo = it }
+            CampoTextoAzul(stringResource(R.string.campo_contrasena), contrasena, true) { contrasena = it }
+            CampoTextoAzul(stringResource(R.string.campo_verificar_contrasena), verificarContrasena, true) { verificarContrasena = it }
+            CampoTextoAzul(stringResource(R.string.campo_frase_seguridad), fraseSeguridad) { fraseSeguridad = it }
 
             Text(
-                text = "Fecha de nacimiento",
+                text = stringResource(R.string.fecha_nacimiento),
                 color = Blanco,
                 fontFamily = Nunito,
                 fontWeight = FontWeight.Bold,
@@ -143,9 +137,9 @@ fun RegistroUsuario(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                CampoFecha("Día", dia) { dia = it }
-                CampoFecha("Mes", mes) { mes = it }
-                CampoFecha("Año", anio) { anio = it }
+                CampoFecha(stringResource(R.string.dia), dia) { dia = it }
+                CampoFecha(stringResource(R.string.mes), mes) { mes = it }
+                CampoFecha(stringResource(R.string.anio), anio) { anio = it }
             }
 
             errorFecha?.let {
@@ -156,7 +150,7 @@ fun RegistroUsuario(
             Spacer(modifier = Modifier.height(20.dp))
 
             Text(
-                text = "Género",
+                text = stringResource(R.string.genero),
                 color = Blanco,
                 fontFamily = Nunito,
                 fontWeight = FontWeight.Bold,
@@ -181,7 +175,7 @@ fun RegistroUsuario(
                 ) {
                     Image(
                         painter = painterResource(id = R.drawable.icono_masculino),
-                        contentDescription = "Masculino",
+                        contentDescription = stringResource(R.string.masculino),
                         modifier = Modifier.size(30.dp)
                     )
                 }
@@ -199,7 +193,7 @@ fun RegistroUsuario(
                 ) {
                     Image(
                         painter = painterResource(id = R.drawable.icono_femenino),
-                        contentDescription = "Femenino",
+                        contentDescription = stringResource(R.string.femenino),
                         modifier = Modifier.size(30.dp)
                     )
                 }
@@ -217,7 +211,7 @@ fun RegistroUsuario(
                 ) {
                     Image(
                         painter = painterResource(id = R.drawable.icono_no_binario),
-                        contentDescription = "No binario",
+                        contentDescription = stringResource(R.string.no_binario),
                         modifier = Modifier.size(30.dp)
                     )
                 }
@@ -230,7 +224,8 @@ fun RegistroUsuario(
                 color = Azul3,
                 onClick = {
                     if (contrasena != verificarContrasena) {
-                        Toast.makeText(context, "❌ Las contraseñas no coinciden", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context,
+                            context.getString(R.string.toast_contrasenas_no_coinciden), Toast.LENGTH_SHORT).show()
                         return@CustomButton
                     }
 
@@ -239,11 +234,11 @@ fun RegistroUsuario(
                         fraseSeguridad.isBlank() || dia.isBlank() || mes.isBlank() || anio.isBlank() ||
                         genero.isNullOrBlank()
                     ) {
-                        Toast.makeText(context, "⚠️ Por favor completa todos los campos antes de continuar", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context,context.getString(R.string.toast_campos_incompletos), Toast.LENGTH_SHORT).show()
                         return@CustomButton
                     }
 
-                    errorFecha = validarFechaNacimiento(dia, mes, anio)
+                    errorFecha = validarFechaNacimiento(context,dia, mes, anio)
                     if (errorFecha == null) {
                         val fechaNacimiento = "$dia/$mes/$anio"
                         guardarUsuarioEnFirestore(
@@ -261,13 +256,17 @@ fun RegistroUsuario(
                     } else {
                         Toast.makeText(context, errorFecha, Toast.LENGTH_SHORT).show()
                     }
+
                 }
             )
 
             Spacer(modifier = Modifier.height(20.dp))
 
             Text(
-                text = if (isLoading) "Creando cuenta con Google..." else "Registrarse con Google",
+                text = if (isLoading)
+                        stringResource(R.string.google_creando_cuenta)
+                    else
+                        stringResource(R.string.google_registrarse),
                 color = Blanco,
                 fontFamily = Nunito,
                 fontWeight = FontWeight.Bold,
@@ -307,7 +306,7 @@ fun guardarUsuarioEnFirestore(
             if (!documents.isEmpty) {
                 Toast.makeText(
                     context,
-                    "⚠️ Este correo ya está registrado. Usa otro o inicia sesión.",
+                    context.getString(R.string.toast_correo_repetido),
                     Toast.LENGTH_LONG
                 ).show()
             } else {
@@ -331,7 +330,7 @@ fun guardarUsuarioEnFirestore(
 
                         Toast.makeText(
                             context,
-                            "Cuenta creada con éxito",
+                            context.getString(R.string.toast_cuenta_creada),
                             Toast.LENGTH_SHORT
                         ).show()
                         navController.navigate("cargando") {
@@ -341,31 +340,35 @@ fun guardarUsuarioEnFirestore(
                     .addOnFailureListener { e ->
                         Toast.makeText(
                             context,
-                            "Error al guardar usuario: ${e.message}",
+                            context.getString(R.string.toast_error_guardar_usuario, e.message),
                             Toast.LENGTH_LONG
                         ).show()
                     }
+
             }
         }
         .addOnFailureListener { e ->
             Toast.makeText(
                 context,
-                "Error al verificar el correo: ${e.message}",
+                context.getString(R.string.error_verificar_correo, e.message),
                 Toast.LENGTH_LONG
             ).show()
         }
 }
 
 // ---------------------------------------------------------------------
-fun validarFechaNacimiento(dia: String, mes: String, anio: String): String? {
-    if (dia.isBlank() || mes.isBlank() || anio.isBlank()) return "Por favor completa la fecha"
-    val d = dia.toIntOrNull() ?: return "Día inválido"
-    val m = mes.toIntOrNull() ?: return "Mes inválido"
-    val a = anio.toIntOrNull() ?: return "Año inválido"
+fun validarFechaNacimiento(context: Context, dia: String, mes: String, anio: String): String? {
+    if (dia.isBlank() || mes.isBlank() || anio.isBlank())
+        return context.getString(R.string.error_fecha_incompleta)
+
+    val d = dia.toIntOrNull() ?: return context.getString(R.string.error_dia_invalido)
+    val m = mes.toIntOrNull() ?: return context.getString(R.string.error_mes_invalido)
+    val a = anio.toIntOrNull() ?: return context.getString(R.string.error_anio_invalido, 2025)
 
     val MAX_ANIO = 2025
-    if (m !in 1..12) return "Mes inválido"
-    if (a !in 1900..MAX_ANIO) return "Año inválido (debe estar entre 1900 y $MAX_ANIO)"
+    if (m !in 1..12) return context.getString(R.string.error_mes_invalido)
+    if (a !in 1900..MAX_ANIO)
+        return context.getString(R.string.error_anio_invalido, MAX_ANIO)
 
     val diasEnMes = when (m) {
         1, 3, 5, 7, 8, 10, 12 -> 31
@@ -374,10 +377,12 @@ fun validarFechaNacimiento(dia: String, mes: String, anio: String): String? {
         else -> 0
     }
 
-    if (d !in 1..diasEnMes) return "El mes $m solo tiene $diasEnMes días"
+    if (d !in 1..diasEnMes)
+        return context.getString(R.string.error_dias_mes, m, diasEnMes)
 
     return null
 }
+
 
 fun esBisiesto(anio: Int): Boolean {
     return (anio % 4 == 0 && (anio % 100 != 0 || anio % 400 == 0))

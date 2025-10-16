@@ -8,6 +8,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -42,7 +43,7 @@ fun CambioExitoso(navController: NavController) {
     ) {
         Image(
             painter = painterResource(id = R.drawable.fondo1),
-            contentDescription = "Fondo de la app",
+            contentDescription = stringResource(R.string.fondo_app),
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop
         )
@@ -55,14 +56,14 @@ fun CambioExitoso(navController: NavController) {
         ) {
             Image(
                 painter = painterResource(id = R.drawable.circuloconfirmacion),
-                contentDescription = "Confirmación",
+                contentDescription = stringResource(R.string.confirmacion),
                 modifier = Modifier.size(220.dp)
             )
 
             Spacer(modifier = Modifier.height(32.dp))
 
             CustomTitleText(
-                text = "Cambio de contraseña\nexitoso",
+                text = stringResource(R.string.cambio_contrasena_exitoso),
                 color = Blanco,
                 fontSize = 28.sp,
                 fontFamily = Nunito,

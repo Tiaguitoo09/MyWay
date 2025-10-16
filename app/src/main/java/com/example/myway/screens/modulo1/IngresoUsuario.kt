@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
@@ -65,19 +66,22 @@ fun IngresoUsuario(
                             UsuarioTemporal.correo = user?.email
                             UsuarioTemporal.nombre = user?.displayName ?: "Usuario"
 
-                            Toast.makeText(context, "Inicio de sesión exitoso", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context,
+                                context.getString(R.string.toast_sesion_exitosa), Toast.LENGTH_SHORT).show()
                             navController.navigate("cargando") {
                                 popUpTo("ingreso_usuario") { inclusive = true }
                             }
                         } else {
-                            Toast.makeText(context, "Error al iniciar sesión con Google", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context,
+                                context.getString(R.string.toast_error_login_google), Toast.LENGTH_SHORT).show()
                         }
                         isLoading = false
                     }
             }
         } catch (e: Exception) {
             e.printStackTrace()
-            Toast.makeText(context, "Error al autenticar con Google", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context,
+                context.getString(R.string.toast_autenticar_google), Toast.LENGTH_SHORT).show()
             isLoading = false
         }
     }
@@ -86,7 +90,7 @@ fun IngresoUsuario(
         // Fondo
         Image(
             painter = painterResource(id = R.drawable.fondo2),
-            contentDescription = "Fondo",
+            contentDescription = stringResource(R.string.fondo_app),
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop
         )
@@ -94,7 +98,7 @@ fun IngresoUsuario(
         // Flecha volver
         Image(
             painter = painterResource(id = R.drawable.flecha),
-            contentDescription = "Volver",
+            contentDescription = stringResource(R.string.volver),
             modifier = Modifier
                 .align(Alignment.TopStart)
                 .padding(16.dp)
@@ -113,13 +117,13 @@ fun IngresoUsuario(
         ) {
             Image(
                 painter = painterResource(id = R.drawable.brujula),
-                contentDescription = "Ícono de brújula",
+                contentDescription = stringResource(R.string.icono_brujula),
                 modifier = Modifier.size(180.dp)
             )
 
             Spacer(modifier = Modifier.height(24.dp))
             Text(
-                text = "MyWay",
+                text = stringResource(R.string.app_name),
                 fontSize = 80.sp,
                 fontWeight = FontWeight.ExtraBold,
                 fontFamily = Nunito,
@@ -129,7 +133,7 @@ fun IngresoUsuario(
 
             // Inputs
             CustomTextField(
-                placeholder = "Correo electrónico",
+                placeholder = stringResource(R.string.correo),
                 color = Azul3,
                 textColor = Blanco,
                 text = email.value,
@@ -137,7 +141,7 @@ fun IngresoUsuario(
             )
             Spacer(modifier = Modifier.height(16.dp))
             CustomTextField(
-                placeholder = "Contraseña",
+                placeholder = stringResource(R.string.contrasena),
                 color = Azul3,
                 textColor = Blanco,
                 isPassword = true,
@@ -147,7 +151,7 @@ fun IngresoUsuario(
 
             Spacer(modifier = Modifier.height(30.dp))
             Text(
-                text = "Olvidé mi contraseña",
+                text = stringResource(R.string.olvide_contrasena),
                 color = Blanco,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
@@ -165,7 +169,7 @@ fun IngresoUsuario(
             ) {
                 // Ingresar con correo Firestore
                 CustomButton(
-                    text = "Ingresar",
+                    text = stringResource(R.string.ingresar),
                     color = Azul3,
                     modifier = Modifier.width(140.dp),
                     onClick = {
@@ -191,26 +195,26 @@ fun IngresoUsuario(
                                                 }
                                             }
 
-                                        Toast.makeText(context, "Inicio de sesión exitoso", Toast.LENGTH_SHORT).show()
+                                        Toast.makeText(context, context.getString(R.string.toast_sesion_exitosa), Toast.LENGTH_SHORT).show()
                                         navController.navigate("cargando") {
                                             popUpTo("ingreso_usuario") { inclusive = true }
                                         }
                                     } else {
-                                        Toast.makeText(context, "Correo o contraseña incorrectos", Toast.LENGTH_SHORT).show()
+                                        Toast.makeText(context, context.getString(R.string.toast_credenciales_incorrectas), Toast.LENGTH_SHORT).show()
                                     }
                                 }
                                 .addOnFailureListener { e ->
-                                    Toast.makeText(context, "Error al iniciar sesión: ${e.message}", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, context.getString(R.string.toast_error_login, e.message), Toast.LENGTH_SHORT).show()
                                 }
                         } else {
-                            Toast.makeText(context, "Completa todos los campos", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, context.getString(R.string.toast_campos_incompletos), Toast.LENGTH_SHORT).show()
                         }
                     }
                 )
 
                 // Registrarse
                 CustomButton(
-                    text = "Registrarse",
+                    text = stringResource(R.string.registrarse),
                     color = Azul3,
                     modifier = Modifier.width(140.dp),
                     onClick = { navController.navigate("registro_usuario") }
@@ -221,8 +225,11 @@ fun IngresoUsuario(
 
             // Google login
             Text(
-                text = if (isLoading) "Iniciando sesión..." else "Iniciar sesión con Google",
-                color = Blanco,
+                text = if (isLoading)
+                    stringResource(R.string.google_iniciando_sesion)
+                else
+                    stringResource(R.string.google_iniciar_sesion),
+                            color = Blanco,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 textDecoration = TextDecoration.Underline,

@@ -1,5 +1,93 @@
 <resources>
+    <!-- Generales -->
     <string name="app_name">MyWay</string>
     <string name="default_web_client_id">852578498359-l3cue4khum9036j7dn5ie89avevo3aui.apps.googleusercontent.com</string>
+    <string name="fondo_app">Fondo de la app</string>
+    <string name="volver">Volver</string>
+
+    <!-- Inicio Pantalla -->
+    <string name="icono_brujula">Icono Brújula</string>
+    <string name="cerrar_sesion">Cerrar sesión</string>
+    <string name="pulsa_para_comenzar">Pulsa para comenzar</string>
+
+    <!-- Ingreso Usuario -->
+    <string name="correo">Correo electrónico</string>
+    <string name="contrasena">Contraseña</string>
+    <string name="olvide_contrasena">Olvidé mi contraseña</string>
+    <string name="ingresar">Ingresar</string>
+    <string name="registrarse">Registrarse</string>
+    <string name="google_iniciando_sesion">Iniciando sesión...</string>
+    <string name="google_iniciar_sesion">Iniciar sesión con Google</string>
+
+    <!-- Registro Usuario -->
+    <string name="campo_nombre">Nombre</string>
+    <string name="campo_apellido">Apellido</string>
+    <string name="campo_correo">Correo electrónico</string>
+    <string name="campo_contrasena">Contraseña</string>
+    <string name="campo_verificar_contrasena">Verificar contraseña</string>
+    <string name="campo_frase_seguridad">Frase de seguridad</string>
+    <string name="fecha_nacimiento">Fecha de nacimiento</string>
+    <string name="dia">Día</string>
+    <string name="mes">Mes</string>
+    <string name="anio">Año</string>
+    <string name="genero">Género</string>
+    <string name="masculino">Masculino</string>
+    <string name="femenino">Femenino</string>
+    <string name="no_binario">No binario</string>
+    <string name="google_creando_cuenta">Creando cuenta con Google...</string>
+    <string name="google_registrarse">Registrarse con Google</string>
+    <string name="error_fecha_incompleta">Por favor completa la fecha</string>
+    <string name="error_dia_invalido">Día inválido</string>
+    <string name="error_mes_invalido">Mes inválido</string>
+    <string name="error_anio_invalido">Año inválido (debe estar entre 1900 y %1$d)</string>
+    <string name="error_dias_mes">El mes %1$d solo tiene %2$d días</string>
+    <string name="error_verificar_correo">Error al verificar el correo: %1$s</string>
+
+    <!-- Olvido Contraseña -->
+    <string name="frase_seguridad">Ingrese su frase de seguridad</string>
+    <string name="frase_de_seguridad">Frase de seguridad</string>
+    <string name="enviar">Enviar</string>
+    <string name="frase_valida">Frase válida. Redirigiendo...</string>
+    <string name="correo_no_encontrado">Correo no encontrado</string>
+    <string name="frase_incorrecta">Frase incorrecta o no registrada</string>
+    <string name="error_buscar_frase">Error al buscar la frase</string>
+    <string name="ingresa_frase_seguridad">Ingresa tu frase de seguridad</string>
+    <string name="google_image">Google</string>
+    <string name="tienes_cuenta">¿Tienes una cuenta?</string>
+    <string name="iniciar_sesion">Iniciar Sesión</string>
+
+    <!-- Nueva Contraseña -->
+    <string name="nueva_contrasena">Nueva Contraseña</string>
+    <string name="ingresa_nueva_contrasena">Ingresa la nueva contraseña</string>
+    <string name="simbolos">Mín. 8 caracteres, 1 mayús, 1 minús, 1 número y 1 símbolo*</string>
+    <string name="confirma_contrasena">Confirma la contraseña</string>
+    <string name="simbolos_contrasena">***********</string>
+    <string name="actualizar">Actualizar</string>
+    <string name="contrasenas_no_coinciden">Las contraseñas no coinciden</string>
+    <string name="debe_tener_contrasena">Debe tener 8 caracteres, una mayúscula, una minúscula, un número y un símbolo.</string>
+    <string name="contrasena_actualizada">Contraseña actualizada correctamente</string>
+    <string name="error_actualizar_contrasena">Error al actualizar contraseña</string>
+    <string name="usuario_no_encontrado">Usuario no encontrado</string>
+    <string name="error_base_datos">Error en la base de datos</string>
+
+    <!-- Cambio Exitoso -->
+    <string name="confirmacion">Confirmación</string>
+    <string name="cambio_contrasena_exitoso">Cambio de contraseña\nexitoso</string>
+
+    <!-- Mensajes de Toast -->
+    <string name="toast_cuenta_creada">Cuenta creada con éxito</string>
+    <string name="toast_error_login_google">Error al iniciar sesión</string>
+    <string name="toast_sesion_exitosa">Inicio de sesión exitoso</string>
+    <string name="toast_autenticar_google">Error al autenticar con Google</string>
+    <string name="toast_credenciales_incorrectas">Correo o contraseña incorrectos</string>
+    <string name="toast_error_login">Error al iniciar sesión: %1$s</string>
+    <string name="toast_campos_incompletos">Completa todos los campos antes de continuar</string>
+    <string name="toast_contrasenas_no_coinciden">Las contraseñas no coinciden</string>
+    <string name="toast_correo_repetido">Este correo ya está registrado. Usa otro o inicia sesión.</string>
+    <string name="toast_error_guardar_usuario">Error al guardar usuario: %1$s</string>
+    <string name="toast_inicio_sesion_google_exitoso">Inicio de sesión con Google exitoso</string>
+    <string name="toast_error_iniciar_sesion_google">Error al iniciar sesión con Google</string>
+
+
 
 </resources>
