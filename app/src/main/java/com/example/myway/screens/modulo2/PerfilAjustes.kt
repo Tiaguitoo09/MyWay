@@ -246,27 +246,42 @@ fun PerfilAjustes(navController: NavController) {
         AlertDialog(
             onDismissRequest = { showDialog = false },
             title = { Text("Cambiar foto de perfil") },
-            text = { Text("Selecciona una opción para agregar tu foto") },
-            confirmButton = {
+            text = {
                 Column {
-                    Button(onClick = {
-                        galleryLauncher.launch("image/*")
-                        showDialog = false
-                    }) { Text("Elegir desde galería") }
+                    Text("Selecciona una opción para agregar tu foto")
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Button(
+                        onClick = {
+                            galleryLauncher.launch("image/*")
+                            showDialog = false
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) { Text("Elegir desde galería") }
+
                     Spacer(modifier = Modifier.height(8.dp))
-                    Button(onClick = {
-                        cameraLauncher.launch(null)
-                        showDialog = false
-                    }) { Text("Tomar foto con cámara") }
+
+                    Button(
+                        onClick = {
+                            cameraLauncher.launch(null)
+                            showDialog = false
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) { Text("Tomar foto con cámara") }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Button(
+                        onClick = { showDialog = false },
+                        modifier = Modifier.fillMaxWidth()
+                    ) { Text("Cancelar") }
                 }
             },
-            dismissButton = {
-                Button(onClick = { showDialog = false }) {
-                    Text("Cancelar")
-                }
-            }
+            confirmButton = {},
+            dismissButton = {}
         )
     }
+
+
 }
 
 // 🧩 Guardar el bitmap tomado con cámara
