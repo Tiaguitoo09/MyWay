@@ -56,7 +56,6 @@ fun RegistroUsuario(
     var correo by remember { mutableStateOf("") }
     var contrasena by remember { mutableStateOf("") }
     var verificarContrasena by remember { mutableStateOf("") }
-    var fraseSeguridad by remember { mutableStateOf("") }
     var dia by remember { mutableStateOf("") }
     var mes by remember { mutableStateOf("") }
     var anio by remember { mutableStateOf("") }
@@ -122,7 +121,6 @@ fun RegistroUsuario(
             CampoTextoAzul(stringResource(R.string.campo_correo), correo) { correo = it }
             CampoTextoAzul(stringResource(R.string.campo_contrasena), contrasena, true) { contrasena = it }
             CampoTextoAzul(stringResource(R.string.campo_verificar_contrasena), verificarContrasena, true) { verificarContrasena = it }
-            CampoTextoAzul(stringResource(R.string.campo_frase_seguridad), fraseSeguridad) { fraseSeguridad = it }
 
             Text(
                 text = stringResource(R.string.fecha_nacimiento),
@@ -231,14 +229,14 @@ fun RegistroUsuario(
 
                     if (nombre.isBlank() || apellido.isBlank() || correo.isBlank() ||
                         contrasena.isBlank() || verificarContrasena.isBlank() ||
-                        fraseSeguridad.isBlank() || dia.isBlank() || mes.isBlank() || anio.isBlank() ||
+                        dia.isBlank() || mes.isBlank() || anio.isBlank() ||
                         genero.isNullOrBlank()
                     ) {
-                        Toast.makeText(context,context.getString(R.string.toast_campos_incompletos), Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, context.getString(R.string.toast_campos_incompletos), Toast.LENGTH_SHORT).show()
                         return@CustomButton
                     }
 
-                    errorFecha = validarFechaNacimiento(context,dia, mes, anio)
+                    errorFecha = validarFechaNacimiento(context, dia, mes, anio)
                     if (errorFecha == null) {
                         val fechaNacimiento = "$dia/$mes/$anio"
                         guardarUsuarioEnFirestore(
@@ -250,13 +248,11 @@ fun RegistroUsuario(
                             contrasena = contrasena,
                             fechaNacimiento = fechaNacimiento,
                             genero = genero,
-                            fraseSeguridad = fraseSeguridad,
                             context = context
                         )
                     } else {
                         Toast.makeText(context, errorFecha, Toast.LENGTH_SHORT).show()
                     }
-
                 }
             )
 
@@ -264,9 +260,9 @@ fun RegistroUsuario(
 
             Text(
                 text = if (isLoading)
-                        stringResource(R.string.google_creando_cuenta)
-                    else
-                        stringResource(R.string.google_registrarse),
+                    stringResource(R.string.google_creando_cuenta)
+                else
+                    stringResource(R.string.google_registrarse),
                 color = Blanco,
                 fontFamily = Nunito,
                 fontWeight = FontWeight.Bold,
@@ -284,7 +280,7 @@ fun RegistroUsuario(
     }
 }
 
-// ---------------------------------------------------------------------
+// ✅ FUNCIÓN CORREGIDA: NO guarda la contraseña en Firestore
 fun guardarUsuarioEnFirestore(
     auth: FirebaseAuth,
     navController: NavController,
@@ -294,7 +290,6 @@ fun guardarUsuarioEnFirestore(
     contrasena: String,
     fechaNacimiento: String,
     genero: String?,
-    fraseSeguridad: String,
     context: Context
 ) {
     val db = FirebaseFirestore.getInstance()
@@ -310,41 +305,57 @@ fun guardarUsuarioEnFirestore(
                     Toast.LENGTH_LONG
                 ).show()
             } else {
-                val userId = auth.currentUser?.uid ?: db.collection("usuarios").document().id
-                val usuarioData = hashMapOf(
-                    "nombre" to nombre,
-                    "apellido" to apellido,
-                    "correo" to correo,
-                    "contrasena" to contrasena,
-                    "fechaNacimiento" to fechaNacimiento,
-                    "genero" to genero,
-                    "fraseSeguridad" to fraseSeguridad,
-                    "fechaRegistro" to System.currentTimeMillis()
-                )
+                // 1️⃣ Crear usuario en Firebase Auth (maneja contraseña de forma segura)
+                auth.createUserWithEmailAndPassword(correo, contrasena)
+                    .addOnSuccessListener { authResult ->
+                        val userId = authResult.user?.uid
 
-                db.collection("usuarios").document(userId)
-                    .set(usuarioData)
-                    .addOnSuccessListener {
-                        UsuarioTemporal.correo = correo
-                        UsuarioTemporal.nombre = nombre
+                        if (userId != null) {
+                            // 2️⃣ Guardar datos en Firestore SIN la contraseña
+                            val usuarioData = hashMapOf(
+                                "nombre" to nombre,
+                                "apellido" to apellido,
+                                "correo" to correo,
+                                // ✅ SIN "contrasena" - Firebase Auth ya la maneja
+                                "fechaNacimiento" to fechaNacimiento,
+                                "genero" to genero,
+                                "fechaRegistro" to System.currentTimeMillis(),
+                                "fotoPerfil" to null
+                            )
 
-                        Toast.makeText(
-                            context,
-                            context.getString(R.string.toast_cuenta_creada),
-                            Toast.LENGTH_SHORT
-                        ).show()
-                        navController.navigate("cargando") {
-                            popUpTo("registro_usuario") { inclusive = true }
+                            db.collection("usuarios").document(userId)
+                                .set(usuarioData)
+                                .addOnSuccessListener {
+                                    UsuarioTemporal.correo = correo
+                                    UsuarioTemporal.nombre = nombre
+                                    UsuarioTemporal.fotoUrl = null
+
+                                    Toast.makeText(
+                                        context,
+                                        context.getString(R.string.toast_cuenta_creada),
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+
+                                    navController.navigate("cargando") {
+                                        popUpTo("registro_usuario") { inclusive = true }
+                                    }
+                                }
+                                .addOnFailureListener { e ->
+                                    Toast.makeText(
+                                        context,
+                                        "Error al guardar datos: ${e.message}",
+                                        Toast.LENGTH_LONG
+                                    ).show()
+                                }
                         }
                     }
                     .addOnFailureListener { e ->
                         Toast.makeText(
                             context,
-                            context.getString(R.string.toast_error_guardar_usuario, e.message),
+                            "Error al crear cuenta: ${e.message}",
                             Toast.LENGTH_LONG
                         ).show()
                     }
-
             }
         }
         .addOnFailureListener { e ->
@@ -356,7 +367,6 @@ fun guardarUsuarioEnFirestore(
         }
 }
 
-// ---------------------------------------------------------------------
 fun validarFechaNacimiento(context: Context, dia: String, mes: String, anio: String): String? {
     if (dia.isBlank() || mes.isBlank() || anio.isBlank())
         return context.getString(R.string.error_fecha_incompleta)
@@ -383,12 +393,10 @@ fun validarFechaNacimiento(context: Context, dia: String, mes: String, anio: Str
     return null
 }
 
-
 fun esBisiesto(anio: Int): Boolean {
     return (anio % 4 == 0 && (anio % 100 != 0 || anio % 400 == 0))
 }
 
-// ---------------------------------------------------------------------
 @Composable
 fun CampoTextoAzul(
     placeholder: String,

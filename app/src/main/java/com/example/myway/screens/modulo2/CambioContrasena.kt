@@ -19,20 +19,18 @@ import androidx.navigation.NavController
 import com.example.myway.R
 import com.example.myway.ui.theme.*
 import com.example.myway.utils.UsuarioTemporal
+import com.google.firebase.auth.EmailAuthProvider
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FirebaseFirestore
 
 @Composable
 fun CambioContrasena(navController: NavController) {
     val context = LocalContext.current
-    val db = FirebaseFirestore.getInstance()
     val auth = FirebaseAuth.getInstance()
 
     var actual by remember { mutableStateOf("") }
     var nueva by remember { mutableStateOf("") }
     var confirmar by remember { mutableStateOf("") }
 
-    // 🔹 Detectar si el usuario inició sesión con Google
     val currentUser = auth.currentUser
     val isGoogleUser = currentUser?.providerData?.any { it.providerId == "google.com" } == true
 
@@ -75,7 +73,7 @@ fun CambioContrasena(navController: NavController) {
             Spacer(modifier = Modifier.height(24.dp))
 
             if (isGoogleUser) {
-                // 🔹 Mostrar solo el texto informativo si la cuenta es de Google
+                // Usuario de Google
                 Spacer(modifier = Modifier.weight(1f))
                 Box(
                     modifier = Modifier
@@ -97,7 +95,7 @@ fun CambioContrasena(navController: NavController) {
                 }
                 Spacer(modifier = Modifier.weight(1f))
             } else {
-                // 🔹 Caso normal: usuario con correo y contraseña
+                // Usuario con correo/contraseña
                 Text(
                     text = "Contraseña actual",
                     fontSize = 16.sp,
@@ -164,7 +162,7 @@ fun CambioContrasena(navController: NavController) {
                     onClick = {
                         val correo = UsuarioTemporal.correo
 
-                        // 🔹 Validaciones iniciales
+                        // Validaciones
                         when {
                             actual.isBlank() || nueva.isBlank() || confirmar.isBlank() -> {
                                 Toast.makeText(context, "Rellena todos los campos", Toast.LENGTH_SHORT).show()
@@ -174,60 +172,44 @@ fun CambioContrasena(navController: NavController) {
                                 Toast.makeText(context, "Las contraseñas no coinciden", Toast.LENGTH_SHORT).show()
                                 return@CustomButton
                             }
-                            !esContrasenaValida(nueva) -> {
-                                Toast.makeText(
-                                    context,
-                                    "Debe tener 8 caracteres, una mayúscula, una minúscula, un número y un símbolo.",
-                                    Toast.LENGTH_LONG
-                                ).show()
+                            nueva.length < 6 -> {
+                                Toast.makeText(context, "La contraseña debe tener al menos 6 caracteres", Toast.LENGTH_SHORT).show()
                                 return@CustomButton
                             }
                         }
 
-                        // 🔹 Buscar el usuario en Firestore por correo y verificar la contraseña actual
-                        db.collection("usuarios")
-                            .whereEqualTo("correo", correo)
-                            .get()
-                            .addOnSuccessListener { docs ->
-                                if (!docs.isEmpty) {
-                                    val doc = docs.documents[0]
-                                    val contrasenaActualDB = doc.getString("contrasena") ?: ""
+                        // ✅ Cambiar contraseña con FirebaseAuth
+                        val user = auth.currentUser
+                        if (user != null && correo != null) {
+                            val credential = EmailAuthProvider.getCredential(correo, actual)
 
-                                    if (contrasenaActualDB != actual) {
-                                        Toast.makeText(context, "La contraseña actual es incorrecta", Toast.LENGTH_SHORT).show()
-                                        return@addOnSuccessListener
-                                    }
-
-                                    // 🔹 Actualizar contraseña en Firestore
-                                    db.collection("usuarios").document(doc.id)
-                                        .update("contrasena", nueva)
+                            // Verificar contraseña actual
+                            user.reauthenticate(credential)
+                                .addOnSuccessListener {
+                                    // Contraseña actual correcta, actualizar
+                                    user.updatePassword(nueva)
                                         .addOnSuccessListener {
+                                            // También actualizar en Firestore (opcional)
+                                            val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
+                                            db.collection("usuarios").document(user.uid)
+                                                .update("contrasena", nueva)
+
                                             Toast.makeText(context, "Contraseña actualizada correctamente", Toast.LENGTH_SHORT).show()
                                             navController.navigate("cambio_exitoso") {
                                                 popUpTo("cambio_contrasena") { inclusive = true }
                                             }
                                         }
-                                        .addOnFailureListener {
-                                            Toast.makeText(context, "Error al actualizar la contraseña", Toast.LENGTH_SHORT).show()
+                                        .addOnFailureListener { e ->
+                                            Toast.makeText(context, "Error al actualizar: ${e.message}", Toast.LENGTH_SHORT).show()
                                         }
-                                } else {
-                                    Toast.makeText(context, "Usuario no encontrado", Toast.LENGTH_SHORT).show()
                                 }
-                            }
-                            .addOnFailureListener {
-                                Toast.makeText(context, "Error en la base de datos", Toast.LENGTH_SHORT).show()
-                            }
+                                .addOnFailureListener {
+                                    Toast.makeText(context, "La contraseña actual es incorrecta", Toast.LENGTH_SHORT).show()
+                                }
+                        }
                     }
                 )
             }
         }
     }
-}
-
-// 🔒 Validación de contraseña segura
-fun esContrasenaValida(password: String): Boolean {
-    val regex = Regex(
-        "^(?=.*[A-Z])(?=.*[a-z])(?=.*\\d)(?=.*[!@#\$%^&*(),.?\":{}|<>])[A-Za-z\\d!@#\$%^&*(),.?\":{}|<>]{8,}\$"
-    )
-    return regex.matches(password)
 }

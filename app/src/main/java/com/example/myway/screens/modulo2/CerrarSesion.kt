@@ -20,6 +20,7 @@ import com.example.myway.screens.CustomTitleText
 import com.example.myway.ui.theme.Azul3
 import com.example.myway.ui.theme.Blanco
 import com.example.myway.ui.theme.Nunito
+import com.example.myway.utils.ImageStorage
 import com.example.myway.utils.UsuarioTemporal
 import com.google.firebase.auth.FirebaseAuth
 
@@ -79,11 +80,16 @@ fun CerrarSesion(navController: NavController) {
                     onClick = {
                         auth.signOut() // Cierra la sesión de Firebase
 
-                        // Limpia los datos temporales
-                        UsuarioTemporal.correo = ""
-                        UsuarioTemporal.nombre = ""
-                        UsuarioTemporal.fechaNacimiento = ""
-                        UsuarioTemporal.apellido = ""
+                        // ✅ Limpia TODOS los datos temporales (esto faltaba)
+                        UsuarioTemporal.correo = null
+                        UsuarioTemporal.nombre = null
+                        UsuarioTemporal.fechaNacimiento = null
+                        UsuarioTemporal.apellido = null
+                        UsuarioTemporal.fotoUrl = null
+                        UsuarioTemporal.fotoLocalUri = null
+
+                        // ✅ Limpia la imagen guardada en SharedPreferences
+                        ImageStorage.eliminarImagen(context)
 
                         Toast.makeText(context, "Sesión cerrada correctamente", Toast.LENGTH_SHORT)
                             .show()

@@ -8,7 +8,6 @@ import com.example.myway.screens.CambioContrasena
 import com.example.myway.screens.modulo1.CambioExitoso
 import com.example.myway.screens.modulo1.IngresoUsuario
 import com.example.myway.screens.modulo1.InicioPantalla
-import com.example.myway.screens.modulo1.NuevaContraseña
 import com.example.myway.screens.modulo1.OlvidoContraseña
 import com.example.myway.screens.modulo1.RegistroUsuario
 import com.example.myway.screens.modulo2.Cargando
@@ -60,10 +59,6 @@ fun MyWayAppNavigation(
             )
         }
 
-        composable("nueva_contraseña/{correo}") { backStackEntry ->
-            val correo = backStackEntry.arguments?.getString("correo") ?: ""
-            NuevaContraseña(navController, correo)
-        }
 
         composable("cambio_exitoso") {
             CambioExitoso(navController = navController)

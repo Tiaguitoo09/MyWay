@@ -79,6 +79,7 @@ fun IngresoUsuario(
                                 apellido = null
                                 fechaNacimiento = null
                                 fotoUrl = user?.photoUrl?.toString() // 🟢 Guardamos la URL de la foto de perfil
+                                fotoLocalUri = null
                             }
 
                             Toast.makeText(
@@ -115,8 +116,7 @@ fun IngresoUsuario(
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop
         )
-
-        // Flecha volver
+// Flecha volver
         Image(
             painter = painterResource(id = R.drawable.flecha),
             contentDescription = stringResource(R.string.volver),
@@ -124,8 +124,13 @@ fun IngresoUsuario(
                 .align(Alignment.TopStart)
                 .padding(16.dp)
                 .size(40.dp)
-                .clickable { navController.popBackStack() }
+                .clickable {
+                    navController.navigate("inicio") {
+                        popUpTo(0) // elimina el historial de pantallas previas
+                    }
+                }
         )
+
 
         Column(
             modifier = Modifier
@@ -213,43 +218,67 @@ fun IngresoUsuario(
                     modifier = Modifier.width(140.dp),
                     onClick = {
                         if (email.value.isNotEmpty() && password.value.isNotEmpty()) {
-                            val db = FirebaseFirestore.getInstance()
-                            db.collection("usuarios")
-                                .whereEqualTo("correo", email.value)
-                                .whereEqualTo("contrasena", password.value)
-                                .get()
-                                .addOnSuccessListener { documents ->
-                                    if (!documents.isEmpty) {
-                                        val userDoc = documents.documents[0]
-                                        UsuarioTemporal.correo = email.value
-                                        UsuarioTemporal.nombre = userDoc.getString("nombre") ?: "Usuario"
+                            // ✅ NUEVO: Login con FirebaseAuth
+                            auth.signInWithEmailAndPassword(email.value, password.value)
+                                .addOnSuccessListener {
+                                    val userId = auth.currentUser?.uid
 
-                                        // Opcional: crear usuario en FirebaseAuth si no existe
-                                        auth.fetchSignInMethodsForEmail(email.value)
-                                            .addOnCompleteListener { task ->
-                                                val methods = task.result?.signInMethods ?: emptyList<String>()
-                                                if (methods.isEmpty()) {
-                                                    // Crear usuario en FirebaseAuth
-                                                    auth.createUserWithEmailAndPassword(email.value, password.value)
+                                    if (userId != null) {
+                                        // Cargar datos adicionales desde Firestore
+                                        val db = FirebaseFirestore.getInstance()
+                                        db.collection("usuarios").document(userId)
+                                            .get()
+                                            .addOnSuccessListener { document ->
+                                                if (document.exists()) {
+                                                    UsuarioTemporal.correo = email.value
+                                                    UsuarioTemporal.nombre = document.getString("nombre") ?: "Usuario"
+                                                    UsuarioTemporal.apellido = document.getString("apellido") ?: ""
+                                                    UsuarioTemporal.fechaNacimiento = document.getString("fechaNacimiento") ?: ""
+                                                    UsuarioTemporal.fotoUrl = document.getString("fotoPerfil")
+
+                                                    Toast.makeText(
+                                                        context,
+                                                        context.getString(R.string.toast_sesion_exitosa),
+                                                        Toast.LENGTH_SHORT
+                                                    ).show()
+
+                                                    navController.navigate("cargando") {
+                                                        popUpTo("ingreso_usuario") { inclusive = true }
+                                                    }
+                                                } else {
+                                                    Toast.makeText(
+                                                        context,
+                                                        "No se encontraron datos del usuario",
+                                                        Toast.LENGTH_SHORT
+                                                    ).show()
                                                 }
                                             }
-
-                                        Toast.makeText(context, context.getString(R.string.toast_sesion_exitosa), Toast.LENGTH_SHORT).show()
-                                        navController.navigate("cargando") {
-                                            popUpTo("ingreso_usuario") { inclusive = true }
-                                        }
-                                    } else {
-                                        Toast.makeText(context, context.getString(R.string.toast_credenciales_incorrectas), Toast.LENGTH_SHORT).show()
+                                            .addOnFailureListener { e ->
+                                                Toast.makeText(
+                                                    context,
+                                                    "Error al cargar datos: ${e.message}",
+                                                    Toast.LENGTH_SHORT
+                                                ).show()
+                                            }
                                     }
                                 }
                                 .addOnFailureListener { e ->
-                                    Toast.makeText(context, context.getString(R.string.toast_error_login, e.message), Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(
+                                        context,
+                                        "Credenciales incorrectas: ${e.message}",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
                                 }
                         } else {
-                            Toast.makeText(context, context.getString(R.string.toast_campos_incompletos), Toast.LENGTH_SHORT).show()
+                            Toast.makeText(
+                                context,
+                                context.getString(R.string.toast_campos_incompletos),
+                                Toast.LENGTH_SHORT
+                            ).show()
                         }
                     }
                 )
+
 
                 // Registrarse
                 CustomButton(

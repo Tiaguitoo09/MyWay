@@ -1,5 +1,6 @@
 package com.example.myway.screens.modulo2
 
+import android.util.Log
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Image
@@ -22,6 +23,7 @@ import com.example.myway.utils.UsuarioTemporal
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.tasks.await
 
 @Composable
 fun Cargando(navController: NavController) {
@@ -29,65 +31,111 @@ fun Cargando(navController: NavController) {
     BackHandler(enabled = true) {
         // No hacer nada
     }
+
     LaunchedEffect(Unit) {
         val auth = FirebaseAuth.getInstance()
         val db = FirebaseFirestore.getInstance()
         val usuarioActual = auth.currentUser
         val correoTemporal = UsuarioTemporal.correo
 
-        if (usuarioActual != null) {
-            val correo = usuarioActual.email
-            val nombreGoogle = usuarioActual.displayName
+        try {
+            if (usuarioActual != null) {
+                val correo = usuarioActual.email
+                val nombreGoogle = usuarioActual.displayName
+                val userId = usuarioActual.uid
 
-            if (nombreGoogle != null) {
-                // 🟢 Login con Google → separar nombre y apellido
-                val partesNombre = nombreGoogle.split(" ")
+                Log.d("Cargando", "👤 Usuario autenticado: $userId")
 
-                UsuarioTemporal.nombre = partesNombre.firstOrNull() ?: "Usuario"
-                UsuarioTemporal.apellido = if (partesNombre.size > 1)
-                    partesNombre.subList(1, partesNombre.size).joinToString(" ")
-                else
-                    ""
+                if (nombreGoogle != null) {
+                    // 🟢 Login con Google → separar nombre y apellido
+                    val partesNombre = nombreGoogle.split(" ")
 
-                UsuarioTemporal.correo = correo ?: ""
-            } else if (correo != null) {
-                // 🔵 Login con correo Firebase
-                db.collection("usuarios")
-                    .whereEqualTo("correo", correo)
-                    .get()
-                    .addOnSuccessListener { docs ->
-                        if (!docs.isEmpty) {
-                            val doc = docs.documents[0]
+                    UsuarioTemporal.nombre = partesNombre.firstOrNull() ?: "Usuario"
+                    UsuarioTemporal.apellido = if (partesNombre.size > 1)
+                        partesNombre.subList(1, partesNombre.size).joinToString(" ")
+                    else
+                        ""
+                    UsuarioTemporal.correo = correo ?: ""
 
-                            UsuarioTemporal.nombre = doc.getString("nombre") ?: "Usuario"
-                            UsuarioTemporal.apellido = doc.getString("apellido") ?: ""
-                            UsuarioTemporal.fechaNacimiento = doc.getString("fechaNacimiento") ?: ""
-                            UsuarioTemporal.correo = correo
+                    // 🔥 CARGA LA FOTO DE GOOGLE O DE FIRESTORE
+                    try {
+                        val doc = db.collection("usuarios").document(userId).get().await()
+                        if (doc.exists()) {
+                            val fotoFirestore = doc.getString("fotoPerfil")
+                            UsuarioTemporal.fotoUrl = fotoFirestore
+                                ?: usuarioActual.photoUrl?.toString()
+
+                            Log.d("Cargando", "✅ Foto de Google/Firestore: ${UsuarioTemporal.fotoUrl}")
+                        } else {
+                            UsuarioTemporal.fotoUrl = usuarioActual.photoUrl?.toString()
+                            Log.d("Cargando", "✅ Foto de Google: ${UsuarioTemporal.fotoUrl}")
                         }
+                    } catch (e: Exception) {
+                        UsuarioTemporal.fotoUrl = usuarioActual.photoUrl?.toString()
+                        Log.e("Cargando", "❌ Error al cargar foto: ${e.message}")
                     }
-            }
-        } else if (!correoTemporal.isNullOrEmpty()) {
-            // 🟣 Login manual (sin FirebaseAuth)
-            db.collection("usuarios")
-                .whereEqualTo("correo", correoTemporal)
-                .get()
-                .addOnSuccessListener { docs ->
-                    if (!docs.isEmpty) {
-                        val doc = docs.documents[0]
+
+                } else if (correo != null) {
+                    // 🔵 Login con correo Firebase (CORREGIDO CON AWAIT)
+                    Log.d("Cargando", "📧 Buscando usuario por correo: $correo")
+
+                    val querySnapshot = db.collection("usuarios")
+                        .whereEqualTo("correo", correo)
+                        .get()
+                        .await() // ✅ ESPERA A QUE TERMINE
+
+                    if (!querySnapshot.isEmpty) {
+                        val doc = querySnapshot.documents[0]
+
                         UsuarioTemporal.nombre = doc.getString("nombre") ?: "Usuario"
                         UsuarioTemporal.apellido = doc.getString("apellido") ?: ""
                         UsuarioTemporal.fechaNacimiento = doc.getString("fechaNacimiento") ?: ""
+                        UsuarioTemporal.correo = correo
+                        UsuarioTemporal.fotoUrl = doc.getString("fotoPerfil")
+
+                        Log.d("Cargando", "✅ Usuario cargado: ${UsuarioTemporal.nombre}")
+                        Log.d("Cargando", "✅ Foto URL: ${UsuarioTemporal.fotoUrl}")
+                    } else {
+                        Log.e("Cargando", "❌ No se encontró usuario con correo: $correo")
                     }
                 }
+            } else if (!correoTemporal.isNullOrEmpty()) {
+                // 🟣 Login manual (sin FirebaseAuth) - CORREGIDO CON AWAIT
+                Log.d("Cargando", "📧 Buscando usuario manual por correo: $correoTemporal")
+
+                val querySnapshot = db.collection("usuarios")
+                    .whereEqualTo("correo", correoTemporal)
+                    .get()
+                    .await() // ✅ ESPERA A QUE TERMINE
+
+                if (!querySnapshot.isEmpty) {
+                    val doc = querySnapshot.documents[0]
+
+                    UsuarioTemporal.nombre = doc.getString("nombre") ?: "Usuario"
+                    UsuarioTemporal.apellido = doc.getString("apellido") ?: ""
+                    UsuarioTemporal.fechaNacimiento = doc.getString("fechaNacimiento") ?: ""
+                    UsuarioTemporal.fotoUrl = doc.getString("fotoPerfil")
+
+                    Log.d("Cargando", "✅ Usuario manual cargado: ${UsuarioTemporal.nombre}")
+                    Log.d("Cargando", "✅ Foto URL: ${UsuarioTemporal.fotoUrl}")
+                } else {
+                    Log.e("Cargando", "❌ No se encontró usuario con correo: $correoTemporal")
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("Cargando", "❌ Error general: ${e.message}")
         }
 
         // Espera antes de navegar
-        delay(3000)
+        delay(2000)
+
+        Log.d("Cargando", "🚀 Navegando a home...")
+        Log.d("Cargando", "📸 Foto final en UsuarioTemporal: ${UsuarioTemporal.fotoUrl}")
+
         navController.navigate("home") {
-            popUpTo(0) // 🔹 Limpia toda la pila de navegación
+            popUpTo(0)
             launchSingleTop = true
         }
-
     }
 
     // Animación rotatoria
