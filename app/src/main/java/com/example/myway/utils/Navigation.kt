@@ -19,7 +19,8 @@ import com.example.myway.screens.modulo2.PerfilAjustes
 import com.example.myway.screens.modulo2.Ajustes
 import com.example.myway.screens.modulo2.Soporte
 import com.example.myway.screens.modulo2.VerPerfil
-import com.example.myway.screens.modulo2.SilenciarNotificaciones  // 👈 Import agregado
+import com.example.myway.screens.modulo2.SilenciarNotificaciones
+import com.example.myway.screens.modulo3.PlaneaViaje
 import com.google.firebase.auth.FirebaseAuth
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 
@@ -104,9 +105,12 @@ fun MyWayAppNavigation(
             Soporte(navController = navController)
         }
 
-        // 🚀 NUEVA PANTALLA: Silenciar Notificaciones
         composable("silenciar_notificaciones") {
             SilenciarNotificaciones(navController = navController)
+        }
+
+        composable("planea_viaje") {
+            PlaneaViaje(navController = navController)
         }
     }
 }

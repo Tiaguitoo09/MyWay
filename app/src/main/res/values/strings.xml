@@ -4,6 +4,7 @@
     <string name="default_web_client_id">852578498359-l3cue4khum9036j7dn5ie89avevo3aui.apps.googleusercontent.com</string>
     <string name="fondo_app">Fondo de la app</string>
     <string name="volver">Volver</string>
+    <string name="perfil">Perfil</string>
 
     <!-- Inicio Pantalla -->
     <string name="icono_brujula">Icono Brújula</string>
@@ -88,6 +89,7 @@
     <string name="toast_inicio_sesion_google_exitoso">Inicio de sesión con Google exitoso</string>
     <string name="toast_error_iniciar_sesion_google">Error al iniciar sesión con Google</string>
 
+    <string name="a_donde_vas">¿A dónde vas?</string>
 
 
 </resources>
