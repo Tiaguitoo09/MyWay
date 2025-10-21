@@ -281,7 +281,7 @@ fun PlaneaViaje(navController: NavController) {
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-// Sección "Recientes"
+                    // Sección "Recientes"
                     Text(
                         text = stringResource(R.string.recientes),
                         color = Blanco,
@@ -313,7 +313,10 @@ fun PlaneaViaje(navController: NavController) {
                             )
                         }
                     }
+
+                    Spacer(modifier = Modifier.height(50.dp))
                 }
+            }
         }
     }
 }
@@ -337,4 +340,4 @@ private fun searchPlaces(
             exception.printStackTrace()
             onResult(emptyList())
         }
-}}
+}
