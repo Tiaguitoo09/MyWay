@@ -73,7 +73,6 @@ fun Home(
         position = CameraPosition.fromLatLngZoom(currentLocation, 12f)
     }
 
-    // Inicializar Places API con BuildConfig
     val placesClient = remember {
         if (!Places.isInitialized()) {
             Places.initialize(context, BuildConfig.MAPS_API_KEY)
@@ -119,11 +118,11 @@ fun Home(
         }
     }
 
-    // Obtener el lugar del destino y calcular ruta
+    // Obtener el lugar del destino y calcular ruta (SOLO si placeId no es null)
     LaunchedEffect(placeId) {
-        placeId?.let { id ->
+        if (placeId != null && placeId != "null") {
             val placeFields = listOf(Place.Field.LAT_LNG, Place.Field.NAME)
-            val request = FetchPlaceRequest.newInstance(id, placeFields)
+            val request = FetchPlaceRequest.newInstance(placeId, placeFields)
 
             placesClient.fetchPlace(request)
                 .addOnSuccessListener { response ->
@@ -132,13 +131,11 @@ fun Home(
                         destinationLocation = latLng
                         destinationName = place.name ?: placeName
 
-                        // Calcular ruta
                         scope.launch {
                             try {
                                 val route = getDirections(currentLocation, latLng)
                                 routePoints = route
 
-                                // Ajustar cámara para mostrar toda la ruta
                                 if (route.isNotEmpty()) {
                                     cameraPositionState.position = CameraPosition.Builder()
                                         .target(
@@ -159,13 +156,17 @@ fun Home(
                 .addOnFailureListener { exception ->
                     exception.printStackTrace()
                 }
+        } else {
+            // Limpiar destino si no hay placeId
+            destinationLocation = null
+            routePoints = emptyList()
+            destinationName = null
         }
     }
 
     BackHandler(enabled = true) {}
 
     Box(modifier = Modifier.fillMaxSize()) {
-        // Mapa de Google
         GoogleMap(
             modifier = Modifier.fillMaxSize(),
             cameraPositionState = cameraPositionState,
@@ -177,14 +178,12 @@ fun Home(
                 myLocationButtonEnabled = false
             )
         ) {
-            // Marcador origen
             Marker(
                 state = MarkerState(position = currentLocation),
                 title = stringResource(id = R.string.tu_ubicacion),
                 snippet = stringResource(id = R.string.estas_aqui)
             )
 
-            // Marcador destino con click para ir a opciones de ruta
             destinationLocation?.let { destination ->
                 Marker(
                     state = MarkerState(position = destination),
@@ -197,7 +196,6 @@ fun Home(
                 )
             }
 
-            // Línea de ruta
             if (routePoints.isNotEmpty()) {
                 Polyline(
                     points = routePoints,
@@ -207,7 +205,6 @@ fun Home(
             }
         }
 
-        // Contenido sobre el mapa
         Column(
             modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally
@@ -238,7 +235,7 @@ fun Home(
                         modifier = Modifier
                             .align(Alignment.TopEnd)
                             .padding(end = 16.dp, top = 16.dp)
-                            .size(70.dp)
+                            .size(50.dp)
                             .clickable {
                                 navController.navigate("perfil_ajustes")
                             }
@@ -248,11 +245,11 @@ fun Home(
 
             Spacer(modifier = Modifier.weight(1f))
 
-            // Botón para centrar en ubicación actual
+            // Botón para centrar en ubicación (ARRIBA de "¿A dónde vas?")
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(end = 16.dp, bottom = 100.dp),
+                    .padding(end = 24.dp, bottom = 16.dp),
                 contentAlignment = Alignment.CenterEnd
             ) {
                 Surface(
@@ -293,6 +290,8 @@ fun Home(
                 }
             }
 
+
+
             // Botón ¿A dónde vas?
             Box(
                 modifier = Modifier
@@ -302,7 +301,7 @@ fun Home(
             ) {
                 CustomButton(
                     text = stringResource(R.string.a_donde_vas),
-                    color = Blanco,
+                    color = Azul4,
                     onClick = {
                         navController.navigate("planea_viaje")
                     },
@@ -316,7 +315,6 @@ fun Home(
     }
 }
 
-// Función para obtener direcciones desde Google Directions API
 suspend fun getDirections(origin: LatLng, destination: LatLng): List<LatLng> {
     return withContext(Dispatchers.IO) {
         try {
@@ -328,7 +326,6 @@ suspend fun getDirections(origin: LatLng, destination: LatLng): List<LatLng> {
 
             val response = URL(url).readText()
 
-            // Parsear la respuesta JSON y extraer el polyline
             val polylinePattern = """"points"\s*:\s*"([^"]+)"""".toRegex()
             val match = polylinePattern.find(response)
 

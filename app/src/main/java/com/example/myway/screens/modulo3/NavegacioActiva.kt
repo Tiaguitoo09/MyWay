@@ -5,16 +5,14 @@ import android.content.pm.PackageManager
 import android.location.Location
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -31,6 +29,7 @@ import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
+import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
@@ -47,7 +46,6 @@ import java.net.URL
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.sin
-import kotlin.math.sqrt
 
 data class NavigationStep(
     val instruction: String,
@@ -85,6 +83,10 @@ fun NavegacionActiva(
     var currentStepIndex by remember { mutableIntStateOf(0) }
     var allSteps by remember { mutableStateOf<List<NavigationStep>>(emptyList()) }
 
+    var lastUpdateTime by remember { mutableLongStateOf(0L) }
+    var lastKnownLocation by remember { mutableStateOf<LatLng?>(null) }
+    var followUserLocation by remember { mutableStateOf(true) }
+
     val cameraPositionState = rememberCameraPositionState {
         position = CameraPosition.fromLatLngZoom(currentLocation, 17f)
     }
@@ -104,23 +106,55 @@ fun NavegacionActiva(
         object : LocationCallback() {
             override fun onLocationResult(result: LocationResult) {
                 result.lastLocation?.let { location ->
-                    currentLocation = LatLng(location.latitude, location.longitude)
-                    cameraPositionState.position = CameraPosition.Builder()
-                        .target(currentLocation)
-                        .zoom(17f)
-                        .bearing(location.bearing)
-                        .tilt(45f)
-                        .build()
+                    val currentTime = System.currentTimeMillis()
 
-                    // Actualizar distancia
-                    destinationLocation?.let { dest ->
-                        val distance = calculateDistance(currentLocation, dest)
-                        distanceToDestination = formatDistance(distance)
+                    if (location.accuracy > 30f) {
+                        return
                     }
 
-                    // Verificar si llegamos al siguiente paso
-                    if (allSteps.isNotEmpty() && currentStepIndex < allSteps.size - 1) {
-                        // Lógica para avanzar al siguiente paso
+                    if (currentTime - lastUpdateTime < 2000) {
+                        return
+                    }
+
+                    val newLocation = LatLng(location.latitude, location.longitude)
+
+                    lastKnownLocation?.let { lastLoc ->
+                        val distance = calculateDistance(lastLoc, newLocation)
+                        val timeDiff = (currentTime - lastUpdateTime) / 1000f
+                        val speed = distance / timeDiff
+
+                        if (speed > 50f) {
+                            return
+                        }
+                    }
+
+                    lastKnownLocation = newLocation
+                    lastUpdateTime = currentTime
+                    currentLocation = newLocation
+
+                    if (followUserLocation) {
+                        scope.launch {
+                            try {
+                                cameraPositionState.animate(
+                                    update = CameraUpdateFactory.newCameraPosition(
+                                        CameraPosition.Builder()
+                                            .target(currentLocation)
+                                            .zoom(17f)
+                                            .bearing(location.bearing)
+                                            .tilt(45f)
+                                            .build()
+                                    ),
+                                    durationMs = 2000
+                                )
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                            }
+                        }
+                    }
+
+                    destinationLocation?.let { dest ->
+                        val dist = calculateDistance(currentLocation, dest)
+                        distanceToDestination = formatDistance(dist)
                     }
                 }
             }
@@ -133,13 +167,23 @@ fun NavegacionActiva(
         hasLocationPermission = isGranted
     }
 
-    // Iniciar seguimiento de ubicación
+    LaunchedEffect(cameraPositionState.isMoving) {
+        if (cameraPositionState.isMoving) {
+            followUserLocation = false
+        }
+    }
+
     LaunchedEffect(hasLocationPermission) {
         if (hasLocationPermission) {
             val locationRequest = LocationRequest.Builder(
                 Priority.PRIORITY_HIGH_ACCURACY,
-                2000
-            ).build()
+                5000
+            ).apply {
+                setMinUpdateIntervalMillis(3000)
+                setMaxUpdateDelayMillis(8000)
+                setWaitForAccurateLocation(true)
+                setMinUpdateDistanceMeters(5f)
+            }.build()
 
             try {
                 fusedLocationClient.requestLocationUpdates(
@@ -155,7 +199,6 @@ fun NavegacionActiva(
         }
     }
 
-    // Obtener ruta y pasos de navegación
     LaunchedEffect(placeId) {
         placeId?.let { id ->
             val placeFields = listOf(Place.Field.LAT_LNG)
@@ -197,55 +240,26 @@ fun NavegacionActiva(
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        // Mapa en modo navegación
-        GoogleMap(
-            modifier = Modifier.fillMaxSize(),
-            cameraPositionState = cameraPositionState,
-            properties = MapProperties(
-                isMyLocationEnabled = false
-            ),
-            uiSettings = MapUiSettings(
-                zoomControlsEnabled = false,
-                myLocationButtonEnabled = false,
-                compassEnabled = true
-            )
-        ) {
-            // Marcador de ubicación actual (personalizado)
-            Marker(
-                state = MarkerState(position = currentLocation),
-                icon = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)
-            )
-
-            // Marcador de destino
-            destinationLocation?.let {
-                Marker(
-                    state = MarkerState(position = it),
-                    title = placeName
-                )
-            }
-
-            // Ruta
-            if (routePoints.isNotEmpty()) {
-                Polyline(
-                    points = routePoints,
-                    color = androidx.compose.ui.graphics.Color(0xFF4285F4),
-                    width = 12f
-                )
-            }
-        }
+        EnhancedNavigationMap(
+            currentLocation = currentLocation,
+            destinationLocation = destinationLocation,
+            routePoints = routePoints,
+            placeName = placeName,
+            cameraPositionState = cameraPositionState
+        )
 
         Column(
             modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            // Panel superior con instrucciones
+            // Panel superior COMPACTO
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 color = Azul4,
                 shadowElevation = 8.dp
             ) {
                 Column(
-                    modifier = Modifier.padding(20.dp)
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -257,10 +271,13 @@ fun NavegacionActiva(
                             contentDescription = "Cerrar",
                             tint = Blanco,
                             modifier = Modifier
-                                .size(32.dp)
+                                .size(28.dp)
                                 .clickable {
                                     fusedLocationClient.removeLocationUpdates(locationCallback)
-                                    navController.popBackStack()
+                                    // Navegar a home SIN parámetros para limpiar destino
+                                    navController.navigate("home") {
+                                        popUpTo("home") { inclusive = true }
+                                    }
                                 }
                         )
 
@@ -270,30 +287,31 @@ fun NavegacionActiva(
                                 color = Blanco,
                                 fontFamily = Nunito,
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 24.sp
+                                fontSize = 20.sp
                             )
-                            Text(
-                                text = timeToDestination,
-                                color = Blanco,
-                                fontFamily = Nunito,
-                                fontSize = 14.sp
-                            )
+                            if (timeToDestination.isNotEmpty()) {
+                                Text(
+                                    text = timeToDestination,
+                                    color = Blanco,
+                                    fontFamily = Nunito,
+                                    fontSize = 12.sp
+                                )
+                            }
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(16.dp))
-
                     // Instrucción actual
                     currentStep?.let { step ->
+                        Spacer(modifier = Modifier.height(8.dp))
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             Icon(
                                 painter = painterResource(id = getManeuverIcon(step.maneuver)),
                                 contentDescription = step.maneuver,
                                 tint = Blanco,
-                                modifier = Modifier.size(48.dp)
+                                modifier = Modifier.size(32.dp)
                             )
 
                             Column {
@@ -302,56 +320,81 @@ fun NavegacionActiva(
                                     color = Blanco,
                                     fontFamily = Nunito,
                                     fontWeight = FontWeight.Bold,
-                                    fontSize = 18.sp
+                                    fontSize = 16.sp,
+                                    maxLines = 2
                                 )
                                 Text(
                                     text = step.distance,
                                     color = Blanco,
                                     fontFamily = Nunito,
-                                    fontSize = 14.sp
+                                    fontSize = 12.sp
                                 )
                             }
                         }
                     }
 
-                    // Siguiente paso
+                    // Siguiente paso (más compacto)
                     nextStep?.let { step ->
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Divider(color = Blanco.copy(alpha = 0.3f))
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(6.dp))
+                        HorizontalDivider(
+                            color = Blanco.copy(alpha = 0.3f),
+                            thickness = 1.dp
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
 
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             Icon(
                                 painter = painterResource(id = getManeuverIcon(step.maneuver)),
                                 contentDescription = step.maneuver,
-                                tint = Blanco.copy(alpha = 0.7f),
-                                modifier = Modifier.size(24.dp)
+                                tint = Blanco.copy(alpha = 0.6f),
+                                modifier = Modifier.size(20.dp)
                             )
 
                             Text(
                                 text = "Luego: ${step.instruction}",
-                                color = Blanco.copy(alpha = 0.8f),
+                                color = Blanco.copy(alpha = 0.7f),
                                 fontFamily = Nunito,
-                                fontSize = 14.sp
+                                fontSize = 13.sp,
+                                maxLines = 1
                             )
                         }
                     }
                 }
             }
 
-            // Botones de control
-            Row(
+            // Botón para centrar ubicación
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(24.dp),
-                horizontalArrangement = Arrangement.SpaceBetween
+                    .padding(end = 24.dp, bottom = 24.dp),
+                contentAlignment = Alignment.CenterEnd
             ) {
-                // Botón de volumen/silencio
                 Surface(
-                    modifier = Modifier.size(56.dp),
+                    modifier = Modifier
+                        .size(56.dp)
+                        .clickable {
+                            followUserLocation = true
+                            scope.launch {
+                                try {
+                                    cameraPositionState.animate(
+                                        update = CameraUpdateFactory.newCameraPosition(
+                                            CameraPosition.Builder()
+                                                .target(currentLocation)
+                                                .zoom(17f)
+                                                .bearing(0f)
+                                                .tilt(45f)
+                                                .build()
+                                        ),
+                                        durationMs = 1000
+                                    )
+                                } catch (e: Exception) {
+                                    e.printStackTrace()
+                                }
+                            }
+                        },
                     shape = CircleShape,
                     color = Blanco,
                     shadowElevation = 4.dp
@@ -361,32 +404,82 @@ fun NavegacionActiva(
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            painter = painterResource(id = android.R.drawable.ic_lock_silent_mode_off),
-                            contentDescription = "Volumen",
-                            tint = Azul4
-                        )
-                    }
-                }
-
-                // Botón de lista de pasos
-                Surface(
-                    modifier = Modifier.size(56.dp),
-                    shape = CircleShape,
-                    color = Blanco,
-                    shadowElevation = 4.dp
-                ) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            painter = painterResource(id = android.R.drawable.ic_menu_agenda),
-                            contentDescription = "Lista de pasos",
-                            tint = Azul4
+                            painter = painterResource(id = android.R.drawable.ic_menu_mylocation),
+                            contentDescription = "Centrar en mi ubicación",
+                            tint = if (followUserLocation) Azul4 else Azul4,
+                            modifier = Modifier.size(30.dp)
                         )
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun EnhancedNavigationMap(
+    currentLocation: LatLng,
+    destinationLocation: LatLng?,
+    routePoints: List<LatLng>,
+    placeName: String?,
+    cameraPositionState: CameraPositionState
+) {
+    GoogleMap(
+        modifier = Modifier.fillMaxSize(),
+        cameraPositionState = cameraPositionState,
+        properties = MapProperties(
+            isMyLocationEnabled = false,
+            mapType = MapType.NORMAL
+        ),
+        uiSettings = MapUiSettings(
+            zoomControlsEnabled = false,
+            myLocationButtonEnabled = false,
+            compassEnabled = true,
+            mapToolbarEnabled = false,
+            rotationGesturesEnabled = true,
+            tiltGesturesEnabled = true,
+            scrollGesturesEnabled = true,
+            zoomGesturesEnabled = true
+        )
+    ) {
+        if (routePoints.isNotEmpty()) {
+            Polyline(
+                points = routePoints,
+                color = androidx.compose.ui.graphics.Color.White,
+                width = 18f,
+                geodesic = true,
+                zIndex = -1f
+            )
+
+            Polyline(
+                points = routePoints,
+                color = androidx.compose.ui.graphics.Color(0xFF4285F4),
+                width = 14f,
+                geodesic = true
+            )
+        }
+
+        Circle(
+            center = currentLocation,
+            radius = 25.0,
+            fillColor = androidx.compose.ui.graphics.Color(0x304285F4),
+            strokeColor = androidx.compose.ui.graphics.Color(0x804285F4),
+            strokeWidth = 3f
+        )
+
+        Marker(
+            state = MarkerState(position = currentLocation),
+            icon = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE),
+            anchor = Offset(0.5f, 0.5f),
+            flat = true
+        )
+
+        destinationLocation?.let {
+            Marker(
+                state = MarkerState(position = it),
+                title = placeName ?: "Destino",
+                icon = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED)
+            )
         }
     }
 }
@@ -403,6 +496,7 @@ suspend fun getNavigationRoute(
                     "origin=${origin.latitude},${origin.longitude}" +
                     "&destination=${destination.latitude},${destination.longitude}" +
                     "&mode=$mode" +
+                    "&language=es" +
                     "&key=$apiKey"
 
             val response = URL(url).readText()
@@ -415,18 +509,21 @@ suspend fun getNavigationRoute(
             val legs = route.getJSONArray("legs")
             val leg = legs.getJSONObject(0)
 
-            // Extraer polyline
             val polylineStr = route.getJSONObject("overview_polyline").getString("points")
             val points = PolyUtil.decode(polylineStr)
 
-            // Extraer pasos
             val steps = leg.getJSONArray("steps")
             val navigationSteps = mutableListOf<NavigationStep>()
 
             for (i in 0 until steps.length()) {
                 val step = steps.getJSONObject(i)
-                val instruction = step.getString("html_instructions")
-                    .replace("<[^>]*>".toRegex(), "") // Quitar HTML
+                var instruction = step.getString("html_instructions")
+                    .replace("<[^>]*>".toRegex(), "")
+                    .replace("&nbsp;", " ")
+                    .trim()
+
+                instruction = translateInstruction(instruction)
+
                 val distance = step.getJSONObject("distance").getString("text")
                 val duration = step.getJSONObject("duration").getString("text")
                 val maneuver = step.optString("maneuver", "")
@@ -447,6 +544,33 @@ suspend fun getNavigationRoute(
             Pair(emptyList(), emptyList())
         }
     }
+}
+
+fun translateInstruction(instruction: String): String {
+    return instruction
+        .replace("Turn left", "Gira a la izquierda")
+        .replace("Turn right", "Gira a la derecha")
+        .replace("turn left", "gira a la izquierda")
+        .replace("turn right", "gira a la derecha")
+        .replace("Keep left", "Mantente a la izquierda")
+        .replace("Keep right", "Mantente a la derecha")
+        .replace("Continue", "Continúa")
+        .replace("Head", "Dirígete")
+        .replace("toward", "hacia")
+        .replace("onto", "en")
+        .replace("Merge", "Incorpórate")
+        .replace("Take the ramp", "Toma la rampa")
+        .replace("Exit", "Sal")
+        .replace("roundabout", "rotonda")
+        .replace("at the", "en la")
+        .replace("slight left", "ligeramente a la izquierda")
+        .replace("slight right", "ligeramente a la derecha")
+        .replace("sharp left", "cerrada a la izquierda")
+        .replace("sharp right", "cerrada a la derecha")
+        .replace("U-turn", "vuelta en U")
+        .replace("destination", "destino")
+        .replace("on the left", "a la izquierda")
+        .replace("on the right", "a la derecha")
 }
 
 fun calculateDistance(from: LatLng, to: LatLng): Float {
