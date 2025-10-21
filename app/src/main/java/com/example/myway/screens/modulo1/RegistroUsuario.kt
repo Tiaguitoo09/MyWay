@@ -108,19 +108,27 @@ fun RegistroUsuario(
 
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.Center)
+                .fillMaxSize()
                 .padding(horizontal = 32.dp)
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(modifier = Modifier.height(40.dp))
+            Spacer(modifier = Modifier.height(80.dp))
 
             CampoTextoAzul(stringResource(R.string.campo_nombre), nombre) { nombre = it }
+            Spacer(modifier = Modifier.height(16.dp))
+
             CampoTextoAzul(stringResource(R.string.campo_apellido), apellido) { apellido = it }
+            Spacer(modifier = Modifier.height(16.dp))
+
             CampoTextoAzul(stringResource(R.string.campo_correo), correo) { correo = it }
+            Spacer(modifier = Modifier.height(16.dp))
+
             CampoTextoAzul(stringResource(R.string.campo_contrasena), contrasena, true) { contrasena = it }
+            Spacer(modifier = Modifier.height(16.dp))
+
             CampoTextoAzul(stringResource(R.string.campo_verificar_contrasena), verificarContrasena, true) { verificarContrasena = it }
+            Spacer(modifier = Modifier.height(24.dp))
 
             Text(
                 text = stringResource(R.string.fecha_nacimiento),
@@ -130,7 +138,7 @@ fun RegistroUsuario(
                 fontSize = 16.sp,
                 modifier = Modifier.align(Alignment.Start)
             )
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(8.dp))
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -145,7 +153,7 @@ fun RegistroUsuario(
                 Text(text = it, color = Color.Red, fontSize = 14.sp)
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
             Text(
                 text = stringResource(R.string.genero),
@@ -155,7 +163,7 @@ fun RegistroUsuario(
                 fontSize = 16.sp,
                 modifier = Modifier.align(Alignment.Start)
             )
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(8.dp))
             Row(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -215,7 +223,7 @@ fun RegistroUsuario(
                 }
             }
 
-            Spacer(modifier = Modifier.height(25.dp))
+            Spacer(modifier = Modifier.height(30.dp))
 
             CustomButton(
                 text = "Continuar",
@@ -276,11 +284,12 @@ fun RegistroUsuario(
                     launcher.launch(signInIntent)
                 }
             )
+
+            Spacer(modifier = Modifier.height(40.dp))
         }
     }
 }
 
-// ✅ FUNCIÓN CORREGIDA: NO guarda la contraseña en Firestore
 fun guardarUsuarioEnFirestore(
     auth: FirebaseAuth,
     navController: NavController,
@@ -305,18 +314,15 @@ fun guardarUsuarioEnFirestore(
                     Toast.LENGTH_LONG
                 ).show()
             } else {
-                // 1️⃣ Crear usuario en Firebase Auth (maneja contraseña de forma segura)
                 auth.createUserWithEmailAndPassword(correo, contrasena)
                     .addOnSuccessListener { authResult ->
                         val userId = authResult.user?.uid
 
                         if (userId != null) {
-                            // 2️⃣ Guardar datos en Firestore SIN la contraseña
                             val usuarioData = hashMapOf(
                                 "nombre" to nombre,
                                 "apellido" to apellido,
                                 "correo" to correo,
-                                // ✅ SIN "contrasena" - Firebase Auth ya la maneja
                                 "fechaNacimiento" to fechaNacimiento,
                                 "genero" to genero,
                                 "fechaRegistro" to System.currentTimeMillis(),
