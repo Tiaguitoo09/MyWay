@@ -1,7 +1,6 @@
 package com.example.myway.screens.modulo3
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -28,7 +27,7 @@ fun Guardados(navController: NavController) {
     var searchText by remember { mutableStateOf("") }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        // 🔹 Fondo
+        // Fondo
         Image(
             painter = painterResource(id = R.drawable.fondo2),
             contentDescription = stringResource(R.string.fondo_app),
@@ -36,7 +35,7 @@ fun Guardados(navController: NavController) {
             contentScale = ContentScale.Crop
         )
 
-        // 🔹 Contenido desplazable
+        // Contenido desplazable
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -45,7 +44,7 @@ fun Guardados(navController: NavController) {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
 
-            // 🔸 Encabezado
+            // Encabezado
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -64,7 +63,7 @@ fun Guardados(navController: NavController) {
 
                 // Título
                 Text(
-                    text = "Guardados",
+                    text = stringResource(R.string.guardados),
                     color = Blanco,
                     fontFamily = Nunito,
                     fontWeight = FontWeight.Bold,
@@ -82,9 +81,9 @@ fun Guardados(navController: NavController) {
                 )
             }
 
-            // 🔸 Subtítulo
+            // Subtítulo
             Text(
-                text = "Tus Listas",
+                text = stringResource(R.string.tus_listas),
                 color = Blanco,
                 fontFamily = Nunito,
                 fontWeight = FontWeight.Bold,
@@ -94,11 +93,11 @@ fun Guardados(navController: NavController) {
                     .padding(bottom = 12.dp, start = 8.dp)
             )
 
-            // 🔸 Barra de búsqueda
+            // Barra de búsqueda
             CustomTextField(
-                placeholder = "Buscar",
+                placeholder = stringResource(R.string.buscar),
                 color = Blanco,
-                textColor = Color.Black, // texto negro para buena visibilidad
+                textColor = Color.Black,
                 onTextChange = { searchText = it },
                 text = searchText,
                 showBorder = true,
@@ -109,28 +108,28 @@ fun Guardados(navController: NavController) {
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // 🔸 Botones de listas
+            // Botones de listas
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 CustomButton(
-                    text = "¿Sin plan?",
+                    text = stringResource(R.string.sin_plan),
                     color = Blanco,
                     modifier = Modifier.fillMaxWidth()
                 ) { /* acción */ }
 
                 CustomButton(
-                    text = "Favoritos",
+                    text = stringResource(R.string.favoritos),
                     color = Blanco,
                     modifier = Modifier.fillMaxWidth()
                 ) { /* acción */ }
 
                 CustomButton(
-                    text = "Planes de viaje",
+                    text = stringResource(R.string.planes_de_viaje),
                     color = Blanco,
                     modifier = Modifier.fillMaxWidth()
                 ) { /* acción */ }
 
                 CustomButton(
-                    text = "Viajes Guardados",
+                    text = stringResource(R.string.viajes_guardados),
                     color = Blanco,
                     modifier = Modifier.fillMaxWidth()
                 ) { /* acción */ }
@@ -138,7 +137,7 @@ fun Guardados(navController: NavController) {
 
             Spacer(modifier = Modifier.height(40.dp))
 
-            // 🔸 Ícono grande inferior
+            // Ícono grande inferior
             Image(
                 painter = painterResource(id = R.drawable.brujula),
                 contentDescription = stringResource(R.string.icono_brujula),

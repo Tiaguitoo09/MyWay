@@ -30,7 +30,7 @@ fun PlaneaViaje(navController: NavController) {
     Box(
         modifier = Modifier.fillMaxSize()
     ) {
-        // 🔹 Fondo
+        // Fondo
         Image(
             painter = painterResource(id = R.drawable.fondo2),
             contentDescription = stringResource(R.string.fondo_app),
@@ -38,7 +38,7 @@ fun PlaneaViaje(navController: NavController) {
             contentScale = ContentScale.Crop
         )
 
-        // 🔹 Contenido desplazable
+        // Contenido desplazable
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -47,7 +47,7 @@ fun PlaneaViaje(navController: NavController) {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
 
-            // 🔸 Encabezado con flecha, título y perfil
+            // Encabezado con flecha, título y perfil
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -66,7 +66,7 @@ fun PlaneaViaje(navController: NavController) {
 
                 // Título
                 Text(
-                    text = "Planea un viaje",
+                    text = stringResource(R.string.planea_viaje),
                     color = Blanco,
                     fontFamily = Nunito,
                     fontWeight = FontWeight.Bold,
@@ -84,9 +84,9 @@ fun PlaneaViaje(navController: NavController) {
                 )
             }
 
-            // 🔸 Texto informativo
+            // Texto informativo
             Text(
-                text = "No olvides activar los permisos del Servicio de localización para poder guiarte en tu viaje.",
+                text = stringResource(R.string.activar_permisos),
                 color = Blanco,
                 fontFamily = Nunito,
                 fontWeight = FontWeight.Bold,
@@ -94,9 +94,9 @@ fun PlaneaViaje(navController: NavController) {
                 modifier = Modifier.padding(bottom = 24.dp)
             )
 
-            // 🔸 Pregunta
+            // Pregunta
             Text(
-                text = "¿A dónde vamos?",
+                text = stringResource(R.string.a_donde_vamos),
                 color = Blanco,
                 fontFamily = Nunito,
                 fontWeight = FontWeight.Bold,
@@ -106,9 +106,9 @@ fun PlaneaViaje(navController: NavController) {
                     .padding(start = 8.dp, bottom = 8.dp)
             )
 
-            // 🔸 Barra de búsqueda
+            // Barra de búsqueda
             CustomTextField(
-                placeholder = "Buscar",
+                placeholder = stringResource(R.string.buscar),
                 color = Blanco,
                 textColor = Color.Black,
                 onTextChange = { searchText = it },
@@ -121,22 +121,23 @@ fun PlaneaViaje(navController: NavController) {
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // 🔸 Fila de botones de categorías
+            // Fila de botones de categorías
             Column(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     CustomButton(
-                        text = "Guardados",
+                        text = stringResource(R.string.guardados),
                         color = Blanco,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier
+                            .weight(1f)
                             .clickable {
                                 navController.navigate("guardados")
                             }
                     ) { /* acción */ }
 
                     CustomButton(
-                        text = "Alimentos",
+                        text = stringResource(R.string.alimentos),
                         color = Blanco,
                         modifier = Modifier.weight(1f)
                     ) { /* acción */ }
@@ -144,13 +145,13 @@ fun PlaneaViaje(navController: NavController) {
 
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     CustomButton(
-                        text = "Combustible",
+                        text = stringResource(R.string.combustible),
                         color = Blanco,
                         modifier = Modifier.weight(1f)
                     ) { /* acción */ }
 
                     CustomButton(
-                        text = "Supermercados",
+                        text = stringResource(R.string.supermercados),
                         color = Blanco,
                         modifier = Modifier.weight(1f)
                     ) { /* acción */ }
@@ -158,13 +159,13 @@ fun PlaneaViaje(navController: NavController) {
 
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     CustomButton(
-                        text = "Hoteles",
+                        text = stringResource(R.string.hoteles),
                         color = Blanco,
                         modifier = Modifier.weight(1f)
                     ) { /* acción */ }
 
                     CustomButton(
-                        text = "Parques",
+                        text = stringResource(R.string.parques),
                         color = Blanco,
                         modifier = Modifier.weight(1f)
                     ) { /* acción */ }
@@ -173,9 +174,9 @@ fun PlaneaViaje(navController: NavController) {
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // 🔸 Sección "Recientes"
+            // Sección "Recientes"
             Text(
-                text = "Recientes",
+                text = stringResource(R.string.recientes),
                 color = Blanco,
                 fontFamily = Nunito,
                 fontWeight = FontWeight.ExtraBold,

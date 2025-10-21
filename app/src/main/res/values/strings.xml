@@ -79,10 +79,6 @@
     <!-- Home -->
     <string name="a_donde_vas">¿A dónde vas?</string>
 
-    <!-- Planea Viaje -->
-    <string name="permisos_localizacion">No olvides activar los permisos del Servicio de localización para poder guiarte en tu viaje.</string>
-    <string name="a_donde_vamos">¿A dónde vamos?</string>
-
     <!-- Ajustes -->
     <string name="ajustes">Ajustes</string>
     <string name="activar_modo_copiloto">Activar Modo Copiloto</string>
@@ -184,6 +180,29 @@
     <string name="no_disponible">No disponible</string>
     <string name="no_registrada">No registrada</string>
 
+    <!-- Planea Viaje -->
+    <string name="permisos_localizacion">No olvides activar los permisos del Servicio de localización para poder guiarte en tu viaje.</string>
+    <string name="a_donde_vamos">¿A dónde vamos?</string>
+    <string name="planea_viaje">Planea un viaje</string>
+    <string name="activar_permisos">No olvides activar los permisos del Servicio de localización para poder guiarte en tu viaje.</string>
+    <string name="alimentos">Alimentos</string>
+    <string name="combustible">Combustible</string>
+    <string name="supermercados">Supermercados</string>
+    <string name="hoteles">Hoteles</string>
+    <string name="parques">Parques</string>
+    <string name="recientes">Recientes</string>
+
+
+    <!-- Guardados -->
+    <string name="guardados">Guardados</string>
+    <string name="tus_listas">Tus Listas</string>
+    <string name="buscar">Buscar</string>
+    <string name="sin_plan">¿Sin plan?</string>
+    <string name="favoritos">Favoritos</string>
+    <string name="planes_de_viaje">Planes de viaje</string>
+    <string name="viajes_guardados">Viajes Guardados</string>
+
+
     <!-- Mensajes de Toast -->
     <string name="toast_cuenta_creada">Cuenta creada con éxito</string>
     <string name="toast_error_login_google">Error al iniciar sesión</string>
@@ -197,5 +216,6 @@
     <string name="toast_error_guardar_usuario">Error al guardar usuario: %1$s</string>
     <string name="toast_inicio_sesion_google_exitoso">Inicio de sesión con Google exitoso</string>
     <string name="toast_error_iniciar_sesion_google">Error al iniciar sesión con Google</string>
+
 
 </resources>
