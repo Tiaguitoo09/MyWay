@@ -20,6 +20,7 @@ import com.example.myway.screens.modulo2.Soporte
 import com.example.myway.screens.modulo2.VerPerfil
 import com.example.myway.screens.modulo2.SilenciarNotificaciones
 import com.example.myway.screens.modulo3.PlaneaViaje
+import com.example.myway.screens.modulo3.Guardados
 import com.google.firebase.auth.FirebaseAuth
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 
@@ -106,6 +107,10 @@ fun MyWayAppNavigation(
 
         composable("planea_viaje") {
             PlaneaViaje(navController = navController)
+        }
+
+        composable("guardados") {
+            Guardados(navController = navController)
         }
     }
 }
