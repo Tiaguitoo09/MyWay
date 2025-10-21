@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -38,7 +39,7 @@ fun CambioContrasena(navController: NavController) {
         // Fondo
         Image(
             painter = painterResource(id = R.drawable.fondo2),
-            contentDescription = "Fondo",
+            contentDescription = stringResource(id = R.string.fondo),
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop
         )
@@ -46,7 +47,7 @@ fun CambioContrasena(navController: NavController) {
         // Flecha volver
         Image(
             painter = painterResource(id = R.drawable.flecha),
-            contentDescription = "Volver",
+            contentDescription = stringResource(id = R.string.volver),
             modifier = Modifier
                 .align(Alignment.TopStart)
                 .padding(16.dp)
@@ -63,7 +64,7 @@ fun CambioContrasena(navController: NavController) {
             Spacer(modifier = Modifier.height(60.dp))
 
             Text(
-                text = "Cambiar Contraseña",
+                text = stringResource(id = R.string.cambiar_contrasena),
                 fontSize = 26.sp,
                 fontFamily = Nunito,
                 fontWeight = FontWeight.ExtraBold,
@@ -82,9 +83,7 @@ fun CambioContrasena(navController: NavController) {
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "Tu cuenta está vinculada con Google.\n" +
-                                "No puedes cambiar tu contraseña aquí.\n" +
-                                "Hazlo desde la configuración de tu cuenta de Google.",
+                        text = stringResource(id = R.string.cuenta_vinculada_google),
                         fontSize = 18.sp,
                         fontFamily = Nunito,
                         fontWeight = FontWeight.Bold,
@@ -97,14 +96,14 @@ fun CambioContrasena(navController: NavController) {
             } else {
                 // Usuario con correo/contraseña
                 Text(
-                    text = "Contraseña actual",
+                    text = stringResource(id = R.string.contrasena_actual),
                     fontSize = 16.sp,
                     fontFamily = Nunito,
                     fontWeight = FontWeight.SemiBold,
                     color = Blanco
                 )
                 CustomTextField(
-                    placeholder = "***********",
+                    placeholder = stringResource(id = R.string.simbolos_contrasena),
                     text = actual,
                     onTextChange = { actual = it },
                     color = Blanco,
@@ -116,14 +115,14 @@ fun CambioContrasena(navController: NavController) {
                 Spacer(modifier = Modifier.height(20.dp))
 
                 Text(
-                    text = "Nueva contraseña",
+                    text = stringResource(id = R.string.nueva_contrasena_label),
                     fontSize = 16.sp,
                     fontFamily = Nunito,
                     fontWeight = FontWeight.SemiBold,
                     color = Blanco
                 )
                 CustomTextField(
-                    placeholder = "Mín. 8 caracteres, 1 mayús, 1 minús, 1 número y 1 símbolo*",
+                    placeholder = stringResource(id = R.string.simbolos),
                     text = nueva,
                     onTextChange = { nueva = it },
                     color = Blanco,
@@ -135,14 +134,14 @@ fun CambioContrasena(navController: NavController) {
                 Spacer(modifier = Modifier.height(20.dp))
 
                 Text(
-                    text = "Confirma la contraseña",
+                    text = stringResource(id = R.string.confirma_contrasena),
                     fontSize = 16.sp,
                     fontFamily = Nunito,
                     fontWeight = FontWeight.SemiBold,
                     color = Blanco
                 )
                 CustomTextField(
-                    placeholder = "***********",
+                    placeholder = stringResource(id = R.string.simbolos_contrasena),
                     text = confirmar,
                     onTextChange = { confirmar = it },
                     color = Blanco,
@@ -154,7 +153,7 @@ fun CambioContrasena(navController: NavController) {
                 Spacer(modifier = Modifier.height(30.dp))
 
                 CustomButton(
-                    text = "Actualizar",
+                    text = stringResource(id = R.string.actualizar),
                     color = Azul3,
                     modifier = Modifier
                         .width(220.dp)
@@ -165,15 +164,27 @@ fun CambioContrasena(navController: NavController) {
                         // Validaciones
                         when {
                             actual.isBlank() || nueva.isBlank() || confirmar.isBlank() -> {
-                                Toast.makeText(context, "Rellena todos los campos", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(
+                                    context,
+                                    context.getString(R.string.rellena_todos_campos),
+                                    Toast.LENGTH_SHORT
+                                ).show()
                                 return@CustomButton
                             }
                             nueva != confirmar -> {
-                                Toast.makeText(context, "Las contraseñas no coinciden", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(
+                                    context,
+                                    context.getString(R.string.contrasenas_no_coinciden),
+                                    Toast.LENGTH_SHORT
+                                ).show()
                                 return@CustomButton
                             }
                             nueva.length < 6 -> {
-                                Toast.makeText(context, "La contraseña debe tener al menos 6 caracteres", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(
+                                    context,
+                                    context.getString(R.string.contrasena_minimo_caracteres),
+                                    Toast.LENGTH_SHORT
+                                ).show()
                                 return@CustomButton
                             }
                         }
@@ -194,17 +205,29 @@ fun CambioContrasena(navController: NavController) {
                                             db.collection("usuarios").document(user.uid)
                                                 .update("contrasena", nueva)
 
-                                            Toast.makeText(context, "Contraseña actualizada correctamente", Toast.LENGTH_SHORT).show()
+                                            Toast.makeText(
+                                                context,
+                                                context.getString(R.string.contrasena_actualizada),
+                                                Toast.LENGTH_SHORT
+                                            ).show()
                                             navController.navigate("cambio_exitoso") {
                                                 popUpTo("cambio_contrasena") { inclusive = true }
                                             }
                                         }
                                         .addOnFailureListener { e ->
-                                            Toast.makeText(context, "Error al actualizar: ${e.message}", Toast.LENGTH_SHORT).show()
+                                            Toast.makeText(
+                                                context,
+                                                context.getString(R.string.error_actualizar, e.message),
+                                                Toast.LENGTH_SHORT
+                                            ).show()
                                         }
                                 }
                                 .addOnFailureListener {
-                                    Toast.makeText(context, "La contraseña actual es incorrecta", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(
+                                        context,
+                                        context.getString(R.string.contrasena_actual_incorrecta),
+                                        Toast.LENGTH_SHORT
+                                    ).show()
                                 }
                         }
                     }

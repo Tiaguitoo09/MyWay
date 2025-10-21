@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -21,7 +22,7 @@ import com.example.myway.ui.theme.*
 
 /* -------------------------------------------- */
 data class OpcionAjuste(
-    val titulo: String,
+    val tituloResId: Int,
     val ruta: String
 )
 
@@ -34,7 +35,11 @@ class AjustesController(
         if (ruta.isNotEmpty()) {
             navController.navigate(ruta)
         } else {
-            Toast.makeText(context, "Funcionalidad próximamente", Toast.LENGTH_SHORT).show()
+            Toast.makeText(
+                context,
+                context.getString(R.string.funcionalidad_proximamente),
+                Toast.LENGTH_SHORT
+            ).show()
         }
     }
 }
@@ -47,17 +52,17 @@ fun Ajustes(navController: NavController) {
 
     // Lista de opciones con ruta en "Silenciar Notificaciones"
     val opciones = listOf(
-        OpcionAjuste("Activar Modo Copiloto", ""),
-        OpcionAjuste("Silenciar Notificaciones", "silenciar_notificaciones"),
-        OpcionAjuste("Preferencias de Viaje", ""),
-        OpcionAjuste("Permisos", "")
+        OpcionAjuste(R.string.activar_modo_copiloto, ""),
+        OpcionAjuste(R.string.silenciar_notificaciones, "silenciar_notificaciones"),
+        OpcionAjuste(R.string.preferencias_viaje, ""),
+        OpcionAjuste(R.string.permisos, "")
     )
 
     Box(modifier = Modifier.fillMaxSize()) {
         // Fondo
         Image(
             painter = painterResource(id = R.drawable.fondo2),
-            contentDescription = "Fondo",
+            contentDescription = stringResource(id = R.string.fondo),
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop
         )
@@ -65,7 +70,7 @@ fun Ajustes(navController: NavController) {
         // Flecha volver
         Image(
             painter = painterResource(id = R.drawable.flecha),
-            contentDescription = "Volver",
+            contentDescription = stringResource(id = R.string.volver),
             modifier = Modifier
                 .align(Alignment.TopStart)
                 .padding(16.dp)
@@ -84,7 +89,7 @@ fun Ajustes(navController: NavController) {
 
             // Título
             Text(
-                text = "Ajustes",
+                text = stringResource(id = R.string.ajustes),
                 fontSize = 30.sp,
                 fontFamily = Nunito,
                 fontWeight = FontWeight.Bold,
@@ -96,7 +101,7 @@ fun Ajustes(navController: NavController) {
             // Botones
             opciones.forEach { opcion ->
                 CustomButton(
-                    text = opcion.titulo,
+                    text = stringResource(id = opcion.tituloResId),
                     color = Azul3,
                     fontSize = 22.sp,
                     modifier = Modifier

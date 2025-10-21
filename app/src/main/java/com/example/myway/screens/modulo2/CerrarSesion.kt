@@ -9,6 +9,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -35,7 +36,7 @@ fun CerrarSesion(navController: NavController) {
         // Fondo
         Image(
             painter = painterResource(id = R.drawable.fondo1),
-            contentDescription = "Fondo de la app",
+            contentDescription = stringResource(id = R.string.fondo_app),
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop
         )
@@ -49,7 +50,7 @@ fun CerrarSesion(navController: NavController) {
             // Imagen advertencia
             Image(
                 painter = painterResource(id = R.drawable.circuloadvertencia),
-                contentDescription = "Advertencia",
+                contentDescription = stringResource(id = R.string.advertencia),
                 modifier = Modifier.size(220.dp)
             )
 
@@ -57,7 +58,7 @@ fun CerrarSesion(navController: NavController) {
 
             // Texto principal
             CustomTitleText(
-                text = "¿Seguro/a que quieres\ncerrar sesión?",
+                text = stringResource(id = R.string.seguro_cerrar_sesion),
                 color = Blanco,
                 fontSize = 28.sp,
                 fontFamily = Nunito,
@@ -74,7 +75,7 @@ fun CerrarSesion(navController: NavController) {
             ) {
                 // Botón Sí
                 CustomButton(
-                    text = "Sí",
+                    text = stringResource(id = R.string.si),
                     color = Azul3,
                     modifier = Modifier.width(140.dp),
                     onClick = {
@@ -91,8 +92,11 @@ fun CerrarSesion(navController: NavController) {
                         // ✅ Limpia la imagen guardada en SharedPreferences
                         ImageStorage.eliminarImagen(context)
 
-                        Toast.makeText(context, "Sesión cerrada correctamente", Toast.LENGTH_SHORT)
-                            .show()
+                        Toast.makeText(
+                            context,
+                            context.getString(R.string.sesion_cerrada),
+                            Toast.LENGTH_SHORT
+                        ).show()
 
                         // Navegar al inicio de la app
                         navController.navigate("ingreso_usuario") {
@@ -103,7 +107,7 @@ fun CerrarSesion(navController: NavController) {
 
                 // Botón "No"
                 CustomButton(
-                    text = "No",
+                    text = stringResource(id = R.string.no),
                     color = Azul3,
                     modifier = Modifier.width(140.dp),
                     onClick = {

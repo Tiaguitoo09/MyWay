@@ -13,7 +13,9 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -31,6 +33,7 @@ import com.example.myway.screens.CustomTitleText
 
 @Composable
 fun SilenciarNotificaciones(navController: NavController) {
+    val context = LocalContext.current
     var notificacionesSilenciadas by remember { mutableStateOf(false) }
     var mostrarDialogo by remember { mutableStateOf(false) }
     val scrollState = rememberScrollState()
@@ -40,7 +43,7 @@ fun SilenciarNotificaciones(navController: NavController) {
         // Fondo
         Image(
             painter = painterResource(id = R.drawable.fondo2),
-            contentDescription = "Fondo",
+            contentDescription = stringResource(id = R.string.fondo),
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop
         )
@@ -48,7 +51,7 @@ fun SilenciarNotificaciones(navController: NavController) {
         // 🔹 Flecha volver (posición fija arriba a la izquierda) — ahora con zIndex alto
         Image(
             painter = painterResource(id = R.drawable.flecha),
-            contentDescription = "Volver",
+            contentDescription = stringResource(id = R.string.volver),
             modifier = Modifier
                 .align(Alignment.TopStart)
                 .padding(16.dp)
@@ -69,7 +72,7 @@ fun SilenciarNotificaciones(navController: NavController) {
 
             // Título principal
             Text(
-                text = "Silenciar Notificaciones",
+                text = stringResource(id = R.string.silenciar_notificaciones_titulo),
                 color = Blanco,
                 fontSize = 32.sp,
                 fontWeight = FontWeight.Bold,
@@ -93,7 +96,7 @@ fun SilenciarNotificaciones(navController: NavController) {
                 ) {
 
                     Text(
-                        text = "Activa esta opción para pausar temporalmente las notificaciones de la app.",
+                        text = stringResource(id = R.string.pausar_notificaciones),
                         color = Blanco,
                         fontSize = 19.sp,
                         textAlign = TextAlign.Center,
@@ -105,11 +108,28 @@ fun SilenciarNotificaciones(navController: NavController) {
                             .fillMaxWidth()
                             .padding(horizontal = 8.dp)
                     ) {
-                        Text("Cuando está activado:", color = Blanco, fontWeight = FontWeight.Bold, fontSize = 17.sp)
+                        Text(
+                            text = stringResource(id = R.string.cuando_activado),
+                            color = Blanco,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 17.sp
+                        )
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text("• No recibirás notificaciones emergentes ni sonidos de alertas.", color = Blanco, fontSize = 16.sp)
-                        Text("• Las notificaciones quedarán guardadas en el historial para que las consultes luego.", color = Blanco, fontSize = 16.sp)
-                        Text("• Podrás reactivarlas desde los Ajustes cuando quieras.", color = Blanco, fontSize = 16.sp)
+                        Text(
+                            text = stringResource(id = R.string.no_recibiras_notificaciones),
+                            color = Blanco,
+                            fontSize = 16.sp
+                        )
+                        Text(
+                            text = stringResource(id = R.string.notificaciones_guardadas),
+                            color = Blanco,
+                            fontSize = 16.sp
+                        )
+                        Text(
+                            text = stringResource(id = R.string.reactivar_ajustes),
+                            color = Blanco,
+                            fontSize = 16.sp
+                        )
                     }
 
                     Spacer(modifier = Modifier.height(24.dp))
@@ -124,7 +144,7 @@ fun SilenciarNotificaciones(navController: NavController) {
                                     textDecoration = TextDecoration.Underline
                                 )
                             ) {
-                                append("Recuerda: ")
+                                append(context.getString(R.string.recuerda))
                             }
                             withStyle(
                                 SpanStyle(
@@ -133,7 +153,7 @@ fun SilenciarNotificaciones(navController: NavController) {
                                     textDecoration = TextDecoration.Underline
                                 )
                             ) {
-                                append("al silenciar notificaciones, podrías perder alertas importantes de tráfico o seguridad en tiempo real.")
+                                append(context.getString(R.string.alerta_silenciar))
                             }
                         },
                         fontSize = 17.sp,
@@ -160,7 +180,10 @@ fun SilenciarNotificaciones(navController: NavController) {
                         )
                         Spacer(modifier = Modifier.width(16.dp))
                         Text(
-                            text = if (notificacionesSilenciadas) "ON" else "OFF",
+                            text = if (notificacionesSilenciadas)
+                                stringResource(id = R.string.on)
+                            else
+                                stringResource(id = R.string.off),
                             color = Blanco,
                             fontSize = 22.sp,
                             fontWeight = FontWeight.Bold
@@ -188,7 +211,7 @@ fun SilenciarNotificaciones(navController: NavController) {
                 ) {
                     Image(
                         painter = painterResource(id = R.drawable.circuloadvertencia),
-                        contentDescription = "Confirmación",
+                        contentDescription = stringResource(id = R.string.confirmacion),
                         modifier = Modifier.size(200.dp)
                     )
 
@@ -196,9 +219,9 @@ fun SilenciarNotificaciones(navController: NavController) {
 
                     CustomTitleText(
                         text = if (notificacionesSilenciadas)
-                            "¿Quieres activar las notificaciones?"
+                            stringResource(id = R.string.activar_notificaciones)
                         else
-                            "¿Seguro que quieres\nsilenciar las notificaciones?",
+                            stringResource(id = R.string.seguro_silenciar),
                         color = Blanco,
                         fontSize = 26.sp,
                         fontFamily = Nunito,
@@ -213,7 +236,7 @@ fun SilenciarNotificaciones(navController: NavController) {
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
                         CustomButton(
-                            text = "Sí",
+                            text = stringResource(id = R.string.si),
                             color = Azul3,
                             modifier = Modifier.width(140.dp),
                             onClick = {
@@ -222,7 +245,7 @@ fun SilenciarNotificaciones(navController: NavController) {
                             }
                         )
                         CustomButton(
-                            text = "No",
+                            text = stringResource(id = R.string.no),
                             color = Azul4,
                             modifier = Modifier.width(140.dp),
                             onClick = { mostrarDialogo = false }

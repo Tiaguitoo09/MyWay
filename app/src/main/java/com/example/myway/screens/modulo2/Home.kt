@@ -115,8 +115,8 @@ fun Home(navController: NavController) {
             // Marcador en la ubicación actual
             Marker(
                 state = MarkerState(position = currentLocation),
-                title = "Tu ubicación",
-                snippet = "Estás aquí"
+                title = stringResource(id = R.string.tu_ubicacion),
+                snippet = stringResource(id = R.string.estas_aqui)
             )
         }
 
@@ -198,7 +198,7 @@ fun Home(navController: NavController) {
                     ) {
                         Icon(
                             painter = painterResource(id = android.R.drawable.ic_menu_mylocation),
-                            contentDescription = "Mi ubicación",
+                            contentDescription = stringResource(id = R.string.mi_ubicacion),
                             tint = Azul4,
                             modifier = Modifier.size(30.dp)
                         )

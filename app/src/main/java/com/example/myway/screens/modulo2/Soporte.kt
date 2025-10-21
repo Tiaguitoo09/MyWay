@@ -18,6 +18,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -35,7 +36,7 @@ fun Soporte(navController: NavController) {
         // Fondo (dibuja primero)
         Image(
             painter = painterResource(id = R.drawable.fondo2),
-            contentDescription = "Fondo",
+            contentDescription = stringResource(id = R.string.fondo),
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop
         )
@@ -49,7 +50,7 @@ fun Soporte(navController: NavController) {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "Soporte",
+                text = stringResource(id = R.string.soporte),
                 color = Blanco,
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
@@ -58,12 +59,12 @@ fun Soporte(navController: NavController) {
 
             // ======= Contactar con Soporte =======
             DesplegableCard(
-                titulo = "Contactar Con Soporte",
+                titulo = stringResource(id = R.string.contactar_soporte),
                 colorFondo = Azul4,
                 colorContenido = Azul3,
                 contenido = {
                     Text(
-                        text = "Si tienes algún problema con la app o necesitas ayuda personalizada, nuestro equipo de soporte está disponible para ti. Escríbenos o llámanos y te responderemos lo más pronto posible.",
+                        text = stringResource(id = R.string.texto_contactar_soporte),
                         color = Blanco,
                         fontSize = 14.sp,
                         modifier = Modifier.padding(bottom = 12.dp)
@@ -71,14 +72,14 @@ fun Soporte(navController: NavController) {
 
                     SoporteButton(
                         icono = R.drawable.telefono,
-                        texto = "(601) 3458500"
+                        texto = stringResource(id = R.string.telefono_soporte)
                     )
 
                     Spacer(modifier = Modifier.height(10.dp))
 
                     SoporteButton(
                         icono = R.drawable.correo,
-                        texto = "soportemyway@work.com"
+                        texto = stringResource(id = R.string.correo_soporte)
                     )
                 }
             )
@@ -87,12 +88,12 @@ fun Soporte(navController: NavController) {
 
             // ======= Enviar sugerencia o reporte =======
             DesplegableCard(
-                titulo = "Enviar Sugerencia / Reporte",
+                titulo = stringResource(id = R.string.enviar_sugerencia),
                 colorFondo = Azul3,
                 colorContenido = Azul2,
                 contenido = {
                     Text(
-                        text = "Tu opinión nos ayuda a mejorar. Cuéntanos tus ideas, reporta un error o comparte lo que te gustaría ver en la app.",
+                        text = stringResource(id = R.string.texto_sugerencia),
                         color = Blanco,
                         fontSize = 14.sp,
                         modifier = Modifier.padding(bottom = 12.dp)
@@ -100,7 +101,7 @@ fun Soporte(navController: NavController) {
 
                     SoporteButton(
                         icono = R.drawable.correo,
-                        texto = "mywaysyr@work.com"
+                        texto = stringResource(id = R.string.correo_sugerencias)
                     )
                 }
             )
@@ -109,13 +110,12 @@ fun Soporte(navController: NavController) {
 
             // ======= Políticas y términos =======
             DesplegableCard(
-                titulo = "Políticas Y Términos",
+                titulo = stringResource(id = R.string.politicas_terminos),
                 colorFondo = Azul2,
                 colorContenido = Azul3,
                 contenido = {
                     Text(
-                        text = "Bienvenido a MyWay, una aplicación móvil de movilidad diseñada para ayudarte a planear tus viajes, descubrir lugares de interés y organizar itinerarios.\n\n" +
-                                "Al utilizar la app aceptas los Términos de Servicio y Políticas de Privacidad, disponibles en nuestro sitio web.",
+                        text = stringResource(id = R.string.texto_politicas),
                         color = Blanco,
                         fontSize = 14.sp,
                         textAlign = TextAlign.Start
@@ -129,7 +129,7 @@ fun Soporte(navController: NavController) {
         // Flecha de volver colocada AL FINAL para que quede encima y reciba clicks
         Image(
             painter = painterResource(id = R.drawable.flecha),
-            contentDescription = "Volver",
+            contentDescription = stringResource(id = R.string.volver),
             modifier = Modifier
                 .align(Alignment.TopStart)
                 .padding(16.dp)
@@ -176,7 +176,10 @@ fun DesplegableCard(
                     painter = painterResource(
                         id = if (expanded) R.drawable.flecha_arriba else R.drawable.flecha_abajo
                     ),
-                    contentDescription = null,
+                    contentDescription = if (expanded)
+                        stringResource(id = R.string.flecha_arriba)
+                    else
+                        stringResource(id = R.string.flecha_abajo),
                     tint = Blanco,
                     modifier = Modifier.size(28.dp)
                 )
@@ -237,7 +240,7 @@ fun SoporteButton(icono: Int, texto: String) {
         ) {
             Image(
                 painter = painterResource(id = icono),
-                contentDescription = null,
+                contentDescription = stringResource(id = R.string.icono_contacto),
                 modifier = Modifier.size(24.dp)
             )
             Spacer(modifier = Modifier.width(10.dp))

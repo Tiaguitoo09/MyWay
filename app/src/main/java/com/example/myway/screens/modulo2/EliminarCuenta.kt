@@ -7,7 +7,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -27,7 +29,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 fun EliminarCuenta(navController: NavController) {
     val auth = FirebaseAuth.getInstance()
     val db = FirebaseFirestore.getInstance()
-    val context = androidx.compose.ui.platform.LocalContext.current
+    val context = LocalContext.current
 
     Box(
         modifier = Modifier.fillMaxSize()
@@ -35,7 +37,7 @@ fun EliminarCuenta(navController: NavController) {
         // Fondo de la app
         Image(
             painter = painterResource(id = R.drawable.fondo1),
-            contentDescription = "Fondo de la app",
+            contentDescription = stringResource(id = R.string.fondo_app),
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop
         )
@@ -49,7 +51,7 @@ fun EliminarCuenta(navController: NavController) {
             // Imagen advertencia
             Image(
                 painter = painterResource(id = R.drawable.circuloadvertencia),
-                contentDescription = "Confirmación",
+                contentDescription = stringResource(id = R.string.confirmacion),
                 modifier = Modifier.size(220.dp)
             )
 
@@ -57,7 +59,7 @@ fun EliminarCuenta(navController: NavController) {
 
             // Texto principal
             CustomTitleText(
-                text = "¿Seguro/a que quieres\neliminar la cuenta?",
+                text = stringResource(id = R.string.seguro_eliminar_cuenta),
                 color = Blanco,
                 fontSize = 28.sp,
                 fontFamily = Nunito,
@@ -74,7 +76,7 @@ fun EliminarCuenta(navController: NavController) {
             ) {
                 //Botón Sí
                 CustomButton(
-                    text = "Sí",
+                    text = stringResource(id = R.string.si),
                     color = Azul3,
                     modifier = Modifier.width(140.dp),
                     onClick = {
@@ -95,7 +97,7 @@ fun EliminarCuenta(navController: NavController) {
                                         .addOnSuccessListener {
                                             Toast.makeText(
                                                 context,
-                                                "Cuenta eliminada correctamente",
+                                                context.getString(R.string.cuenta_eliminada),
                                                 Toast.LENGTH_SHORT
                                             ).show()
 
@@ -111,7 +113,7 @@ fun EliminarCuenta(navController: NavController) {
                                         .addOnFailureListener { e ->
                                             Toast.makeText(
                                                 context,
-                                                "Error al eliminar cuenta: ${e.message}",
+                                                context.getString(R.string.error_eliminar_cuenta, e.message),
                                                 Toast.LENGTH_SHORT
                                             ).show()
                                         }
@@ -119,14 +121,14 @@ fun EliminarCuenta(navController: NavController) {
                                 .addOnFailureListener { e ->
                                     Toast.makeText(
                                         context,
-                                        "Error al eliminar usuario: ${e.message}",
+                                        context.getString(R.string.error_eliminar_usuario, e.message),
                                         Toast.LENGTH_SHORT
                                     ).show()
                                 }
                         } else {
                             Toast.makeText(
                                 context,
-                                "No se pudo obtener la información del usuario",
+                                context.getString(R.string.no_info_usuario),
                                 Toast.LENGTH_SHORT
                             ).show()
                         }
@@ -135,7 +137,7 @@ fun EliminarCuenta(navController: NavController) {
 
                 // Botón No
                 CustomButton(
-                    text = "No",
+                    text = stringResource(id = R.string.no),
                     color = Azul3,
                     modifier = Modifier.width(140.dp),
                     onClick = {

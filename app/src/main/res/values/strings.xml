@@ -5,6 +5,7 @@
     <string name="fondo_app">Fondo de la app</string>
     <string name="volver">Volver</string>
     <string name="perfil">Perfil</string>
+    <string name="fondo">Fondo</string>
 
     <!-- Inicio Pantalla -->
     <string name="icono_brujula">Icono Brújula</string>
@@ -81,6 +82,107 @@
     <!-- Planea Viaje -->
     <string name="permisos_localizacion">No olvides activar los permisos del Servicio de localización para poder guiarte en tu viaje.</string>
     <string name="a_donde_vamos">¿A dónde vamos?</string>
+
+    <!-- Ajustes -->
+    <string name="ajustes">Ajustes</string>
+    <string name="activar_modo_copiloto">Activar Modo Copiloto</string>
+    <string name="silenciar_notificaciones">Silenciar Notificaciones</string>
+    <string name="preferencias_viaje">Preferencias de Viaje</string>
+    <string name="permisos">Permisos</string>
+    <string name="funcionalidad_proximamente">Funcionalidad próximamente</string>
+
+    <!-- Cambio Contraseña -->
+    <string name="cambiar_contrasena">Cambiar Contraseña</string>
+    <string name="contrasena_actual">Contraseña actual</string>
+    <string name="nueva_contrasena_label">Nueva contraseña</string>
+    <string name="cuenta_vinculada_google">Tu cuenta está vinculada con Google.\nNo puedes cambiar tu contraseña aquí.\nHazlo desde la configuración de tu cuenta de Google.</string>
+    <string name="rellena_todos_campos">Rellena todos los campos</string>
+    <string name="contrasena_minimo_caracteres">La contraseña debe tener al menos 6 caracteres</string>
+    <string name="contrasena_actual_incorrecta">La contraseña actual es incorrecta</string>
+    <string name="error_actualizar">Error al actualizar: %1$s</string>
+
+    <!-- Pantalla Cargando -->
+    <string name="circulo_brujula">Círculo brújula</string>
+    <string name="palito_brujula">Palito brújula</string>
+    <string name="cargando">Cargando</string>
+
+    <!-- Cerrar Sesión -->
+    <string name="advertencia">Advertencia</string>
+    <string name="seguro_cerrar_sesion">¿Seguro/a que quieres\ncerrar sesión?</string>
+    <string name="si">Sí</string>
+    <string name="no">No</string>
+    <string name="sesion_cerrada">Sesión cerrada correctamente</string>
+
+    <!-- Eliminar Cuenta -->
+    <string name="seguro_eliminar_cuenta">¿Seguro/a que quieres\neliminar la cuenta?</string>
+    <string name="cuenta_eliminada">Cuenta eliminada correctamente</string>
+    <string name="error_eliminar_cuenta">Error al eliminar cuenta: %1$s</string>
+    <string name="error_eliminar_usuario">Error al eliminar usuario: %1$s</string>
+    <string name="no_info_usuario">No se pudo obtener la información del usuario</string>
+
+    <!-- Home / Mapa -->
+    <string name="tu_ubicacion">Tu ubicación</string>
+    <string name="estas_aqui">Estás aquí</string>
+    <string name="mi_ubicacion">Mi ubicación</string>
+
+    <!-- Perfil y Ajustes -->
+    <string name="foto_perfil">Foto de perfil</string>
+    <string name="icono_perfil">Icono de perfil</string>
+    <string name="error">Error: %1$s</string>
+    <string name="hola_usuario">Hola, %1$s</string>
+    <string name="usuario">Usuario</string>
+    <string name="ver_perfil">Ver Perfil</string>
+    <string name="soporte">Soporte</string>
+    <string name="eliminar_cuenta">Eliminar Cuenta</string>
+    <string name="cambiar_foto_perfil">Cambiar foto de perfil</string>
+    <string name="selecciona_opcion">Selecciona una opción</string>
+    <string name="galeria">Galería</string>
+    <string name="camara">Cámara</string>
+    <string name="cancelar">Cancelar</string>
+    <string name="foto_actualizada">✅ Foto actualizada</string>
+    <string name="error_foto">❌ Error: %1$s</string>
+    <string name="no_usuario_autenticado">No hay usuario autenticado</string>
+    <string name="no_leer_archivo">No se puede leer el archivo</string>
+    <string name="archivo_muy_grande">Archivo muy grande (máx 10MB)</string>
+    <string name="error_leer_archivo">Error al leer archivo: %1$s</string>
+    <string name="error_obtener_url">Error al obtener URL: %1$s</string>
+    <string name="error_subir">Error al subir: %1$s</string>
+
+    <!-- Silenciar Notificaciones -->
+    <string name="silenciar_notificaciones_titulo">Silenciar Notificaciones</string>
+    <string name="pausar_notificaciones">Activa esta opción para pausar temporalmente las notificaciones de la app.</string>
+    <string name="cuando_activado">Cuando está activado:</string>
+    <string name="no_recibiras_notificaciones">• No recibirás notificaciones emergentes ni sonidos de alertas.</string>
+    <string name="notificaciones_guardadas">• Las notificaciones quedarán guardadas en el historial para que las consultes luego.</string>
+    <string name="reactivar_ajustes">• Podrás reactivarlas desde los Ajustes cuando quieras.</string>
+    <string name="recuerda">Recuerda: </string>
+    <string name="alerta_silenciar">al silenciar notificaciones, podrías perder alertas importantes de tráfico o seguridad en tiempo real.</string>
+    <string name="on">ON</string>
+    <string name="off">OFF</string>
+    <string name="activar_notificaciones">¿Quieres activar las notificaciones?</string>
+    <string name="seguro_silenciar">¿Seguro que quieres\nsilenciar las notificaciones?</string>
+
+    <!-- Soporte -->
+    <string name="contactar_soporte">Contactar Con Soporte</string>
+    <string name="texto_contactar_soporte">Si tienes algún problema con la app o necesitas ayuda personalizada, nuestro equipo de soporte está disponible para ti. Escríbenos o llámanos y te responderemos lo más pronto posible.</string>
+    <string name="telefono_soporte">(601) 3458500</string>
+    <string name="correo_soporte">soportemyway@work.com</string>
+    <string name="enviar_sugerencia">Enviar Sugerencia / Reporte</string>
+    <string name="texto_sugerencia">Tu opinión nos ayuda a mejorar. Cuéntanos tus ideas, reporta un error o comparte lo que te gustaría ver en la app.</string>
+    <string name="correo_sugerencias">mywaysyr@work.com</string>
+    <string name="politicas_terminos">Políticas Y Términos</string>
+    <string name="texto_politicas">Bienvenido a MyWay, una aplicación móvil de movilidad diseñada para ayudarte a planear tus viajes, descubrir lugares de interés y organizar itinerarios.\n\nAl utilizar la app aceptas los Términos de Servicio y Políticas de Privacidad, disponibles en nuestro sitio web.</string>
+    <string name="flecha_arriba">Flecha arriba</string>
+    <string name="flecha_abajo">Flecha abajo</string>
+    <string name="icono_contacto">Icono de contacto</string>
+
+    <!-- Ver Perfil -->
+    <string name="nombre">Nombre</string>
+    <string name="apellido">Apellido</string>
+    <string name="correo_label">Correo</string>
+    <string name="fecha_nacimiento_label">Fecha de nacimiento</string>
+    <string name="no_disponible">No disponible</string>
+    <string name="no_registrada">No registrada</string>
 
     <!-- Mensajes de Toast -->
     <string name="toast_cuenta_creada">Cuenta creada con éxito</string>

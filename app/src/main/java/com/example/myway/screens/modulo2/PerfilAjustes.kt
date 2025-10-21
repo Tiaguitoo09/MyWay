@@ -20,6 +20,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
@@ -59,12 +60,20 @@ fun PerfilAjustes(navController: NavController) {
                 onSuccess = { nuevaUrl ->
                     fotoPerfilUrl = nuevaUrl
                     isUploading = false
-                    Toast.makeText(context, "✅ Foto actualizada", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(
+                        context,
+                        context.getString(R.string.foto_actualizada),
+                        Toast.LENGTH_SHORT
+                    ).show()
                 },
                 onError = { error ->
                     isUploading = false
                     uploadError = error
-                    Toast.makeText(context, "❌ Error: $error", Toast.LENGTH_LONG).show()
+                    Toast.makeText(
+                        context,
+                        context.getString(R.string.error_foto, error),
+                        Toast.LENGTH_LONG
+                    ).show()
                     Log.e("PerfilAjustes", "❌ Error: $error")
                 }
             )
@@ -86,12 +95,20 @@ fun PerfilAjustes(navController: NavController) {
                 onSuccess = { nuevaUrl ->
                     fotoPerfilUrl = nuevaUrl
                     isUploading = false
-                    Toast.makeText(context, "✅ Foto actualizada", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(
+                        context,
+                        context.getString(R.string.foto_actualizada),
+                        Toast.LENGTH_SHORT
+                    ).show()
                 },
                 onError = { error ->
                     isUploading = false
                     uploadError = error
-                    Toast.makeText(context, "❌ Error: $error", Toast.LENGTH_LONG).show()
+                    Toast.makeText(
+                        context,
+                        context.getString(R.string.error_foto, error),
+                        Toast.LENGTH_LONG
+                    ).show()
                     Log.e("PerfilAjustes", "❌ Error: $error")
                 }
             )
@@ -101,14 +118,14 @@ fun PerfilAjustes(navController: NavController) {
     Box(modifier = Modifier.fillMaxSize()) {
         Image(
             painter = painterResource(id = R.drawable.fondo2),
-            contentDescription = "Fondo",
+            contentDescription = stringResource(id = R.string.fondo),
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop
         )
 
         Image(
             painter = painterResource(id = R.drawable.flecha),
-            contentDescription = "Volver",
+            contentDescription = stringResource(id = R.string.volver),
             modifier = Modifier
                 .align(Alignment.TopStart)
                 .padding(16.dp)
@@ -139,7 +156,7 @@ fun PerfilAjustes(navController: NavController) {
                 if (!fotoPerfilUrl.isNullOrEmpty()) {
                     AsyncImage(
                         model = fotoPerfilUrl,
-                        contentDescription = "Foto de perfil",
+                        contentDescription = stringResource(id = R.string.foto_perfil),
                         contentScale = ContentScale.Crop,
                         modifier = Modifier
                             .size(150.dp)
@@ -153,7 +170,7 @@ fun PerfilAjustes(navController: NavController) {
                 } else {
                     Image(
                         painter = painterResource(id = R.drawable.icono_perfil2),
-                        contentDescription = "Icono de perfil",
+                        contentDescription = stringResource(id = R.string.icono_perfil),
                         modifier = Modifier
                             .size(150.dp)
                             .clip(CircleShape)
@@ -171,7 +188,7 @@ fun PerfilAjustes(navController: NavController) {
             // Mostrar error si existe
             uploadError?.let { error ->
                 Text(
-                    text = "Error: $error",
+                    text = stringResource(id = R.string.error, error),
                     color = Rojo,
                     fontSize = 12.sp,
                     modifier = Modifier.padding(8.dp)
@@ -181,10 +198,11 @@ fun PerfilAjustes(navController: NavController) {
             Spacer(modifier = Modifier.height(12.dp))
 
             val nombreUsuario = UsuarioTemporal.nombre?.trim()?.lowercase()
-                ?.replaceFirstChar { it.uppercase() } ?: "Usuario"
+                ?.replaceFirstChar { it.uppercase() }
+                ?: stringResource(id = R.string.usuario)
 
             Text(
-                text = "Hola, $nombreUsuario",
+                text = stringResource(id = R.string.hola_usuario, nombreUsuario),
                 color = Blanco,
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold
@@ -193,7 +211,7 @@ fun PerfilAjustes(navController: NavController) {
             Spacer(modifier = Modifier.height(12.dp))
 
             Text(
-                text = "Ver Perfil",
+                text = stringResource(id = R.string.ver_perfil),
                 color = Blanco,
                 fontSize = 18.sp,
                 textDecoration = TextDecoration.Underline,
@@ -205,7 +223,7 @@ fun PerfilAjustes(navController: NavController) {
             Spacer(modifier = Modifier.height(20.dp))
 
             CustomButton(
-                text = "Soporte",
+                text = stringResource(id = R.string.soporte),
                 color = Azul3,
                 fontSize = 22.sp,
                 modifier = Modifier.fillMaxWidth(0.85f).height(70.dp),
@@ -216,7 +234,7 @@ fun PerfilAjustes(navController: NavController) {
             Spacer(modifier = Modifier.height(18.dp))
 
             CustomButton(
-                text = "Ajustes",
+                text = stringResource(id = R.string.ajustes),
                 color = Azul3,
                 fontSize = 22.sp,
                 modifier = Modifier.fillMaxWidth(0.85f).height(70.dp),
@@ -227,7 +245,7 @@ fun PerfilAjustes(navController: NavController) {
             Spacer(modifier = Modifier.height(18.dp))
 
             CustomButton(
-                text = "Eliminar Cuenta",
+                text = stringResource(id = R.string.eliminar_cuenta),
                 color = Rojo,
                 fontSize = 22.sp,
                 modifier = Modifier.fillMaxWidth(0.85f).height(70.dp),
@@ -239,7 +257,7 @@ fun PerfilAjustes(navController: NavController) {
 
             Image(
                 painter = painterResource(id = R.drawable.cerrar_sesion),
-                contentDescription = "Cerrar sesión",
+                contentDescription = stringResource(id = R.string.cerrar_sesion),
                 modifier = Modifier
                     .size(50.dp)
                     .clickable { navController.navigate("cerrar_sesion") }
@@ -248,7 +266,7 @@ fun PerfilAjustes(navController: NavController) {
             Spacer(modifier = Modifier.height(30.dp))
 
             Text(
-                text = "Cerrar Sesión",
+                text = stringResource(id = R.string.cerrar_sesion),
                 color = Azul1,
                 textDecoration = TextDecoration.Underline,
                 fontSize = 20.sp,
@@ -262,10 +280,10 @@ fun PerfilAjustes(navController: NavController) {
     if (showDialog) {
         AlertDialog(
             onDismissRequest = { showDialog = false },
-            title = { Text("Cambiar foto de perfil") },
+            title = { Text(stringResource(id = R.string.cambiar_foto_perfil)) },
             text = {
                 Column {
-                    Text("Selecciona una opción")
+                    Text(stringResource(id = R.string.selecciona_opcion))
                     Spacer(modifier = Modifier.height(16.dp))
 
                     Button(
@@ -274,7 +292,7 @@ fun PerfilAjustes(navController: NavController) {
                             showDialog = false
                         },
                         modifier = Modifier.fillMaxWidth()
-                    ) { Text("Galería") }
+                    ) { Text(stringResource(id = R.string.galeria)) }
 
                     Spacer(modifier = Modifier.height(8.dp))
 
@@ -284,14 +302,14 @@ fun PerfilAjustes(navController: NavController) {
                             showDialog = false
                         },
                         modifier = Modifier.fillMaxWidth()
-                    ) { Text("Cámara") }
+                    ) { Text(stringResource(id = R.string.camara)) }
 
                     Spacer(modifier = Modifier.height(8.dp))
 
                     Button(
                         onClick = { showDialog = false },
                         modifier = Modifier.fillMaxWidth()
-                    ) { Text("Cancelar") }
+                    ) { Text(stringResource(id = R.string.cancelar)) }
                 }
             },
             confirmButton = {},
@@ -318,7 +336,7 @@ fun subirFotoAFirebase(
 
     if (user == null) {
         Log.e("Firebase", "❌ No hay usuario autenticado")
-        onError("No hay usuario autenticado")
+        onError(context.getString(R.string.no_usuario_autenticado))
         return
     }
 
@@ -331,7 +349,7 @@ fun subirFotoAFirebase(
         val inputStream = context.contentResolver.openInputStream(uri)
         if (inputStream == null) {
             Log.e("Firebase", "❌ No se puede leer el archivo")
-            onError("No se puede leer el archivo")
+            onError(context.getString(R.string.no_leer_archivo))
             return
         }
         val size = inputStream.available()
@@ -339,12 +357,12 @@ fun subirFotoAFirebase(
         Log.d("Firebase", "📊 Tamaño del archivo: ${size / 1024} KB")
 
         if (size > 10 * 1024 * 1024) { // 10MB
-            onError("Archivo muy grande (máx 10MB)")
+            onError(context.getString(R.string.archivo_muy_grande))
             return
         }
     } catch (e: Exception) {
         Log.e("Firebase", "❌ Error al leer archivo: ${e.message}")
-        onError("Error al leer archivo: ${e.message}")
+        onError(context.getString(R.string.error_leer_archivo, e.message))
         return
     }
 
@@ -386,12 +404,12 @@ fun subirFotoAFirebase(
                 }
                 .addOnFailureListener { e ->
                     Log.e("Firebase", "❌ Error al obtener URL: ${e.message}")
-                    onError("Error al obtener URL: ${e.message}")
+                    onError(context.getString(R.string.error_obtener_url, e.message))
                 }
         }
         .addOnFailureListener { e ->
             Log.e("Firebase", "❌ Error al subir: ${e.message}")
             Log.e("Firebase", "❌ Stack trace: ", e)
-            onError("Error al subir: ${e.message}")
+            onError(context.getString(R.string.error_subir, e.message))
         }
 }

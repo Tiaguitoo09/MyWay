@@ -1,35 +1,43 @@
 package com.example.myway.screens.modulo2
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import coil.compose.AsyncImage
 import com.example.myway.R
 import com.example.myway.screens.InfoBlock
 import com.example.myway.ui.theme.Blanco
+import com.example.myway.ui.theme.Azul3
 import com.example.myway.utils.UsuarioTemporal
-
-
+import android.util.Log
 
 @Composable
 fun VerPerfil(navController: NavController) {
+    val context = LocalContext.current
+    var fotoPerfilUrl by remember { mutableStateOf(UsuarioTemporal.fotoUrl) }
+
     Box(modifier = Modifier.fillMaxSize()) {
 
         // Fondo
         Image(
             painter = painterResource(id = R.drawable.fondo2),
-            contentDescription = "Fondo",
+            contentDescription = stringResource(id = R.string.fondo),
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop
         )
@@ -37,7 +45,7 @@ fun VerPerfil(navController: NavController) {
         // Flecha volver
         Image(
             painter = painterResource(id = R.drawable.flecha),
-            contentDescription = "Volver",
+            contentDescription = stringResource(id = R.string.volver),
             modifier = Modifier
                 .align(Alignment.TopStart)
                 .padding(16.dp)
@@ -53,25 +61,61 @@ fun VerPerfil(navController: NavController) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // Imagen de perfil
-            Image(
-                painter = painterResource(id = R.drawable.icono_perfil2),
-                contentDescription = "Icono de perfil",
+            // Imagen de perfil dinámica
+            Box(
                 modifier = Modifier
                     .size(150.dp)
                     .padding(bottom = 16.dp)
-            )
+                    .border(width = 6.dp, color = Blanco, shape = CircleShape)
+                    .clip(CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                if (!fotoPerfilUrl.isNullOrEmpty()) {
+                    AsyncImage(
+                        model = fotoPerfilUrl,
+                        contentDescription = stringResource(id = R.string.foto_perfil),
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .size(150.dp)
+                            .clip(CircleShape),
+                        error = painterResource(id = R.drawable.icono_perfil2),
+                        placeholder = painterResource(id = R.drawable.icono_perfil2),
+                        onError = { error ->
+                            Log.e("AsyncImage", "❌ Error al cargar: ${error.result.throwable.message}")
+                        }
+                    )
+                } else {
+                    Image(
+                        painter = painterResource(id = R.drawable.icono_perfil2),
+                        contentDescription = stringResource(id = R.string.icono_perfil),
+                        modifier = Modifier
+                            .size(150.dp)
+                            .clip(CircleShape)
+                    )
+                }
+            }
 
             // Bloques de información
-            InfoBlock(label = "Nombre", value = UsuarioTemporal.nombre ?: "Usuario")
-            InfoBlock(label = "Apellido", value = UsuarioTemporal.apellido ?: "No disponible")
-            InfoBlock(label = "Correo", value = UsuarioTemporal.correo ?: "No disponible")
-            InfoBlock(label = "Fecha de nacimiento", value = UsuarioTemporal.fechaNacimiento ?: "No registrada")
-
+            InfoBlock(
+                label = stringResource(id = R.string.nombre),
+                value = UsuarioTemporal.nombre ?: stringResource(id = R.string.usuario)
+            )
+            InfoBlock(
+                label = stringResource(id = R.string.apellido),
+                value = UsuarioTemporal.apellido ?: stringResource(id = R.string.no_disponible)
+            )
+            InfoBlock(
+                label = stringResource(id = R.string.correo_label),
+                value = UsuarioTemporal.correo ?: stringResource(id = R.string.no_disponible)
+            )
+            InfoBlock(
+                label = stringResource(id = R.string.fecha_nacimiento_label),
+                value = UsuarioTemporal.fechaNacimiento ?: stringResource(id = R.string.no_registrada)
+            )
 
             // Enlace para cambiar contraseña
             Text(
-                text = "Cambiar contraseña",
+                text = stringResource(id = R.string.cambiar_contrasena),
                 color = Blanco,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,

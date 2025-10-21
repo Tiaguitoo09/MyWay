@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -171,7 +172,7 @@ fun Cargando(navController: NavController) {
     ) {
         Image(
             painter = painterResource(id = R.drawable.fondo1),
-            contentDescription = "Fondo de la app",
+            contentDescription = stringResource(id = R.string.fondo_app),
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop
         )
@@ -180,12 +181,12 @@ fun Cargando(navController: NavController) {
             Box(contentAlignment = Alignment.Center) {
                 Image(
                     painter = painterResource(id = R.drawable.circulobrujula),
-                    contentDescription = "Círculo brújula",
+                    contentDescription = stringResource(id = R.string.circulo_brujula),
                     modifier = Modifier.size(270.dp)
                 )
                 Image(
                     painter = painterResource(id = R.drawable.palitobrujula),
-                    contentDescription = "Palito brújula",
+                    contentDescription = stringResource(id = R.string.palito_brujula),
                     modifier = Modifier
                         .size(180.dp)
                         .offset(y = (-10).dp)
@@ -195,7 +196,7 @@ fun Cargando(navController: NavController) {
 
             Spacer(modifier = Modifier.height(20.dp))
             Text(
-                text = "Cargando$puntos",
+                text = stringResource(id = R.string.cargando) + puntos,
                 color = Blanco,
                 fontFamily = Nunito,
                 fontWeight = FontWeight.ExtraBold,
