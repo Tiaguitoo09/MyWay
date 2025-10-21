@@ -5,4 +5,6 @@ plugins {
     alias(libs.plugins.kotlin.compose) apply false
     // 🔥 Google Services Plugin
     id("com.google.gms.google-services") version "4.4.2" apply false
+    // 🗺️ Google Maps Secrets Plugin
+    id("com.google.android.libraries.mapsplatform.secrets-gradle-plugin") version "2.0.1" apply false
 }
