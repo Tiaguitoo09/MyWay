@@ -120,6 +120,7 @@
     <string name="tu_ubicacion">Tu ubicación</string>
     <string name="estas_aqui">Estás aquí</string>
     <string name="mi_ubicacion">Mi ubicación</string>
+    <string name="destino">destino</string>
 
     <!-- Perfil y Ajustes -->
     <string name="foto_perfil">Foto de perfil</string>

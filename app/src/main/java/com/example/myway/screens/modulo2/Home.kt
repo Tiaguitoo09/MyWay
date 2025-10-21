@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
+import com.example.myway.BuildConfig
 import com.example.myway.R
 import com.example.myway.screens.CustomButton
 import com.example.myway.ui.theme.Azul4
@@ -34,11 +35,25 @@ import com.example.myway.ui.theme.Nunito
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
+import com.google.android.libraries.places.api.Places
+import com.google.android.libraries.places.api.model.Place
+import com.google.android.libraries.places.api.net.FetchPlaceRequest
+import com.google.maps.android.PolyUtil
 import com.google.maps.android.compose.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.net.URL
 
 @Composable
-fun Home(navController: NavController) {
+fun Home(
+    navController: NavController,
+    placeId: String? = null,
+    placeName: String? = null
+) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
     var hasLocationPermission by remember {
         mutableStateOf(
             ContextCompat.checkSelfPermission(
@@ -48,21 +63,29 @@ fun Home(navController: NavController) {
         )
     }
 
-    // Ubicación por defecto (Bogotá, Colombia)
     val defaultLocation = LatLng(4.7110, -74.0721)
     var currentLocation by remember { mutableStateOf(defaultLocation) }
+    var destinationLocation by remember { mutableStateOf<LatLng?>(null) }
+    var routePoints by remember { mutableStateOf<List<LatLng>>(emptyList()) }
+    var destinationName by remember { mutableStateOf<String?>(null) }
 
     val cameraPositionState = rememberCameraPositionState {
         position = CameraPosition.fromLatLngZoom(currentLocation, 12f)
     }
 
-    // Launcher para solicitar permisos
+    // Inicializar Places API con BuildConfig
+    val placesClient = remember {
+        if (!Places.isInitialized()) {
+            Places.initialize(context, BuildConfig.MAPS_API_KEY)
+        }
+        Places.createClient(context)
+    }
+
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         hasLocationPermission = isGranted
         if (isGranted) {
-            // Obtener ubicación actual
             val fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
             try {
                 fusedLocationClient.lastLocation.addOnSuccessListener { location ->
@@ -77,12 +100,11 @@ fun Home(navController: NavController) {
         }
     }
 
-    // Solicitar permisos al iniciar
+    // Obtener ubicación actual
     LaunchedEffect(Unit) {
         if (!hasLocationPermission) {
             permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
         } else {
-            // Obtener ubicación actual si ya tiene permiso
             val fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
             try {
                 fusedLocationClient.lastLocation.addOnSuccessListener { location ->
@@ -94,6 +116,49 @@ fun Home(navController: NavController) {
             } catch (e: SecurityException) {
                 e.printStackTrace()
             }
+        }
+    }
+
+    // Obtener el lugar del destino y calcular ruta
+    LaunchedEffect(placeId) {
+        placeId?.let { id ->
+            val placeFields = listOf(Place.Field.LAT_LNG, Place.Field.NAME)
+            val request = FetchPlaceRequest.newInstance(id, placeFields)
+
+            placesClient.fetchPlace(request)
+                .addOnSuccessListener { response ->
+                    val place = response.place
+                    place.latLng?.let { latLng ->
+                        destinationLocation = latLng
+                        destinationName = place.name ?: placeName
+
+                        // Calcular ruta
+                        scope.launch {
+                            try {
+                                val route = getDirections(currentLocation, latLng)
+                                routePoints = route
+
+                                // Ajustar cámara para mostrar toda la ruta
+                                if (route.isNotEmpty()) {
+                                    cameraPositionState.position = CameraPosition.Builder()
+                                        .target(
+                                            LatLng(
+                                                (currentLocation.latitude + latLng.latitude) / 2,
+                                                (currentLocation.longitude + latLng.longitude) / 2
+                                            )
+                                        )
+                                        .zoom(12f)
+                                        .build()
+                                }
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                            }
+                        }
+                    }
+                }
+                .addOnFailureListener { exception ->
+                    exception.printStackTrace()
+                }
         }
     }
 
@@ -112,12 +177,34 @@ fun Home(navController: NavController) {
                 myLocationButtonEnabled = false
             )
         ) {
-            // Marcador en la ubicación actual
+            // Marcador origen
             Marker(
                 state = MarkerState(position = currentLocation),
                 title = stringResource(id = R.string.tu_ubicacion),
                 snippet = stringResource(id = R.string.estas_aqui)
             )
+
+            // Marcador destino con click para ir a opciones de ruta
+            destinationLocation?.let { destination ->
+                Marker(
+                    state = MarkerState(position = destination),
+                    title = destinationName ?: stringResource(id = R.string.destino),
+                    snippet = "Toca para ver opciones de ruta",
+                    onClick = {
+                        navController.navigate("ruta_opciones/${placeId}/${placeName}")
+                        true
+                    }
+                )
+            }
+
+            // Línea de ruta
+            if (routePoints.isNotEmpty()) {
+                Polyline(
+                    points = routePoints,
+                    color = androidx.compose.ui.graphics.Color(0xFF4285F4),
+                    width = 10f
+                )
+            }
         }
 
         // Contenido sobre el mapa
@@ -225,6 +312,32 @@ fun Home(navController: NavController) {
                         .clip(RoundedCornerShape(15.dp))
                 )
             }
+        }
+    }
+}
+
+// Función para obtener direcciones desde Google Directions API
+suspend fun getDirections(origin: LatLng, destination: LatLng): List<LatLng> {
+    return withContext(Dispatchers.IO) {
+        try {
+            val apiKey = BuildConfig.MAPS_API_KEY
+            val url = "https://maps.googleapis.com/maps/api/directions/json?" +
+                    "origin=${origin.latitude},${origin.longitude}" +
+                    "&destination=${destination.latitude},${destination.longitude}" +
+                    "&key=$apiKey"
+
+            val response = URL(url).readText()
+
+            // Parsear la respuesta JSON y extraer el polyline
+            val polylinePattern = """"points"\s*:\s*"([^"]+)"""".toRegex()
+            val match = polylinePattern.find(response)
+
+            match?.groupValues?.get(1)?.let { encodedPolyline ->
+                PolyUtil.decode(encodedPolyline)
+            } ?: emptyList()
+        } catch (e: Exception) {
+            e.printStackTrace()
+            emptyList()
         }
     }
 }

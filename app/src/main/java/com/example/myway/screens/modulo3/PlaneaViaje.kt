@@ -1,35 +1,73 @@
 package com.example.myway.screens.modulo3
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.example.myway.BuildConfig
 import com.example.myway.R
 import com.example.myway.screens.CustomButton
 import com.example.myway.screens.CustomTextField
 import com.example.myway.ui.theme.*
+import com.google.android.libraries.places.api.Places
+import com.google.android.libraries.places.api.model.AutocompletePrediction
+import com.google.android.libraries.places.api.model.AutocompleteSessionToken
+import com.google.android.libraries.places.api.net.FindAutocompletePredictionsRequest
+import com.google.android.libraries.places.api.net.PlacesClient
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @Composable
 fun PlaneaViaje(navController: NavController) {
+    val context = LocalContext.current
     var searchText by remember { mutableStateOf("") }
+    var predictions by remember { mutableStateOf<List<AutocompletePrediction>>(emptyList()) }
+    var showPredictions by remember { mutableStateOf(false) }
 
-    Box(
-        modifier = Modifier.fillMaxSize()
-    ) {
+    val scope = rememberCoroutineScope()
+
+    // Inicializar Places API con BuildConfig
+    val placesClient = remember {
+        if (!Places.isInitialized()) {
+            Places.initialize(context, BuildConfig.MAPS_API_KEY)
+        }
+        Places.createClient(context)
+    }
+
+    // Buscar predicciones cuando el texto cambia
+    LaunchedEffect(searchText) {
+        if (searchText.length > 2) {
+            delay(500) // Debounce
+            searchPlaces(placesClient, searchText) { results ->
+                predictions = results
+                showPredictions = results.isNotEmpty()
+            }
+        } else {
+            predictions = emptyList()
+            showPredictions = false
+        }
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
         // Fondo
         Image(
             painter = painterResource(id = R.drawable.fondo2),
@@ -38,23 +76,20 @@ fun PlaneaViaje(navController: NavController) {
             contentScale = ContentScale.Crop
         )
 
-        // Contenido desplazable
+        // Contenido
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 20.dp, vertical = 16.dp)
-                .verticalScroll(rememberScrollState()),
+                .padding(horizontal = 20.dp, vertical = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-
-            // Encabezado con flecha, título y perfil
+            // Encabezado
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 8.dp, bottom = 16.dp),
                 contentAlignment = Alignment.Center
             ) {
-                // Flecha atrás
                 Image(
                     painter = painterResource(id = R.drawable.flecha),
                     contentDescription = stringResource(R.string.volver),
@@ -64,7 +99,6 @@ fun PlaneaViaje(navController: NavController) {
                         .clickable { navController.popBackStack() }
                 )
 
-                // Título
                 Text(
                     text = stringResource(R.string.planea_viaje),
                     color = Blanco,
@@ -73,7 +107,6 @@ fun PlaneaViaje(navController: NavController) {
                     fontSize = 22.sp
                 )
 
-                // Icono de perfil
                 Image(
                     painter = painterResource(id = R.drawable.icono_perfil),
                     contentDescription = stringResource(R.string.perfil),
@@ -84,7 +117,6 @@ fun PlaneaViaje(navController: NavController) {
                 )
             }
 
-            // Texto informativo
             Text(
                 text = stringResource(R.string.activar_permisos),
                 color = Blanco,
@@ -119,91 +151,169 @@ fun PlaneaViaje(navController: NavController) {
                     .height(50.dp)
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Fila de botones de categorías
-            Column(
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    CustomButton(
-                        text = stringResource(R.string.guardados),
-                        color = Blanco,
-                        modifier = Modifier
-                            .weight(1f)
-                            .clickable {
-                                navController.navigate("guardados")
-                            }
-                    ) { /* acción */ }
-
-                    CustomButton(
-                        text = stringResource(R.string.alimentos),
-                        color = Blanco,
-                        modifier = Modifier.weight(1f)
-                    ) { /* acción */ }
-                }
-
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    CustomButton(
-                        text = stringResource(R.string.combustible),
-                        color = Blanco,
-                        modifier = Modifier.weight(1f)
-                    ) { /* acción */ }
-
-                    CustomButton(
-                        text = stringResource(R.string.supermercados),
-                        color = Blanco,
-                        modifier = Modifier.weight(1f)
-                    ) { /* acción */ }
-                }
-
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    CustomButton(
-                        text = stringResource(R.string.hoteles),
-                        color = Blanco,
-                        modifier = Modifier.weight(1f)
-                    ) { /* acción */ }
-
-                    CustomButton(
-                        text = stringResource(R.string.parques),
-                        color = Blanco,
-                        modifier = Modifier.weight(1f)
-                    ) { /* acción */ }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Sección "Recientes"
-            Text(
-                text = stringResource(R.string.recientes),
-                color = Blanco,
-                fontFamily = Nunito,
-                fontWeight = FontWeight.ExtraBold,
-                fontSize = 18.sp,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 12.dp)
-            )
-
-            val recientes = listOf(
-                "Calle 9 Bis #19A-60",
-                "Carrera 16 #187-61",
-                "Calle 7c Bis #72A-20",
-                "Calle 60, Teusaquillo"
-            )
-
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                recientes.forEach { lugar ->
-                    CustomButton(
-                        text = lugar,
-                        color = Blanco,
+            // Resultados de búsqueda
+            if (showPredictions && predictions.isNotEmpty()) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 300.dp)
+                        .padding(top = 8.dp),
+                    colors = CardDefaults.cardColors(containerColor = Blanco),
+                    elevation = CardDefaults.cardElevation(8.dp)
+                ) {
+                    LazyColumn(
                         modifier = Modifier.fillMaxWidth()
-                    ) { /* acción */ }
+                    ) {
+                        items(predictions) { prediction ->
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        // Navegar al mapa con la ubicación seleccionada
+                                        val placeId = prediction.placeId
+                                        val placeName = prediction
+                                            .getPrimaryText(null)
+                                            .toString()
+                                        navController.navigate("home/${placeId}/${placeName}")
+                                        showPredictions = false
+                                    }
+                                    .padding(16.dp)
+                            ) {
+                                Text(
+                                    text = prediction
+                                        .getPrimaryText(null)
+                                        .toString(),
+                                    fontFamily = Nunito,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 16.sp,
+                                    color = Color.Black
+                                )
+                                Text(
+                                    text = prediction
+                                        .getSecondaryText(null)
+                                        .toString(),
+                                    fontFamily = Nunito,
+                                    fontSize = 14.sp,
+                                    color = Color.Gray
+                                )
+                            }
+                        }
+                    }
+                }
+            } else {
+                // Contenido original cuando no hay búsqueda
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                ) {
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    // Botones de categorías
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            CustomButton(
+                                text = stringResource(R.string.guardados),
+                                color = Blanco,
+                                modifier = Modifier.weight(1f),
+                                onClick = { navController.navigate("guardados") }
+                            )
+
+                            CustomButton(
+                                text = stringResource(R.string.alimentos),
+                                color = Blanco,
+                                modifier = Modifier.weight(1f),
+                                onClick = { }
+                            )
+                        }
+
+                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            CustomButton(
+                                text = stringResource(R.string.combustible),
+                                color = Blanco,
+                                modifier = Modifier.weight(1f),
+                                onClick = { }
+                            )
+
+                            CustomButton(
+                                text = stringResource(R.string.supermercados),
+                                color = Blanco,
+                                modifier = Modifier.weight(1f),
+                                onClick = { }
+                            )
+                        }
+
+                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            CustomButton(
+                                text = stringResource(R.string.hoteles),
+                                color = Blanco,
+                                modifier = Modifier.weight(1f),
+                                onClick = { }
+                            )
+
+                            CustomButton(
+                                text = stringResource(R.string.parques),
+                                color = Blanco,
+                                modifier = Modifier.weight(1f),
+                                onClick = { }
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    // Sección "Recientes"
+                    Text(
+                        text = stringResource(R.string.recientes),
+                        color = Blanco,
+                        fontFamily = Nunito,
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 18.sp,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 12.dp)
+                    )
+
+                    val recientes = listOf(
+                        "Calle 9 Bis #19A-60",
+                        "Carrera 16 #187-61",
+                        "Calle 7c Bis #72A-20",
+                        "Calle 60, Teusaquillo"
+                    )
+
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        recientes.forEach { lugar ->
+                            CustomButton(
+                                text = lugar,
+                                color = Blanco,
+                                modifier = Modifier.fillMaxWidth(),
+                                onClick = { searchText = lugar }
+                            )
+                        }
+                    }
                 }
             }
-
-            Spacer(modifier = Modifier.height(50.dp))
         }
     }
+}
+
+private fun searchPlaces(
+    placesClient: PlacesClient,
+    query: String,
+    onResult: (List<AutocompletePrediction>) -> Unit
+) {
+    val token = AutocompleteSessionToken.newInstance()
+    val request = FindAutocompletePredictionsRequest.builder()
+        .setSessionToken(token)
+        .setQuery(query)
+        .build()
+
+    placesClient.findAutocompletePredictions(request)
+        .addOnSuccessListener { response ->
+            onResult(response.autocompletePredictions)
+        }
+        .addOnFailureListener { exception ->
+            exception.printStackTrace()
+            onResult(emptyList())
+        }
 }

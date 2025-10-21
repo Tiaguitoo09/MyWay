@@ -57,10 +57,16 @@ dependencies {
     // 🔐 Google Sign-In
     implementation("com.google.android.gms:play-services-auth:21.2.0")
 
-    // 🗺️ Google Maps
-    implementation("com.google.maps.android:maps-compose:2.15.0")
+    // 🗺️ Google Maps & Location
+    implementation("com.google.maps.android:maps-compose:4.3.3")
     implementation("com.google.android.gms:play-services-maps:18.2.0")
-    implementation("com.google.android.gms:play-services-location:21.0.1")
+    implementation("com.google.android.gms:play-services-location:21.3.0")
+
+    // 📍 Places API (para búsqueda de lugares)
+    implementation("com.google.android.libraries.places:places:3.5.0")
+
+    // 🛣️ Maps Utils (para decodificar polylines de rutas)
+    implementation("com.google.maps.android:android-maps-utils:3.8.2")
 
     // 🧩 Jetpack Compose
     implementation(libs.androidx.core.ktx)
@@ -73,10 +79,16 @@ dependencies {
     implementation(libs.androidx.compose.foundation)
     implementation(libs.androidx.material3)
     implementation(libs.sceneform.base)
-    implementation("androidx.navigation:navigation-compose:2.7.4")
+
+    // 🧭 Navigation
+    implementation("androidx.navigation:navigation-compose:2.8.4")
 
     // 🖼️ Coil (carga de imágenes)
     implementation("io.coil-kt:coil-compose:2.5.0")
+
+    // ⚡ Coroutines (para llamadas asíncronas)
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.8.0")
 
     // 🧪 Tests
     testImplementation(libs.junit)
