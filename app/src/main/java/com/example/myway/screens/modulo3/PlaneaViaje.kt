@@ -219,7 +219,8 @@ fun PlaneaViaje(navController: NavController) {
                                 textColor = Negro,
                                 fontWeight = FontWeight.Normal,
                                 modifier = Modifier.weight(1f),
-                                onClick = { navController.navigate("guardados") }
+                                onClick = { navController.navigate("guardados") },
+                                icon = painterResource(id = R.drawable.icono_guardados)
                             )
 
                             CustomButton(
@@ -228,7 +229,8 @@ fun PlaneaViaje(navController: NavController) {
                                 textColor = Negro,
                                 fontWeight = FontWeight.Normal,
                                 modifier = Modifier.weight(1f),
-                                onClick = { }
+                                onClick = { },
+                                icon = painterResource(id = R.drawable.icono_alimentos)
                             )
                         }
 
@@ -239,7 +241,8 @@ fun PlaneaViaje(navController: NavController) {
                                 textColor = Negro,
                                 fontWeight = FontWeight.Normal,
                                 modifier = Modifier.weight(1f),
-                                onClick = { }
+                                onClick = { },
+                                icon = painterResource(id = R.drawable.icono_gasolineria)
                             )
 
                             CustomButton(
@@ -248,7 +251,8 @@ fun PlaneaViaje(navController: NavController) {
                                 textColor = Negro,
                                 fontWeight = FontWeight.Normal,
                                 modifier = Modifier.weight(1f),
-                                onClick = { }
+                                onClick = { },
+                                icon = painterResource(id = R.drawable.icono_supermercados)
                             )
                         }
 
@@ -259,7 +263,8 @@ fun PlaneaViaje(navController: NavController) {
                                 textColor = Negro,
                                 fontWeight = FontWeight.Normal,
                                 modifier = Modifier.weight(1f),
-                                onClick = { }
+                                onClick = { },
+                                icon = painterResource(id = R.drawable.icono_hoteles)
                             )
 
                             CustomButton(
@@ -268,14 +273,15 @@ fun PlaneaViaje(navController: NavController) {
                                 textColor = Negro,
                                 fontWeight = FontWeight.Normal,
                                 modifier = Modifier.weight(1f),
-                                onClick = { }
+                                onClick = { },
+                                icon = painterResource(id = R.drawable.icono_parques)
                             )
                         }
                     }
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // Sección "Recientes"
+// Sección "Recientes"
                     Text(
                         text = stringResource(R.string.recientes),
                         color = Blanco,
@@ -302,12 +308,12 @@ fun PlaneaViaje(navController: NavController) {
                                 textColor = Negro,
                                 fontWeight = FontWeight.Normal,
                                 modifier = Modifier.fillMaxWidth(),
-                                onClick = { searchText = lugar }
+                                onClick = { searchText = lugar },
+                                icon = painterResource(id = R.drawable.icono_reloj)
                             )
                         }
                     }
                 }
-            }
         }
     }
 }
@@ -331,4 +337,4 @@ private fun searchPlaces(
             exception.printStackTrace()
             onResult(emptyList())
         }
-}
+}}
