@@ -15,6 +15,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
@@ -71,7 +72,9 @@ fun OlvidoContraseña(
                 fontFamily = Nunito,
                 fontWeight = FontWeight.Bold,
                 fontSize = 26.sp,
-                color = Blanco
+                color = Blanco,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
             )
 
             Spacer(modifier = Modifier.height(40.dp))
@@ -86,7 +89,8 @@ fun OlvidoContraseña(
                     fontFamily = Nunito,
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 16.sp,
-                    color = Blanco
+                    color = Blanco,
+                    textAlign = TextAlign.Center
                 )
 
                 // Campo de correo
