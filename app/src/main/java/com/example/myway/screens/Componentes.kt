@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.myway.ui.theme.Azul1
 import com.example.myway.ui.theme.Blanco
+import com.example.myway.ui.theme.Negro
 import com.example.myway.ui.theme.Nunito
 import com.example.myway.ui.theme.Azul3
 import androidx.compose.ui.text.font.FontFamily
@@ -46,43 +47,32 @@ import com.example.myway.ui.theme.Azul2
 fun CustomButton(
     text: String,
     color: Color,
+    textColor: Color = Blanco,
     modifier: Modifier = Modifier,
     fontSize: TextUnit = 16.sp,
-    fontWeight: FontWeight = FontWeight.Normal, // ← NUEVO parámetro
+    fontWeight: FontWeight = FontWeight.Normal,
     onClick: () -> Unit
 ) {
     Box(
         modifier = modifier
             .width(320.dp)
             .height(50.dp)
-            .border(1.8.dp, Azul1, RoundedCornerShape(12.dp)) // mismo borde que el TextField
+            .border(1.8.dp, Azul1, RoundedCornerShape(12.dp))
             .clip(RoundedCornerShape(12.dp))
             .background(color)
             .clickable { onClick() },
         contentAlignment = Alignment.Center
     ) {
-        // Texto con borde azul y relleno blanco
-        Box(contentAlignment = Alignment.Center) {
-            Text(
-                text = text,
-                fontFamily = Nunito,
-                fontWeight = fontWeight,
-                fontSize = fontSize,
-                color = Azul1,
-                style = TextStyle(
-                    drawStyle = Stroke(width = 6f)
-                )
-            )
-            Text(
-                text = text,
-                fontFamily = Nunito,
-                fontWeight = fontWeight,
-                fontSize = fontSize,
-                color = Blanco
-            )
-        }
+        Text(
+            text = text,
+            fontFamily = Nunito,
+            fontWeight = fontWeight,
+            fontSize = fontSize,
+            color = textColor
+        )
     }
 }
+
 
 
 
@@ -96,6 +86,7 @@ fun CustomTextField(
     color: Color,
     isPassword: Boolean = false,
     textColor: Color = Color.White,
+    fontWeight: FontWeight = FontWeight.Normal,
     onTextChange: (String) -> Unit,
     text: String,
     showBorder: Boolean = true, // ← parámetro que ya tenías

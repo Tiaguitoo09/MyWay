@@ -80,7 +80,7 @@ fun Guardados(navController: NavController) {
                         .clickable { navController.navigate("perfil_ajustes") }
                 )
             }
-
+            Spacer(modifier = Modifier.height(100.dp))
             // Subtítulo
             Text(
                 text = stringResource(R.string.tus_listas),
@@ -98,9 +98,10 @@ fun Guardados(navController: NavController) {
                 placeholder = stringResource(R.string.buscar),
                 color = Blanco,
                 textColor = Color.Black,
+                fontWeight = FontWeight.Normal,
                 onTextChange = { searchText = it },
                 text = searchText,
-                showBorder = true,
+                showBorder = false,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(50.dp)
@@ -113,26 +114,38 @@ fun Guardados(navController: NavController) {
                 CustomButton(
                     text = stringResource(R.string.sin_plan),
                     color = Blanco,
-                    modifier = Modifier.fillMaxWidth()
-                ) { /* acción */ }
+                    textColor = Negro,
+                    fontWeight = FontWeight.Normal,
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = { /* acción */ }
+                )
 
                 CustomButton(
                     text = stringResource(R.string.favoritos),
                     color = Blanco,
-                    modifier = Modifier.fillMaxWidth()
-                ) { /* acción */ }
+                    textColor = Negro,
+                    fontWeight = FontWeight.Normal,
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = { /* acción */ }
+                )
 
                 CustomButton(
                     text = stringResource(R.string.planes_de_viaje),
                     color = Blanco,
-                    modifier = Modifier.fillMaxWidth()
-                ) { /* acción */ }
+                    textColor = Negro,
+                    fontWeight = FontWeight.Normal,
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = { /* acción */ }
+                )
 
                 CustomButton(
                     text = stringResource(R.string.viajes_guardados),
                     color = Blanco,
-                    modifier = Modifier.fillMaxWidth()
-                ) { /* acción */ }
+                    textColor = Negro,
+                    fontWeight = FontWeight.Normal,
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = { /* acción */ }
+                )
             }
 
             Spacer(modifier = Modifier.height(40.dp))
@@ -142,7 +155,7 @@ fun Guardados(navController: NavController) {
                 painter = painterResource(id = R.drawable.brujula),
                 contentDescription = stringResource(R.string.icono_brujula),
                 modifier = Modifier
-                    .size(100.dp)
+                    .size(200.dp)
                     .padding(bottom = 20.dp)
             )
         }

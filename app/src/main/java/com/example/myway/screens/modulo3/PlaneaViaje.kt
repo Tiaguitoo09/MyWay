@@ -143,9 +143,10 @@ fun PlaneaViaje(navController: NavController) {
                 placeholder = stringResource(R.string.buscar),
                 color = Blanco,
                 textColor = Color.Black,
+                fontWeight = FontWeight.Normal,
                 onTextChange = { searchText = it },
                 text = searchText,
-                showBorder = true,
+                showBorder = false,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(50.dp)
@@ -215,6 +216,8 @@ fun PlaneaViaje(navController: NavController) {
                             CustomButton(
                                 text = stringResource(R.string.guardados),
                                 color = Blanco,
+                                textColor = Negro,
+                                fontWeight = FontWeight.Normal,
                                 modifier = Modifier.weight(1f),
                                 onClick = { navController.navigate("guardados") }
                             )
@@ -222,6 +225,8 @@ fun PlaneaViaje(navController: NavController) {
                             CustomButton(
                                 text = stringResource(R.string.alimentos),
                                 color = Blanco,
+                                textColor = Negro,
+                                fontWeight = FontWeight.Normal,
                                 modifier = Modifier.weight(1f),
                                 onClick = { }
                             )
@@ -231,6 +236,8 @@ fun PlaneaViaje(navController: NavController) {
                             CustomButton(
                                 text = stringResource(R.string.combustible),
                                 color = Blanco,
+                                textColor = Negro,
+                                fontWeight = FontWeight.Normal,
                                 modifier = Modifier.weight(1f),
                                 onClick = { }
                             )
@@ -238,6 +245,8 @@ fun PlaneaViaje(navController: NavController) {
                             CustomButton(
                                 text = stringResource(R.string.supermercados),
                                 color = Blanco,
+                                textColor = Negro,
+                                fontWeight = FontWeight.Normal,
                                 modifier = Modifier.weight(1f),
                                 onClick = { }
                             )
@@ -247,6 +256,8 @@ fun PlaneaViaje(navController: NavController) {
                             CustomButton(
                                 text = stringResource(R.string.hoteles),
                                 color = Blanco,
+                                textColor = Negro,
+                                fontWeight = FontWeight.Normal,
                                 modifier = Modifier.weight(1f),
                                 onClick = { }
                             )
@@ -254,6 +265,8 @@ fun PlaneaViaje(navController: NavController) {
                             CustomButton(
                                 text = stringResource(R.string.parques),
                                 color = Blanco,
+                                textColor = Negro,
+                                fontWeight = FontWeight.Normal,
                                 modifier = Modifier.weight(1f),
                                 onClick = { }
                             )
@@ -286,6 +299,8 @@ fun PlaneaViaje(navController: NavController) {
                             CustomButton(
                                 text = lugar,
                                 color = Blanco,
+                                textColor = Negro,
+                                fontWeight = FontWeight.Normal,
                                 modifier = Modifier.fillMaxWidth(),
                                 onClick = { searchText = lugar }
                             )
