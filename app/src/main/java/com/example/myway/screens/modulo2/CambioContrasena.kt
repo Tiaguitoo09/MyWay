@@ -200,10 +200,8 @@ fun CambioContrasena(navController: NavController) {
                                     // Contraseña actual correcta, actualizar
                                     user.updatePassword(nueva)
                                         .addOnSuccessListener {
-                                            // También actualizar en Firestore (opcional)
-                                            val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
-                                            db.collection("usuarios").document(user.uid)
-                                                .update("contrasena", nueva)
+                                            // ✅ NO actualices la contraseña en Firestore
+                                            // Firebase Auth ya la maneja de forma segura
 
                                             Toast.makeText(
                                                 context,
@@ -221,6 +219,13 @@ fun CambioContrasena(navController: NavController) {
                                                 Toast.LENGTH_SHORT
                                             ).show()
                                         }
+                                }
+                                .addOnFailureListener {
+                                    Toast.makeText(
+                                        context,
+                                        context.getString(R.string.contrasena_actual_incorrecta),
+                                        Toast.LENGTH_SHORT
+                                    ).show()
                                 }
                                 .addOnFailureListener {
                                     Toast.makeText(

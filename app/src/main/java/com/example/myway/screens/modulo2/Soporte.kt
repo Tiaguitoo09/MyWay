@@ -36,7 +36,7 @@ fun Soporte(navController: NavController) {
         // Fondo
         Image(
             painter = painterResource(id = R.drawable.fondo2),
-            contentDescription = stringResource(id = R.string.fondo),
+            contentDescription = stringResource(id = R.string.fondo_app),
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop
         )
