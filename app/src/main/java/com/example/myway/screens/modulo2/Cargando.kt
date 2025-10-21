@@ -48,7 +48,7 @@ fun Cargando(navController: NavController) {
                 Log.d("Cargando", "👤 Usuario autenticado: $userId")
 
                 if (nombreGoogle != null) {
-                    // 🟢 Login con Google → separar nombre y apellido
+                    //  Login con Google → separar nombre y apellido
                     val partesNombre = nombreGoogle.split(" ")
 
                     UsuarioTemporal.nombre = partesNombre.firstOrNull() ?: "Usuario"
@@ -83,7 +83,7 @@ fun Cargando(navController: NavController) {
                     val querySnapshot = db.collection("usuarios")
                         .whereEqualTo("correo", correo)
                         .get()
-                        .await() // ✅ ESPERA A QUE TERMINE
+                        .await() // ESPERA A QUE TERMINE
 
                     if (!querySnapshot.isEmpty) {
                         val doc = querySnapshot.documents[0]

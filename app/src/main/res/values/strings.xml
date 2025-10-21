@@ -5,7 +5,7 @@
     <string name="fondo_app">Fondo de la app</string>
     <string name="volver">Volver</string>
     <string name="perfil">Perfil</string>
-    <string name="fondo">Fondo</string>
+
 
     <!-- Inicio Pantalla -->
     <string name="icono_brujula">Icono Brújula</string>
@@ -139,8 +139,8 @@
     <string name="galeria">Galería</string>
     <string name="camara">Cámara</string>
     <string name="cancelar">Cancelar</string>
-    <string name="foto_actualizada">✅ Foto actualizada</string>
-    <string name="error_foto">❌ Error: %1$s</string>
+    <string name="foto_actualizada">Foto actualizada</string>
+    <string name="error_foto">Error: %1$s</string>
     <string name="no_usuario_autenticado">No hay usuario autenticado</string>
     <string name="no_leer_archivo">No se puede leer el archivo</string>
     <string name="archivo_muy_grande">Archivo muy grande (máx 10MB)</string>

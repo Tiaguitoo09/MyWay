@@ -81,7 +81,7 @@ fun CerrarSesion(navController: NavController) {
                     onClick = {
                         auth.signOut() // Cierra la sesión de Firebase
 
-                        // ✅ Limpia TODOS los datos temporales (esto faltaba)
+                        // Limpia TODOS los datos temporales
                         UsuarioTemporal.correo = null
                         UsuarioTemporal.nombre = null
                         UsuarioTemporal.fechaNacimiento = null
@@ -89,7 +89,7 @@ fun CerrarSesion(navController: NavController) {
                         UsuarioTemporal.fotoUrl = null
                         UsuarioTemporal.fotoLocalUri = null
 
-                        // ✅ Limpia la imagen guardada en SharedPreferences
+                        // Limpia la imagen guardada en SharedPreferences
                         ImageStorage.eliminarImagen(context)
 
                         Toast.makeText(

@@ -74,7 +74,7 @@ fun PerfilAjustes(navController: NavController) {
                         context.getString(R.string.error_foto, error),
                         Toast.LENGTH_LONG
                     ).show()
-                    Log.e("PerfilAjustes", "❌ Error: $error")
+                    Log.e("PerfilAjustes", "Error: $error")
                 }
             )
         }
@@ -85,7 +85,7 @@ fun PerfilAjustes(navController: NavController) {
         contract = ActivityResultContracts.TakePicturePreview()
     ) { bitmap ->
         bitmap?.let {
-            Log.d("PerfilAjustes", "📸 Foto capturada")
+            Log.d("PerfilAjustes", "Foto capturada")
             isUploading = true
             uploadError = null
 
@@ -109,7 +109,7 @@ fun PerfilAjustes(navController: NavController) {
                         context.getString(R.string.error_foto, error),
                         Toast.LENGTH_LONG
                     ).show()
-                    Log.e("PerfilAjustes", "❌ Error: $error")
+                    Log.e("PerfilAjustes", "Error: $error")
                 }
             )
         }
@@ -118,7 +118,7 @@ fun PerfilAjustes(navController: NavController) {
     Box(modifier = Modifier.fillMaxSize()) {
         Image(
             painter = painterResource(id = R.drawable.fondo2),
-            contentDescription = stringResource(id = R.string.fondo),
+            contentDescription = stringResource(id = R.string.fondo_app),
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop
         )
@@ -164,7 +164,7 @@ fun PerfilAjustes(navController: NavController) {
                         error = painterResource(id = R.drawable.icono_perfil2),
                         placeholder = painterResource(id = R.drawable.icono_perfil2),
                         onError = { error ->
-                            Log.e("AsyncImage", "❌ Error al cargar: ${error.result.throwable.message}")
+                            Log.e("AsyncImage", "Error al cargar: ${error.result.throwable.message}")
                         }
                     )
                 } else {
@@ -335,33 +335,33 @@ fun subirFotoAFirebase(
     val user = FirebaseAuth.getInstance().currentUser
 
     if (user == null) {
-        Log.e("Firebase", "❌ No hay usuario autenticado")
+        Log.e("Firebase", "No hay usuario autenticado")
         onError(context.getString(R.string.no_usuario_autenticado))
         return
     }
 
     val userId = user.uid
-    Log.d("Firebase", "👤 Usuario: $userId")
-    Log.d("Firebase", "📤 URI a subir: $uri")
+    Log.d("Firebase", "Usuario: $userId")
+    Log.d("Firebase", "URI a subir: $uri")
 
     // Verificar que el archivo existe y es legible
     try {
         val inputStream = context.contentResolver.openInputStream(uri)
         if (inputStream == null) {
-            Log.e("Firebase", "❌ No se puede leer el archivo")
+            Log.e("Firebase", "No se puede leer el archivo")
             onError(context.getString(R.string.no_leer_archivo))
             return
         }
         val size = inputStream.available()
         inputStream.close()
-        Log.d("Firebase", "📊 Tamaño del archivo: ${size / 1024} KB")
+        Log.d("Firebase", "Tamaño del archivo: ${size / 1024} KB")
 
         if (size > 10 * 1024 * 1024) { // 10MB
             onError(context.getString(R.string.archivo_muy_grande))
             return
         }
     } catch (e: Exception) {
-        Log.e("Firebase", "❌ Error al leer archivo: ${e.message}")
+        Log.e("Firebase", "Error al leer archivo: ${e.message}")
         onError(context.getString(R.string.error_leer_archivo, e.message))
         return
     }
@@ -369,24 +369,24 @@ fun subirFotoAFirebase(
     val storageRef = FirebaseStorage.getInstance().reference
     val imageRef = storageRef.child("fotos_usuarios/$userId")
 
-    Log.d("Firebase", "📤 Iniciando subida...")
+    Log.d("Firebase", "Iniciando subida...")
 
     val uploadTask = imageRef.putFile(uri)
 
     // Agregar listener de progreso
     uploadTask.addOnProgressListener { taskSnapshot ->
         val progress = (100.0 * taskSnapshot.bytesTransferred / taskSnapshot.totalByteCount).toInt()
-        Log.d("Firebase", "📊 Progreso: $progress%")
+        Log.d("Firebase", "Progreso: $progress%")
     }
 
     uploadTask
         .addOnSuccessListener {
-            Log.d("Firebase", "✅ Imagen subida a Storage")
+            Log.d("Firebase", "Imagen subida a Storage")
 
             imageRef.downloadUrl
                 .addOnSuccessListener { url ->
                     val fotoUrl = url.toString()
-                    Log.d("Firebase", "✅ URL obtenida: $fotoUrl")
+                    Log.d("Firebase", "URL obtenida: $fotoUrl")
 
                     UsuarioTemporal.fotoUrl = fotoUrl
 
@@ -394,22 +394,22 @@ fun subirFotoAFirebase(
                     db.collection("usuarios").document(userId)
                         .update("fotoPerfil", fotoUrl)
                         .addOnSuccessListener {
-                            Log.d("Firebase", "✅ Guardado en Firestore")
+                            Log.d("Firebase", "Guardado en Firestore")
                             onSuccess(fotoUrl)
                         }
                         .addOnFailureListener { e ->
-                            Log.e("Firebase", "❌ Error Firestore: ${e.message}")
-                            onSuccess(fotoUrl) // Aún así mostrar la foto
+                            Log.e("Firebase", "Error Firestore: ${e.message}")
+                            onSuccess(fotoUrl)
                         }
                 }
                 .addOnFailureListener { e ->
-                    Log.e("Firebase", "❌ Error al obtener URL: ${e.message}")
+                    Log.e("Firebase", "Error al obtener URL: ${e.message}")
                     onError(context.getString(R.string.error_obtener_url, e.message))
                 }
         }
         .addOnFailureListener { e ->
-            Log.e("Firebase", "❌ Error al subir: ${e.message}")
-            Log.e("Firebase", "❌ Stack trace: ", e)
+            Log.e("Firebase", "Error al subir: ${e.message}")
+            Log.e("Firebase", "Stack trace: ", e)
             onError(context.getString(R.string.error_subir, e.message))
         }
 }

@@ -37,7 +37,7 @@ fun VerPerfil(navController: NavController) {
         // Fondo
         Image(
             painter = painterResource(id = R.drawable.fondo2),
-            contentDescription = stringResource(id = R.string.fondo),
+            contentDescription = stringResource(id = R.string.fondo_app),
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop
         )
@@ -81,7 +81,7 @@ fun VerPerfil(navController: NavController) {
                         error = painterResource(id = R.drawable.icono_perfil2),
                         placeholder = painterResource(id = R.drawable.icono_perfil2),
                         onError = { error ->
-                            Log.e("AsyncImage", "❌ Error al cargar: ${error.result.throwable.message}")
+                            Log.e("AsyncImage", "Error al cargar: ${error.result.throwable.message}")
                         }
                     )
                 } else {

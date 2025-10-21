@@ -48,7 +48,7 @@ fun SilenciarNotificaciones(navController: NavController) {
             contentScale = ContentScale.Crop
         )
 
-        // 🔹 Flecha volver (posición fija arriba a la izquierda) — ahora con zIndex alto
+        // Flecha volver
         Image(
             painter = painterResource(id = R.drawable.flecha),
             contentDescription = stringResource(id = R.string.volver),
@@ -56,7 +56,7 @@ fun SilenciarNotificaciones(navController: NavController) {
                 .align(Alignment.TopStart)
                 .padding(16.dp)
                 .size(40.dp)
-                .zIndex(3f) // <- garantiza que esté encima de overlays
+                .zIndex(3f)
                 .clickable { navController.popBackStack() }
         )
 
@@ -134,7 +134,7 @@ fun SilenciarNotificaciones(navController: NavController) {
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // Texto "Recuerda" subrayado
+                    // Texto Recuerda
                     Text(
                         text = buildAnnotatedString {
                             withStyle(
@@ -198,7 +198,7 @@ fun SilenciarNotificaciones(navController: NavController) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .zIndex(2f) // <- overlay por debajo de la flecha
+                    .zIndex(2f)
                     .background(Azul3.copy(alpha = 0.95f)),
                 contentAlignment = Alignment.Center
             ) {

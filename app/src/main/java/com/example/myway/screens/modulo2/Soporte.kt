@@ -33,7 +33,7 @@ fun Soporte(navController: NavController) {
 
     Box(modifier = Modifier.fillMaxSize()) {
 
-        // Fondo (dibuja primero)
+        // Fondo
         Image(
             painter = painterResource(id = R.drawable.fondo2),
             contentDescription = stringResource(id = R.string.fondo),
@@ -41,7 +41,7 @@ fun Soporte(navController: NavController) {
             contentScale = ContentScale.Crop
         )
 
-        // Contenido scrollable (se dibuja antes que la flecha para que la flecha quede encima)
+        // Contenido scrollable
         Column(
             modifier = Modifier
                 .fillMaxSize()
