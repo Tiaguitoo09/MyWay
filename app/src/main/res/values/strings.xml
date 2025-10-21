@@ -75,6 +75,13 @@
     <string name="confirmacion">Confirmación</string>
     <string name="cambio_contrasena_exitoso">Cambio de contraseña\nexitoso</string>
 
+    <!-- Home -->
+    <string name="a_donde_vas">¿A dónde vas?</string>
+
+    <!-- Planea Viaje -->
+    <string name="permisos_localizacion">No olvides activar los permisos del Servicio de localización para poder guiarte en tu viaje.</string>
+    <string name="a_donde_vamos">¿A dónde vamos?</string>
+
     <!-- Mensajes de Toast -->
     <string name="toast_cuenta_creada">Cuenta creada con éxito</string>
     <string name="toast_error_login_google">Error al iniciar sesión</string>
@@ -88,8 +95,5 @@
     <string name="toast_error_guardar_usuario">Error al guardar usuario: %1$s</string>
     <string name="toast_inicio_sesion_google_exitoso">Inicio de sesión con Google exitoso</string>
     <string name="toast_error_iniciar_sesion_google">Error al iniciar sesión con Google</string>
-
-    <string name="a_donde_vas">¿A dónde vas?</string>
-
 
 </resources>

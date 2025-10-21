@@ -22,7 +22,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.myway.R
 import com.example.myway.screens.CustomButton
-import com.example.myway.ui.theme.Azul1
+import com.example.myway.ui.theme.Azul4
 import com.example.myway.ui.theme.Blanco
 import com.example.myway.ui.theme.Nunito
 
@@ -52,9 +52,9 @@ fun Home(navController: NavController) {
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(120.dp) // alto del header
+                    .height(90.dp) // alto del header
                     .clip(RoundedCornerShape(bottomStart = 40.dp, bottomEnd = 40.dp)),
-                color = Azul1,
+                color = Azul4,
                 shadowElevation = 8.dp
             ) {
                 Box(
@@ -74,7 +74,7 @@ fun Home(navController: NavController) {
                         modifier = Modifier
                             .align(Alignment.TopEnd)
                             .padding(end = 16.dp, top = 16.dp)
-                            .size(40.dp)
+                            .size(70.dp)
                             .clickable {
                                 navController.navigate("perfil_ajustes")
                             }
