@@ -1,15 +1,16 @@
 package com.example.myway.screens.modulo3
 
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -25,6 +26,8 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.myway.BuildConfig
 import com.example.myway.R
+import com.example.myway.data.models.RecentPlace
+import com.example.myway.data.repository.RecentPlacesRepository
 import com.example.myway.screens.CustomButton
 import com.example.myway.screens.CustomTextField
 import com.example.myway.ui.theme.*
@@ -39,13 +42,21 @@ import kotlinx.coroutines.launch
 @Composable
 fun PlaneaViaje(navController: NavController) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
+    // Repository
+    val recentPlacesRepository = remember { RecentPlacesRepository() }
+
+    // Estados
     var searchText by remember { mutableStateOf("") }
     var predictions by remember { mutableStateOf<List<AutocompletePrediction>>(emptyList()) }
     var showPredictions by remember { mutableStateOf(false) }
 
-    val scope = rememberCoroutineScope()
+    // Cargar recientes en tiempo real desde Firebase
+    val recentPlaces by recentPlacesRepository.getRecentPlacesFlow()
+        .collectAsState(initial = emptyList())
 
-    // Inicializar Places API con BuildConfig
+    // Inicializar Places API
     val placesClient = remember {
         if (!Places.isInitialized()) {
             Places.initialize(context, BuildConfig.MAPS_API_KEY)
@@ -56,7 +67,7 @@ fun PlaneaViaje(navController: NavController) {
     // Buscar predicciones cuando el texto cambia
     LaunchedEffect(searchText) {
         if (searchText.length > 2) {
-            delay(500) // Debounce
+            delay(500)
             searchPlaces(placesClient, searchText) { results ->
                 predictions = results
                 showPredictions = results.isNotEmpty()
@@ -76,7 +87,6 @@ fun PlaneaViaje(navController: NavController) {
             contentScale = ContentScale.Crop
         )
 
-        // Contenido
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -126,7 +136,6 @@ fun PlaneaViaje(navController: NavController) {
                 modifier = Modifier.padding(bottom = 24.dp)
             )
 
-            // Pregunta
             Text(
                 text = stringResource(R.string.a_donde_vamos),
                 color = Blanco,
@@ -162,37 +171,44 @@ fun PlaneaViaje(navController: NavController) {
                     colors = CardDefaults.cardColors(containerColor = Blanco),
                     elevation = CardDefaults.cardElevation(8.dp)
                 ) {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
+                    LazyColumn(modifier = Modifier.fillMaxWidth()) {
                         items(predictions) { prediction ->
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clickable {
-                                        // Navegar al mapa con la ubicación seleccionada
-                                        val placeId = prediction.placeId
-                                        val placeName = prediction
-                                            .getPrimaryText(null)
-                                            .toString()
-                                        navController.navigate("home/${placeId}/${placeName}")
+                                        // ✅ GUARDAR EN RECIENTES
+                                        scope.launch {
+                                            val placeId = prediction.placeId
+                                            val placeName = prediction
+                                                .getPrimaryText(null)
+                                                .toString()
+                                            val placeAddress = prediction
+                                                .getSecondaryText(null)
+                                                ?.toString() ?: ""
+
+                                            recentPlacesRepository.saveRecentPlace(
+                                                placeId = placeId,
+                                                placeName = placeName,
+                                                placeAddress = placeAddress
+                                            )
+
+                                            navController.navigate("home/${placeId}/${placeName}")
+                                        }
                                         showPredictions = false
+                                        searchText = ""
                                     }
                                     .padding(16.dp)
                             ) {
                                 Text(
-                                    text = prediction
-                                        .getPrimaryText(null)
-                                        .toString(),
+                                    text = prediction.getPrimaryText(null).toString(),
                                     fontFamily = Nunito,
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 16.sp,
                                     color = Color.Black
                                 )
                                 Text(
-                                    text = prediction
-                                        .getSecondaryText(null)
-                                        .toString(),
+                                    text = prediction.getSecondaryText(null)?.toString() ?: "",
                                     fontFamily = Nunito,
                                     fontSize = 14.sp,
                                     color = Color.Gray
@@ -202,7 +218,7 @@ fun PlaneaViaje(navController: NavController) {
                     }
                 }
             } else {
-                // Contenido original cuando no hay búsqueda
+                // Contenido cuando no hay búsqueda
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
@@ -224,9 +240,8 @@ fun PlaneaViaje(navController: NavController) {
                                 onClick = { navController.navigate("guardados") },
                                 icon = painterResource(id = R.drawable.icono_guardados)
                             )
-
                             CustomButton(
-                                alignCenter = false, // 👈 esto lo alinea a la izquierda
+                                alignCenter = false,
                                 text = stringResource(R.string.alimentos),
                                 fontSize = 14.sp,
                                 color = Blanco,
@@ -236,9 +251,7 @@ fun PlaneaViaje(navController: NavController) {
                                 onClick = { },
                                 icon = painterResource(id = R.drawable.icono_alimentos)
                             )
-
                         }
-
                         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             CustomButton(
                                 alignCenter = false,
@@ -251,7 +264,6 @@ fun PlaneaViaje(navController: NavController) {
                                 onClick = { },
                                 icon = painterResource(id = R.drawable.icono_gasolineria)
                             )
-
                             CustomButton(
                                 alignCenter = false,
                                 text = stringResource(R.string.supermercados),
@@ -264,7 +276,6 @@ fun PlaneaViaje(navController: NavController) {
                                 icon = painterResource(id = R.drawable.icono_supermercados)
                             )
                         }
-
                         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             CustomButton(
                                 alignCenter = false,
@@ -277,7 +288,6 @@ fun PlaneaViaje(navController: NavController) {
                                 onClick = { },
                                 icon = painterResource(id = R.drawable.icono_hoteles)
                             )
-
                             CustomButton(
                                 alignCenter = false,
                                 text = stringResource(R.string.parques),
@@ -294,36 +304,77 @@ fun PlaneaViaje(navController: NavController) {
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // Sección "Recientes"
-                    Text(
-                        text = stringResource(R.string.recientes),
-                        color = Blanco,
-                        fontFamily = Nunito,
-                        fontWeight = FontWeight.ExtraBold,
-                        fontSize = 18.sp,
+                    // ✅ SECCIÓN RECIENTES
+                    Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(bottom = 12.dp)
-                    )
+                            .padding(bottom = 12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = stringResource(R.string.recientes),
+                            color = Blanco,
+                            fontFamily = Nunito,
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 18.sp
+                        )
 
-                    val recientes = listOf(
-                        "Calle 9 Bis #19A-60",
-                        "Carrera 16 #187-61",
-                        "Calle 7c Bis #72A-20",
-                        "Calle 60, Teusaquillo"
-                    )
-
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        recientes.forEach { lugar ->
-                            CustomButton(
-                                text = lugar,
-                                color = Blanco,
-                                textColor = Negro,
+                        if (recentPlaces.isNotEmpty()) {
+                            Text(
+                                text = "Limpiar",
+                                color = Blanco.copy(alpha = 0.7f),
+                                fontFamily = Nunito,
                                 fontWeight = FontWeight.Normal,
-                                modifier = Modifier.fillMaxWidth(),
-                                onClick = { searchText = lugar },
-                                icon = painterResource(id = R.drawable.icono_reloj)
+                                fontSize = 14.sp,
+                                modifier = Modifier.clickable {
+                                    scope.launch {
+                                        recentPlacesRepository.clearAllRecents()
+                                        Toast.makeText(
+                                            context,
+                                            "Recientes eliminados",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                    }
+                                }
                             )
+                        }
+                    }
+
+                    // Mostrar recientes desde Firebase
+                    if (recentPlaces.isEmpty()) {
+                        Text(
+                            text = "No hay lugares recientes",
+                            color = Blanco.copy(alpha = 0.7f),
+                            fontFamily = Nunito,
+                            fontSize = 14.sp,
+                            modifier = Modifier.padding(8.dp)
+                        )
+                    } else {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            recentPlaces.forEach { place ->
+                                CustomButton(
+                                    alignCenter = false,
+                                    text = place.name,
+                                    color = Blanco,
+                                    textColor = Negro,
+                                    fontWeight = FontWeight.Normal,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    onClick = {
+                                        scope.launch {
+                                            recentPlacesRepository.saveRecentPlace(
+                                                placeId = place.id,
+                                                placeName = place.name,
+                                                placeAddress = place.address,
+                                                latitude = place.latitude,
+                                                longitude = place.longitude
+                                            )
+                                            navController.navigate("home/${place.id}/${place.name}")
+                                        }
+                                    },
+                                    icon = painterResource(id = R.drawable.icono_reloj)
+                                )
+                            }
                         }
                     }
 
