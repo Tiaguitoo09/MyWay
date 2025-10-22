@@ -15,14 +15,15 @@ class RecentPlacesRepository {
     private val auth = FirebaseAuth.getInstance()
 
     companion object {
-        private const val COLLECTION_USUARIOS = "usuarios"
+        // ✅ AHORA ES UNA COLECCIÓN RAÍZ SEPARADA
         private const val COLLECTION_RECIENTES = "recientes"
         private const val MAX_RECIENTES = 10
         private const val TAG = "RecentPlacesRepo"
     }
 
     /**
-     * Guarda un lugar reciente
+     * Guarda un lugar reciente para el usuario actual
+     * Estructura: recientes/{userId}/{placeId}
      */
     suspend fun saveRecentPlace(
         placeId: String,
@@ -33,7 +34,15 @@ class RecentPlacesRepository {
     ): Result<Unit> {
         return try {
             val userId = auth.currentUser?.uid
-                ?: return Result.failure(Exception("Usuario no autenticado"))
+
+            Log.d(TAG, "🔑 UserID actual: $userId")
+
+            if (userId == null) {
+                Log.e(TAG, "❌ Usuario NO autenticado")
+                return Result.failure(Exception("Usuario no autenticado"))
+            }
+
+            Log.d(TAG, "📍 Guardando lugar: $placeName para usuario: $userId")
 
             val recentPlace = RecentPlace(
                 id = placeId,
@@ -44,109 +53,180 @@ class RecentPlacesRepository {
                 timestamp = System.currentTimeMillis()
             )
 
-            db.collection(COLLECTION_USUARIOS)
+            // ✅ NUEVA RUTA: recientes/{userId}/{placeId}
+            val docRef = db.collection(COLLECTION_RECIENTES)
                 .document(userId)
-                .collection(COLLECTION_RECIENTES)
+                .collection("lugares")
                 .document(placeId)
-                .set(recentPlace.toMap())
-                .await()
 
+            Log.d(TAG, "📝 Ruta Firebase: ${docRef.path}")
+
+            docRef.set(recentPlace.toMap()).await()
+
+            Log.d(TAG, "✅ Documento guardado exitosamente")
+
+            // Limpiar lugares antiguos
             cleanOldRecents(userId)
 
-            Log.d(TAG, "✅ Lugar reciente guardado: $placeName")
             Result.success(Unit)
         } catch (e: Exception) {
-            Log.e(TAG, "❌ Error al guardar lugar reciente", e)
+            Log.e(TAG, "❌ Error al guardar lugar reciente: ${e.message}", e)
             Result.failure(e)
         }
     }
 
     /**
-     * Obtiene lugares recientes en tiempo real
+     * Obtiene los lugares recientes en tiempo real
+     * Lee de: recientes/{userId}/lugares
      */
     fun getRecentPlacesFlow(): Flow<List<RecentPlace>> = callbackFlow {
         val userId = auth.currentUser?.uid
 
+        Log.d(TAG, "🔄 Iniciando Flow para userId: $userId")
+
         if (userId == null) {
+            Log.e(TAG, "❌ No hay usuario autenticado para Flow")
             trySend(emptyList())
             close()
             return@callbackFlow
         }
 
-        val listener = db.collection(COLLECTION_USUARIOS)
+        // ✅ NUEVA RUTA: recientes/{userId}/lugares
+        val collectionRef = db.collection(COLLECTION_RECIENTES)
             .document(userId)
-            .collection(COLLECTION_RECIENTES)
+            .collection("lugares")
+
+        Log.d(TAG, "📂 Escuchando colección: ${collectionRef.path}")
+
+        val listener = collectionRef
             .orderBy("timestamp", Query.Direction.DESCENDING)
             .limit(MAX_RECIENTES.toLong())
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
-                    Log.e(TAG, "❌ Error al escuchar cambios", error)
+                    Log.e(TAG, "❌ Error al escuchar cambios: ${error.message}", error)
                     trySend(emptyList())
                     return@addSnapshotListener
                 }
 
-                val recientes = snapshot?.documents?.mapNotNull { doc ->
+                if (snapshot == null) {
+                    Log.w(TAG, "⚠️ Snapshot es null")
+                    trySend(emptyList())
+                    return@addSnapshotListener
+                }
+
+                Log.d(TAG, "📦 Documentos recibidos: ${snapshot.documents.size}")
+
+                val recientes = snapshot.documents.mapNotNull { doc ->
                     try {
-                        doc.data?.let { RecentPlace.fromMap(it) }
+                        Log.d(TAG, "📄 Procesando documento: ${doc.id}")
+                        doc.data?.let { data ->
+                            Log.d(TAG, "📝 Datos: $data")
+                            RecentPlace.fromMap(data)
+                        }
                     } catch (e: Exception) {
-                        Log.e(TAG, "❌ Error al parsear documento", e)
+                        Log.e(TAG, "❌ Error al parsear documento ${doc.id}: ${e.message}", e)
                         null
                     }
-                } ?: emptyList()
-
-                trySend(recientes)
-                Log.d(TAG, "📍 Recientes actualizados: ${recientes.size}")
-            }
-
-        awaitClose { listener.remove() }
-    }
-
-    /**
-     * Limpia lugares antiguos
-     */
-    private suspend fun cleanOldRecents(userId: String) {
-        try {
-            val snapshot = db.collection(COLLECTION_USUARIOS)
-                .document(userId)
-                .collection(COLLECTION_RECIENTES)
-                .orderBy("timestamp", Query.Direction.DESCENDING)
-                .get()
-                .await()
-
-            if (snapshot.documents.size > MAX_RECIENTES) {
-                val toDelete = snapshot.documents.drop(MAX_RECIENTES)
-                toDelete.forEach { doc ->
-                    doc.reference.delete().await()
                 }
-                Log.d(TAG, "🗑️ Limpiados ${toDelete.size} lugares antiguos")
+
+                Log.d(TAG, "✅ Recientes procesados: ${recientes.size}")
+                trySend(recientes)
             }
-        } catch (e: Exception) {
-            Log.e(TAG, "❌ Error al limpiar lugares antiguos", e)
+
+        awaitClose {
+            Log.d(TAG, "🔌 Cerrando listener de recientes")
+            listener.remove()
         }
     }
 
     /**
-     * Limpia todos los recientes
+     * Elimina los lugares más antiguos si hay más del máximo permitido
+     */
+    private suspend fun cleanOldRecents(userId: String) {
+        try {
+            val snapshot = db.collection(COLLECTION_RECIENTES)
+                .document(userId)
+                .collection("lugares")
+                .orderBy("timestamp", Query.Direction.DESCENDING)
+                .get()
+                .await()
+
+            val total = snapshot.documents.size
+            Log.d(TAG, "🧹 Total de recientes: $total (máximo: $MAX_RECIENTES)")
+
+            if (total > MAX_RECIENTES) {
+                val toDelete = snapshot.documents.drop(MAX_RECIENTES)
+                Log.d(TAG, "🗑️ Eliminando ${toDelete.size} lugares antiguos")
+
+                toDelete.forEach { doc ->
+                    Log.d(TAG, "🗑️ Eliminando: ${doc.id}")
+                    doc.reference.delete().await()
+                }
+
+                Log.d(TAG, "✅ Limpieza completada")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Error al limpiar lugares antiguos: ${e.message}", e)
+        }
+    }
+
+    /**
+     * Limpia todos los lugares recientes del usuario
      */
     suspend fun clearAllRecents(): Result<Unit> {
         return try {
             val userId = auth.currentUser?.uid
                 ?: return Result.failure(Exception("Usuario no autenticado"))
 
-            val snapshot = db.collection(COLLECTION_USUARIOS)
+            Log.d(TAG, "🗑️ Limpiando todos los recientes del usuario: $userId")
+
+            val snapshot = db.collection(COLLECTION_RECIENTES)
                 .document(userId)
-                .collection(COLLECTION_RECIENTES)
+                .collection("lugares")
                 .get()
                 .await()
 
+            Log.d(TAG, "🗑️ Encontrados ${snapshot.documents.size} documentos para eliminar")
+
             snapshot.documents.forEach { doc ->
+                Log.d(TAG, "🗑️ Eliminando: ${doc.id}")
                 doc.reference.delete().await()
             }
 
-            Log.d(TAG, "🗑️ Todos los recientes eliminados")
+            Log.d(TAG, "✅ Todos los recientes eliminados")
             Result.success(Unit)
         } catch (e: Exception) {
-            Log.e(TAG, "❌ Error al limpiar recientes", e)
+            Log.e(TAG, "❌ Error al limpiar todos los recientes: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Obtiene recientes de un usuario específico (útil para admin)
+     */
+    suspend fun getRecentPlacesByUserId(userId: String): Result<List<RecentPlace>> {
+        return try {
+            val snapshot = db.collection(COLLECTION_RECIENTES)
+                .document(userId)
+                .collection("lugares")
+                .orderBy("timestamp", Query.Direction.DESCENDING)
+                .limit(MAX_RECIENTES.toLong())
+                .get()
+                .await()
+
+            val recientes = snapshot.documents.mapNotNull { doc ->
+                try {
+                    doc.data?.let { RecentPlace.fromMap(it) }
+                } catch (e: Exception) {
+                    Log.e(TAG, "❌ Error al parsear documento", e)
+                    null
+                }
+            }
+
+            Log.d(TAG, "📍 Recientes del usuario $userId: ${recientes.size}")
+            Result.success(recientes)
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Error al obtener recientes", e)
             Result.failure(e)
         }
     }
