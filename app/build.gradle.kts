@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     id("com.google.gms.google-services")
     id("com.google.android.libraries.mapsplatform.secrets-gradle-plugin")
+    id("com.google.devtools.ksp") version "2.0.21-1.0.25"  // 🆕 Versión actualizada
 }
 
 android {
@@ -67,6 +68,12 @@ dependencies {
 
     // 🛣️ Maps Utils (para decodificar polylines de rutas)
     implementation("com.google.maps.android:android-maps-utils:3.8.2")
+
+    // 🗄️ Room Database
+    val roomVersion = "2.6.1"
+    implementation("androidx.room:room-runtime:$roomVersion")
+    implementation("androidx.room:room-ktx:$roomVersion")
+    ksp("androidx.room:room-compiler:$roomVersion")
 
     // 🧩 Jetpack Compose
     implementation(libs.androidx.core.ktx)

@@ -210,6 +210,48 @@ fun RutaOpciones(
                         color = Azul4
                     )
 
+// ⭐ AGREGAR ESTO AQUÍ ⭐
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    var isFavorite by remember { mutableStateOf(false) } // TODO: Verificar si ya está guardado
+
+                    Button(
+                        onClick = {
+
+                            isFavorite = !isFavorite
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (isFavorite) Azul4 else Azul4.copy(alpha = 0.2f)
+                        ),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                painter = painterResource(
+                                    id = if (isFavorite) R.drawable.ic_favorite_filled
+                                    else R.drawable.ic_favorite_outline
+                                ),
+                                contentDescription = "Favorito",
+                                tint = if (isFavorite) Blanco else Azul4,
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = if (isFavorite) "Guardado en favoritos" else "Guardar en favoritos",
+                                fontFamily = Nunito,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp,
+                                color = if (isFavorite) Blanco else Azul4
+                            )
+                        }
+                    }
+
                     Spacer(modifier = Modifier.height(16.dp))
 
                     if (isLoading) {
