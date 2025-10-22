@@ -80,7 +80,9 @@ fun Guardados(navController: NavController) {
                         .clickable { navController.navigate("perfil_ajustes") }
                 )
             }
+
             Spacer(modifier = Modifier.height(100.dp))
+
             // Subtítulo
             Text(
                 text = stringResource(R.string.tus_listas),
@@ -109,40 +111,48 @@ fun Guardados(navController: NavController) {
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Botones de listas
+            // Botones con iconos
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                // ¿Sin plan?
                 CustomButton(
                     text = stringResource(R.string.sin_plan),
                     color = Blanco,
                     textColor = Negro,
                     fontWeight = FontWeight.Normal,
+                    icon = painterResource(id = R.drawable.icono_sin_plan),
                     modifier = Modifier.fillMaxWidth(),
                     onClick = { /* acción */ }
                 )
 
+                // Favoritos
                 CustomButton(
                     text = stringResource(R.string.favoritos),
                     color = Blanco,
                     textColor = Negro,
                     fontWeight = FontWeight.Normal,
+                    icon = painterResource(id = R.drawable.icono_favoritos),
                     modifier = Modifier.fillMaxWidth(),
                     onClick = { /* acción */ }
                 )
 
+                // Planes de viaje
                 CustomButton(
                     text = stringResource(R.string.planes_de_viaje),
                     color = Blanco,
                     textColor = Negro,
                     fontWeight = FontWeight.Normal,
+                    icon = painterResource(id = R.drawable.icono_planes),
                     modifier = Modifier.fillMaxWidth(),
                     onClick = { /* acción */ }
                 )
 
+                // Viajes guardados
                 CustomButton(
                     text = stringResource(R.string.viajes_guardados),
                     color = Blanco,
                     textColor = Negro,
                     fontWeight = FontWeight.Normal,
+                    icon = painterResource(id = R.drawable.icono_viajes),
                     modifier = Modifier.fillMaxWidth(),
                     onClick = { /* acción */ }
                 )

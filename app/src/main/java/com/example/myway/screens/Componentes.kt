@@ -1,14 +1,18 @@
 package com.example.myway.screens
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -53,7 +57,7 @@ fun CustomButton(
     fontSize: TextUnit = 16.sp,
     fontWeight: FontWeight = FontWeight.Normal,
     onClick: () -> Unit,
-    icon: Painter?=null
+    icon: Painter? = null // ← ícono opcional
 ) {
     Box(
         modifier = modifier
@@ -63,21 +67,37 @@ fun CustomButton(
             .clip(RoundedCornerShape(12.dp))
             .background(color)
             .clickable { onClick() },
-        contentAlignment = Alignment.Center
+        contentAlignment = Alignment.CenterStart // 👈 alinea contenido a la izquierda
     ) {
-        Text(
-            text = text,
-            fontFamily = Nunito,
-            fontWeight = fontWeight,
-            fontSize = fontSize,
-            color = textColor
-        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp), // margen interno
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Start
+        ) {
+            // 👇 Si hay ícono, se muestra primero
+            if (icon != null) {
+                Image(
+                    painter = icon,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .size(22.dp)
+                        .padding(end = 8.dp)
+                )
+            }
+
+            // Texto del botón
+            Text(
+                text = text,
+                fontFamily = Nunito,
+                fontWeight = fontWeight,
+                fontSize = fontSize,
+                color = textColor
+            )
+        }
     }
 }
-
-
-
-
 
 
 

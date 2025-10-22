@@ -89,6 +89,7 @@ dependencies {
     // ⚡ Coroutines (para llamadas asíncronas)
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.8.0")
+    implementation(libs.androidx.compose.foundation.layout)
 
     // 🧪 Tests
     testImplementation(libs.junit)
