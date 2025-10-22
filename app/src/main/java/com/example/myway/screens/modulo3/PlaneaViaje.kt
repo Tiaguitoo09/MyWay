@@ -214,7 +214,9 @@ fun PlaneaViaje(navController: NavController) {
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             CustomButton(
+                                alignCenter = false,
                                 text = stringResource(R.string.guardados),
+                                fontSize = 14.sp,
                                 color = Blanco,
                                 textColor = Negro,
                                 fontWeight = FontWeight.Normal,
@@ -224,7 +226,9 @@ fun PlaneaViaje(navController: NavController) {
                             )
 
                             CustomButton(
+                                alignCenter = false, // 👈 esto lo alinea a la izquierda
                                 text = stringResource(R.string.alimentos),
+                                fontSize = 14.sp,
                                 color = Blanco,
                                 textColor = Negro,
                                 fontWeight = FontWeight.Normal,
@@ -232,11 +236,14 @@ fun PlaneaViaje(navController: NavController) {
                                 onClick = { },
                                 icon = painterResource(id = R.drawable.icono_alimentos)
                             )
+
                         }
 
                         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             CustomButton(
+                                alignCenter = false,
                                 text = stringResource(R.string.combustible),
+                                fontSize = 14.sp,
                                 color = Blanco,
                                 textColor = Negro,
                                 fontWeight = FontWeight.Normal,
@@ -246,7 +253,9 @@ fun PlaneaViaje(navController: NavController) {
                             )
 
                             CustomButton(
+                                alignCenter = false,
                                 text = stringResource(R.string.supermercados),
+                                fontSize = 14.sp,
                                 color = Blanco,
                                 textColor = Negro,
                                 fontWeight = FontWeight.Normal,
@@ -258,7 +267,9 @@ fun PlaneaViaje(navController: NavController) {
 
                         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             CustomButton(
+                                alignCenter = false,
                                 text = stringResource(R.string.hoteles),
+                                fontSize = 14.sp,
                                 color = Blanco,
                                 textColor = Negro,
                                 fontWeight = FontWeight.Normal,
@@ -268,7 +279,9 @@ fun PlaneaViaje(navController: NavController) {
                             )
 
                             CustomButton(
+                                alignCenter = false,
                                 text = stringResource(R.string.parques),
+                                fontSize = 14.sp,
                                 color = Blanco,
                                 textColor = Negro,
                                 fontWeight = FontWeight.Normal,

@@ -57,7 +57,8 @@ fun CustomButton(
     fontSize: TextUnit = 16.sp,
     fontWeight: FontWeight = FontWeight.Normal,
     onClick: () -> Unit,
-    icon: Painter? = null // ← ícono opcional
+    icon: Painter? = null, // ← ícono opcional
+    alignCenter: Boolean = true // 👈 nuevo parámetro
 ) {
     Box(
         modifier = modifier
@@ -67,16 +68,15 @@ fun CustomButton(
             .clip(RoundedCornerShape(12.dp))
             .background(color)
             .clickable { onClick() },
-        contentAlignment = Alignment.CenterStart // 👈 alinea contenido a la izquierda
+        contentAlignment = if (alignCenter) Alignment.Center else Alignment.CenterStart // 👈 cambia según la opción
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 14.dp), // margen interno
+                .padding(horizontal = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Start
+            horizontalArrangement = if (alignCenter) Arrangement.Center else Arrangement.Start // 👈 cambia según la opción
         ) {
-            // 👇 Si hay ícono, se muestra primero
             if (icon != null) {
                 Image(
                     painter = icon,
@@ -87,7 +87,6 @@ fun CustomButton(
                 )
             }
 
-            // Texto del botón
             Text(
                 text = text,
                 fontFamily = Nunito,
@@ -98,6 +97,8 @@ fun CustomButton(
         }
     }
 }
+
+
 
 
 
