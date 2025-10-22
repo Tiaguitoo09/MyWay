@@ -82,7 +82,7 @@ fun CustomButton(
                     painter = icon,
                     contentDescription = null,
                     modifier = Modifier
-                        .size(22.dp)
+                        .size(45.dp)
                         .padding(end = 8.dp)
                 )
             }
