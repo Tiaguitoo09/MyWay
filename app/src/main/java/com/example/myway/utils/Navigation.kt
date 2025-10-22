@@ -21,6 +21,7 @@ import com.example.myway.screens.modulo2.Ajustes
 import com.example.myway.screens.modulo2.Soporte
 import com.example.myway.screens.modulo2.VerPerfil
 import com.example.myway.screens.modulo2.SilenciarNotificaciones
+import com.example.myway.screens.modulo3.DetallesLugar
 import com.example.myway.screens.modulo3.Favoritos
 import com.example.myway.screens.modulo3.PlaneaViaje
 import com.example.myway.screens.modulo3.Guardados
@@ -200,6 +201,20 @@ fun MyWayAppNavigation(
 
         composable("favoritos") {
             Favoritos(navController = navController)
+        }
+
+        composable(
+            route = "detalles_lugar/{placeId}/{placeName}",
+            arguments = listOf(
+                navArgument("placeId") { type = NavType.StringType },
+                navArgument("placeName") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            DetallesLugar(
+                navController = navController,
+                placeId = backStackEntry.arguments?.getString("placeId"),
+                placeName = backStackEntry.arguments?.getString("placeName")
+            )
         }
     }
 }

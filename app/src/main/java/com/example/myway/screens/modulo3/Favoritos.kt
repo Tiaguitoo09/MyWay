@@ -168,8 +168,9 @@ fun Favoritos(navController: NavController) {
                             FavoriteItemCard(
                                 favorite = favorite,
                                 onItemClick = {
+                                    // Navegar a detalles del lugar
                                     navController.navigate(
-                                        "ruta_opciones/${favorite.id}/${favorite.name}"
+                                        "detalles_lugar/${favorite.id}/${favorite.name}"
                                     )
                                 },
                                 onDeleteClick = {
@@ -211,12 +212,13 @@ fun FavoriteItemCard(
             // Imagen del lugar o icono por defecto
             if (favorite.photoUrl != null) {
                 AsyncImage(
-                    model = favorite.photoUrl,
+                    model = java.io.File(favorite.photoUrl),
                     contentDescription = favorite.name,
                     modifier = Modifier
                         .size(64.dp)
                         .clip(RoundedCornerShape(12.dp)),
-                    contentScale = ContentScale.Crop
+                    contentScale = ContentScale.Crop,
+                    error = painterResource(id = R.drawable.ic_favorite_outline)
                 )
             } else {
                 Box(

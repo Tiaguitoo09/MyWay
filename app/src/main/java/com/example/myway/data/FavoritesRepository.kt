@@ -6,12 +6,13 @@ import com.example.myway.data.local.AppDatabase
 import com.example.myway.data.local.FavoritePlaceEntity
 import com.google.android.libraries.places.api.Places
 import com.google.android.libraries.places.api.model.Place
+import com.google.android.libraries.places.api.net.FetchPhotoRequest
 import com.google.android.libraries.places.api.net.FetchPlaceRequest
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 
-class FavoritesRepository(context: Context) {
+class FavoritesRepository(private val context: Context) {
 
     private val database = AppDatabase.getDatabase(context)
     private val dao = database.favoritePlaceDao()
@@ -45,8 +46,33 @@ class FavoritesRepository(context: Context) {
                 val response = placesClient.fetchPlace(request).await()
                 val place = response.place
 
+                // 🆕 Obtener URL de la foto correctamente
                 val photoUrl = place.photoMetadatas?.firstOrNull()?.let { photoMetadata ->
-                    null
+                    try {
+                        // Crear request para la foto con ancho máximo de 400px
+                        val photoRequest = FetchPhotoRequest.builder(photoMetadata)
+                            .setMaxWidth(400)
+                            .setMaxHeight(400)
+                            .build()
+
+                        val photoResponse = placesClient.fetchPhoto(photoRequest).await()
+
+                        // Guardar la imagen en caché y retornar la URL
+                        val bitmap = photoResponse.bitmap
+
+                        // Guardar bitmap en almacenamiento interno y retornar la ruta
+                        val filename = "place_${placeId}.jpg"
+                        context.openFileOutput(filename, Context.MODE_PRIVATE).use { output ->
+                            bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 90, output)
+                        }
+
+                        // Retornar la ruta del archivo
+                        context.filesDir.absolutePath + "/" + filename
+
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                        null
+                    }
                 }
 
                 val favoritePlace = FavoritePlaceEntity(
@@ -69,9 +95,17 @@ class FavoritesRepository(context: Context) {
         }
     }
 
-    // Eliminar favorito
+    // Eliminar favorito (también eliminar la imagen si existe)
     suspend fun deleteFavorite(placeId: String) {
         withContext(Dispatchers.IO) {
+            // Eliminar imagen del almacenamiento si existe
+            try {
+                val filename = "place_${placeId}.jpg"
+                context.deleteFile(filename)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+
             dao.deleteFavoriteById(placeId)
         }
     }

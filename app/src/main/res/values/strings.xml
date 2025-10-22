@@ -217,6 +217,8 @@
     <string name="no_resultados">No se encontraron resultados</string>
     <string name="no_resultados_descripcion">No hay favoritos que coincidan con \"%1$s\"</string>
 
+    <!-- Detalles Lugares -->
+    <string name="detalles_lugares">Detalles del Lugar</string>
 
 
     <!-- Mensajes de Toast -->
