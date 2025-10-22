@@ -132,7 +132,7 @@ fun Guardados(navController: NavController) {
                     fontWeight = FontWeight.Normal,
                     icon = painterResource(id = R.drawable.icono_favoritos),
                     modifier = Modifier.fillMaxWidth(),
-                    onClick = { /* acción */ }
+                    onClick = { navController.navigate("favoritos") }
                 )
 
                 // Planes de viaje

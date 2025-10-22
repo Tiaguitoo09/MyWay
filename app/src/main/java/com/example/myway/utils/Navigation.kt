@@ -21,6 +21,7 @@ import com.example.myway.screens.modulo2.Ajustes
 import com.example.myway.screens.modulo2.Soporte
 import com.example.myway.screens.modulo2.VerPerfil
 import com.example.myway.screens.modulo2.SilenciarNotificaciones
+import com.example.myway.screens.modulo3.Favoritos
 import com.example.myway.screens.modulo3.PlaneaViaje
 import com.example.myway.screens.modulo3.Guardados
 import com.example.myway.screens.modulo3.RutaOpciones
@@ -195,6 +196,10 @@ fun MyWayAppNavigation(
 
         composable("guardados") {
             Guardados(navController = navController)
+        }
+
+        composable("favoritos") {
+            Favoritos(navController = navController)
         }
     }
 }

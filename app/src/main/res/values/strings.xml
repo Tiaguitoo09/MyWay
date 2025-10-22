@@ -203,6 +203,9 @@
     <string name="planes_de_viaje">Planes de viaje</string>
     <string name="viajes_guardados">Viajes Guardados</string>
 
+    <!-- Guardados -->
+    <string name= "lugares_favoritos">Algunos de tus lugares favoritos para que los vuelvas a visitar cuando quieras</string>
+
 
     <!-- Mensajes de Toast -->
     <string name="toast_cuenta_creada">Cuenta creada con éxito</string>
