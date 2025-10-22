@@ -33,6 +33,7 @@ import com.google.android.libraries.places.api.Places
 import com.google.android.libraries.places.api.model.Place
 import com.google.android.libraries.places.api.net.FetchPlaceRequest
 import java.io.File
+import java.util.Calendar
 import kotlin.math.roundToInt
 
 @Composable
@@ -84,6 +85,10 @@ fun DetallesLugar(
                 placesClient.fetchPlace(request)
                     .addOnSuccessListener { response ->
                         val place = response.place
+
+                        // Obtener horarios si están disponibles
+                        val hours = place.openingHours?.weekdayText ?: emptyList()
+
                         placeDetails = PlaceDetails(
                             name = place.name ?: placeName ?: "",
                             address = place.address ?: "No disponible",
@@ -92,7 +97,8 @@ fun DetallesLugar(
                             rating = place.rating ?: 0.0,
                             totalRatings = place.userRatingsTotal ?: 0,
                             isOpen = place.isOpen,
-                            types = place.types?.map { it.name } ?: emptyList()
+                            types = place.types?.map { it.name } ?: emptyList(),
+                            openingHours = hours
                         )
                         isLoading = false
                     }
@@ -160,7 +166,6 @@ fun DetallesLugar(
                         .padding(20.dp)
                 ) {
                     // Imagen del lugar
-// Imagen del lugar
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -173,9 +178,9 @@ fun DetallesLugar(
                                 modifier = Modifier
                                     .fillMaxSize()
                                     .border(
-                                        width = 3.dp, // grosor del borde
-                                        color = Color.White, // color del borde
-                                        shape = RoundedCornerShape(16.dp) // mismo radio que la tarjeta
+                                        width = 3.dp,
+                                        color = Color.White,
+                                        shape = RoundedCornerShape(16.dp)
                                     )
                             ) {
                                 AsyncImage(
@@ -183,7 +188,7 @@ fun DetallesLugar(
                                     contentDescription = placeDetails?.name,
                                     modifier = Modifier
                                         .fillMaxSize()
-                                        .clip(RoundedCornerShape(16.dp)), // recorta la imagen al borde
+                                        .clip(RoundedCornerShape(16.dp)),
                                     contentScale = ContentScale.Crop
                                 )
                             }
@@ -201,7 +206,6 @@ fun DetallesLugar(
                             }
                         }
                     }
-
 
                     Spacer(modifier = Modifier.height(16.dp))
 
@@ -284,21 +288,25 @@ fun DetallesLugar(
                                 value = placeDetails?.phone ?: "No disponible"
                             )
 
-                            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                            // Solo mostrar horario/estado si hay información disponible
+                            if (placeDetails?.isOpen != null || placeDetails?.openingHours?.isNotEmpty() == true) {
+                                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
-                            DetailRow(
-                                icon = Icons.Default.DateRange,
-                                label = "Estado",
-                                value = if (placeDetails?.isOpen == true) "Abierto ahora ✅"
-                                else if (placeDetails?.isOpen == false) "Cerrado ❌"
-                                else "No disponible"
-                            )
+                                DetailRow(
+                                    icon = Icons.Default.DateRange,
+                                    label = "Horario",
+                                    value = getScheduleText(
+                                        isOpen = placeDetails?.isOpen,
+                                        openingHours = placeDetails?.openingHours ?: emptyList()
+                                    )
+                                )
+                            }
                         }
                     }
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // Botón marcar ruta (ahora en Azul3)
+                    // Botón marcar ruta
                     CustomButton(
                         text = "Marcar Ruta",
                         color = Azul3,
@@ -317,6 +325,67 @@ fun DetallesLugar(
             }
         }
     }
+}
+
+/**
+ * Función para obtener el texto del horario de forma inteligente
+ */
+fun getScheduleText(isOpen: Boolean?, openingHours: List<String>): String {
+    return when {
+        // Si hay horarios completos, mostrar el de hoy + estado
+        openingHours.isNotEmpty() -> {
+            val today = Calendar.getInstance().get(Calendar.DAY_OF_WEEK)
+            val todayIndex = when(today) {
+                Calendar.MONDAY -> 0
+                Calendar.TUESDAY -> 1
+                Calendar.WEDNESDAY -> 2
+                Calendar.THURSDAY -> 3
+                Calendar.FRIDAY -> 4
+                Calendar.SATURDAY -> 5
+                Calendar.SUNDAY -> 6
+                else -> 0
+            }
+
+            val todayHours = openingHours.getOrNull(todayIndex)
+                ?: openingHours.firstOrNull()
+                ?: "No disponible"
+
+            // Traducir el horario al español
+            val translatedHours = translateSchedule(todayHours)
+
+            val status = when(isOpen) {
+                true -> "🟢 Abierto"
+                false -> "🔴 Cerrado"
+                null -> ""
+            }
+
+            if (status.isNotEmpty()) "$status\n$translatedHours"
+            else translatedHours
+        }
+        // Si solo hay estado abierto/cerrado
+        isOpen == true -> "🟢 Abierto ahora"
+        isOpen == false -> "🔴 Cerrado ahora"
+        // Si no hay nada
+        else -> "No disponible"
+    }
+}
+
+/**
+ * Traduce los horarios de inglés a español
+ */
+fun translateSchedule(schedule: String): String {
+    return schedule
+        .replace("Monday", "Lunes")
+        .replace("Tuesday", "Martes")
+        .replace("Wednesday", "Miércoles")
+        .replace("Thursday", "Jueves")
+        .replace("Friday", "Viernes")
+        .replace("Saturday", "Sábado")
+        .replace("Sunday", "Domingo")
+        .replace("AM", "a.m.")
+        .replace("PM", "p.m.")
+        .replace("Closed", "Cerrado")
+        .replace("Open 24 hours", "Abierto 24 horas")
 }
 
 @Composable
@@ -363,5 +432,6 @@ data class PlaceDetails(
     val rating: Double,
     val totalRatings: Int,
     val isOpen: Boolean?,
-    val types: List<String>
+    val types: List<String>,
+    val openingHours: List<String> = emptyList()
 )

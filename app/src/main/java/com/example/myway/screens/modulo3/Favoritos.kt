@@ -8,6 +8,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -27,13 +31,9 @@ import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.myway.R
 import com.example.myway.data.FavoritesRepository
-import com.example.myway.data.local.FavoritePlaceEntity
+import com.example.myway.data.models.FavoritePlace
 import com.example.myway.ui.theme.*
 import kotlinx.coroutines.launch
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.LocationOn
 
 @Composable
 fun Favoritos(navController: NavController) {
@@ -41,10 +41,8 @@ fun Favoritos(navController: NavController) {
     val repository = remember { FavoritesRepository(context) }
     val scope = rememberCoroutineScope()
 
-    // Estados
     var searchQuery by remember { mutableStateOf("") }
 
-    // Observar favoritos desde Room
     val favorites by if (searchQuery.isEmpty()) {
         repository.getAllFavorites().collectAsState(initial = emptyList())
     } else {
@@ -116,12 +114,7 @@ fun Favoritos(navController: NavController) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(bottom = 16.dp),
-                placeholder = {
-                    Text(
-                        stringResource(R.string.buscar_favoritos),
-                        fontFamily = Nunito
-                    )
-                },
+                placeholder = { Text(stringResource(R.string.buscar_favoritos), fontFamily = Nunito) },
                 leadingIcon = {
                     Icon(
                         imageVector = Icons.Default.Search,
@@ -153,30 +146,24 @@ fun Favoritos(navController: NavController) {
                 favorites.isEmpty() && searchQuery.isEmpty() -> {
                     EmptyFavoritesState()
                 }
+
                 favorites.isEmpty() && searchQuery.isNotEmpty() -> {
                     NoResultsState(query = searchQuery)
                 }
+
                 else -> {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        items(
-                            items = favorites,
-                            key = { it.id }
-                        ) { favorite ->
+                        items(items = favorites, key = { it.id }) { favorite ->
                             FavoriteItemCard(
                                 favorite = favorite,
                                 onItemClick = {
-                                    // Navegar a detalles del lugar
-                                    navController.navigate(
-                                        "detalles_lugar/${favorite.id}/${favorite.name}"
-                                    )
+                                    navController.navigate("detalles_lugar/${favorite.id}/${favorite.name}")
                                 },
                                 onDeleteClick = {
-                                    scope.launch {
-                                        repository.deleteFavorite(favorite.id)
-                                    }
+                                    scope.launch { repository.deleteFavorite(favorite.id) }
                                 }
                             )
                         }
@@ -189,7 +176,7 @@ fun Favoritos(navController: NavController) {
 
 @Composable
 fun FavoriteItemCard(
-    favorite: FavoritePlaceEntity,
+    favorite: FavoritePlace,
     onItemClick: () -> Unit,
     onDeleteClick: () -> Unit
 ) {
@@ -197,9 +184,7 @@ fun FavoriteItemCard(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onItemClick() },
-        colors = CardDefaults.cardColors(
-            containerColor = Blanco
-        ),
+        colors = CardDefaults.cardColors(containerColor = Blanco),
         elevation = CardDefaults.cardElevation(4.dp),
         shape = RoundedCornerShape(16.dp)
     ) {
@@ -209,7 +194,6 @@ fun FavoriteItemCard(
                 .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Imagen del lugar o icono por defecto
             if (favorite.photoUrl != null) {
                 AsyncImage(
                     model = java.io.File(favorite.photoUrl),
@@ -239,10 +223,7 @@ fun FavoriteItemCard(
 
             Spacer(modifier = Modifier.width(12.dp))
 
-            // Información del lugar
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = favorite.name,
                     fontFamily = Nunito,
@@ -268,7 +249,6 @@ fun FavoriteItemCard(
 
             Spacer(modifier = Modifier.width(8.dp))
 
-            // Botón eliminar
             IconButton(
                 onClick = onDeleteClick,
                 modifier = Modifier
@@ -302,9 +282,7 @@ fun EmptyFavoritesState() {
             modifier = Modifier.size(80.dp),
             tint = Blanco.copy(alpha = 0.7f)
         )
-
         Spacer(modifier = Modifier.height(16.dp))
-
         Text(
             text = stringResource(R.string.no_favoritos),
             color = Blanco,
@@ -312,9 +290,7 @@ fun EmptyFavoritesState() {
             fontWeight = FontWeight.Bold,
             fontSize = 20.sp
         )
-
         Spacer(modifier = Modifier.height(8.dp))
-
         Text(
             text = stringResource(R.string.no_favoritos_descripcion),
             color = Blanco.copy(alpha = 0.8f),
@@ -340,9 +316,7 @@ fun NoResultsState(query: String) {
             modifier = Modifier.size(64.dp),
             tint = Blanco.copy(alpha = 0.7f)
         )
-
         Spacer(modifier = Modifier.height(16.dp))
-
         Text(
             text = stringResource(R.string.no_resultados),
             color = Blanco,
@@ -350,9 +324,7 @@ fun NoResultsState(query: String) {
             fontWeight = FontWeight.Bold,
             fontSize = 18.sp
         )
-
         Spacer(modifier = Modifier.height(8.dp))
-
         Text(
             text = stringResource(R.string.no_resultados_descripcion, query),
             color = Blanco.copy(alpha = 0.8f),

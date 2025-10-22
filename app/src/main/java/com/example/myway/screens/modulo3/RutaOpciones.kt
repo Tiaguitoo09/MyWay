@@ -50,8 +50,8 @@ fun RutaOpciones(
 
     // 🆕 Repositorio de favoritos
     val repository = remember { FavoritesRepository(context) }
-    var isFavorite by remember { mutableStateOf(false) }
 
+    var isFavorite by remember { mutableStateOf(false) }
     var currentLocation by remember { mutableStateOf(LatLng(4.7110, -74.0721)) }
     var destinationLocation by remember { mutableStateOf<LatLng?>(null) }
     var selectedMode by remember { mutableStateOf("driving") }
@@ -97,11 +97,9 @@ fun RutaOpciones(
         placeId?.let { id ->
             val placeFields = listOf(Place.Field.LAT_LNG)
             val request = FetchPlaceRequest.newInstance(id, placeFields)
-
             placesClient.fetchPlace(request)
                 .addOnSuccessListener { response ->
                     destinationLocation = response.place.latLng
-
                     // Calcular todas las rutas
                     scope.launch {
                         destinationLocation?.let { dest ->
@@ -143,7 +141,7 @@ fun RutaOpciones(
                 if (points.isNotEmpty()) {
                     Polyline(
                         points = points,
-                        color = androidx.compose.ui.graphics.Color(0xFF4285F4),
+                        color = Color(0xFF4285F4),
                         width = 10f
                     )
                 }
@@ -161,9 +159,7 @@ fun RutaOpciones(
                 shadowElevation = 8.dp,
                 shape = RoundedCornerShape(bottomStart = 40.dp, bottomEnd = 40.dp)
             ) {
-                Column(
-                    modifier = Modifier.padding(16.dp)
-                ) {
+                Column(modifier = Modifier.padding(16.dp)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -207,9 +203,7 @@ fun RutaOpciones(
                 shadowElevation = 16.dp,
                 shape = RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp)
             ) {
-                Column(
-                    modifier = Modifier.padding(24.dp)
-                ) {
+                Column(modifier = Modifier.padding(24.dp)) {
                     Text(
                         text = "Selecciona tu medio de transporte",
                         fontFamily = Nunito,
@@ -236,7 +230,8 @@ fun RutaOpciones(
                                 } else {
                                     // Guardar en favoritos
                                     placeId?.let { id ->
-                                        val result = repository.saveFavorite(id, placeName ?: "Lugar")
+                                        val result =
+                                            repository.saveFavorite(id, placeName ?: "Lugar")
                                         if (result.isSuccess) {
                                             isFavorite = true
                                             Toast.makeText(
@@ -259,7 +254,8 @@ fun RutaOpciones(
                             .fillMaxWidth()
                             .height(48.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = if (isFavorite) Azul4 else Azul4.copy(alpha = 0.2f)
+                            containerColor = if (isFavorite)
+                                Azul4 else Azul4.copy(alpha = 0.2f)
                         ),
                         shape = RoundedCornerShape(12.dp)
                     ) {
@@ -269,16 +265,23 @@ fun RutaOpciones(
                         ) {
                             Icon(
                                 painter = painterResource(
-                                    id = if (isFavorite) R.drawable.ic_favorite_filled
-                                    else R.drawable.ic_favorite_outline
+                                    id = if (isFavorite)
+                                        R.drawable.ic_favorite_filled
+                                    else
+                                        R.drawable.ic_favorite_outline
                                 ),
                                 contentDescription = "Favorito",
                                 tint = if (isFavorite) Blanco else Azul4,
                                 modifier = Modifier.size(24.dp)
                             )
+
                             Spacer(modifier = Modifier.width(8.dp))
+
                             Text(
-                                text = if (isFavorite) "Guardado en favoritos" else "Guardar en favoritos",
+                                text = if (isFavorite)
+                                    "Guardado en favoritos"
+                                else
+                                    "Guardar en favoritos",
                                 fontFamily = Nunito,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 16.sp,
@@ -369,7 +372,10 @@ fun TransportOption(
             .fillMaxWidth()
             .clickable { onClick() },
         colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) Azul4.copy(alpha = 0.1f) else Color.White
+            containerColor = if (isSelected)
+                Azul4.copy(alpha = 0.1f)
+            else
+                Color.White
         ),
         elevation = CardDefaults.cardElevation(if (isSelected) 8.dp else 2.dp),
         shape = RoundedCornerShape(16.dp)
@@ -400,6 +406,7 @@ fun TransportOption(
                         fontSize = 16.sp,
                         color = if (isSelected) Azul4 else Color.Black
                     )
+
                     Text(
                         text = "$duration • $distance",
                         fontFamily = Nunito,
@@ -421,7 +428,11 @@ fun TransportOption(
     }
 }
 
-suspend fun getRouteInfo(origin: LatLng, destination: LatLng, mode: String): RouteInfo? {
+suspend fun getRouteInfo(
+    origin: LatLng,
+    destination: LatLng,
+    mode: String
+): RouteInfo? {
     return withContext(Dispatchers.IO) {
         try {
             val apiKey = BuildConfig.MAPS_API_KEY
