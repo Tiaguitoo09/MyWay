@@ -203,8 +203,20 @@
     <string name="planes_de_viaje">Planes de viaje</string>
     <string name="viajes_guardados">Viajes Guardados</string>
 
-    <!-- Guardados -->
+    <!-- favoritos -->
     <string name= "lugares_favoritos">Algunos de tus lugares favoritos para que los vuelvas a visitar cuando quieras</string>
+    <string name="lugares_favoritos2">Tus lugares guardados</string>
+    <string name="buscar_favoritos">Buscar en favoritos…</string>
+
+    <string name="limpiar">Limpiar</string>
+    <string name="eliminar_favoritos">Eliminar de favoritos</string>
+
+    <!-- Estados vacíos -->
+    <string name="no_favoritos">No tienes lugares favoritos</string>
+    <string name="no_favoritos_descripcion">Guarda tus lugares favoritos para acceder rápidamente a ellos</string>
+    <string name="no_resultados">No se encontraron resultados</string>
+    <string name="no_resultados_descripcion">No hay favoritos que coincidan con \"%1$s\"</string>
+
 
 
     <!-- Mensajes de Toast -->

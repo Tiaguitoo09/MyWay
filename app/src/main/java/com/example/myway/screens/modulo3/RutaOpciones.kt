@@ -1,7 +1,6 @@
 package com.example.myway.screens.modulo3
 
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
+import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -9,18 +8,16 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.myway.BuildConfig
 import com.example.myway.R
+import com.example.myway.data.FavoritesRepository
 import com.example.myway.screens.CustomButton
 import com.example.myway.ui.theme.*
 import com.google.android.gms.location.LocationServices
@@ -51,6 +48,10 @@ fun RutaOpciones(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
+    // 🆕 Repositorio de favoritos
+    val repository = remember { FavoritesRepository(context) }
+    var isFavorite by remember { mutableStateOf(false) }
+
     var currentLocation by remember { mutableStateOf(LatLng(4.7110, -74.0721)) }
     var destinationLocation by remember { mutableStateOf<LatLng?>(null) }
     var selectedMode by remember { mutableStateOf("driving") }
@@ -70,6 +71,13 @@ fun RutaOpciones(
             Places.initialize(context, BuildConfig.MAPS_API_KEY)
         }
         Places.createClient(context)
+    }
+
+    // 🆕 Verificar si ya es favorito al cargar
+    LaunchedEffect(placeId) {
+        placeId?.let { id ->
+            isFavorite = repository.isFavorite(id)
+        }
     }
 
     // Obtener ubicación actual y destino
@@ -99,7 +107,7 @@ fun RutaOpciones(
                         destinationLocation?.let { dest ->
                             walkingRoute = getRouteInfo(currentLocation, dest, "walking")
                             drivingRoute = getRouteInfo(currentLocation, dest, "driving")
-                            motorcycleRoute = getRouteInfo(currentLocation, dest, "driving") // Google no tiene modo moto, usamos driving
+                            motorcycleRoute = getRouteInfo(currentLocation, dest, "driving")
                             isLoading = false
                         }
                     }
@@ -210,15 +218,42 @@ fun RutaOpciones(
                         color = Azul4
                     )
 
-// ⭐ AGREGAR ESTO AQUÍ ⭐
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    var isFavorite by remember { mutableStateOf(false) } // TODO: Verificar si ya está guardado
-
+                    // 🆕 Botón de favoritos FUNCIONAL
                     Button(
                         onClick = {
-
-                            isFavorite = !isFavorite
+                            scope.launch {
+                                if (isFavorite) {
+                                    // Eliminar de favoritos
+                                    placeId?.let { repository.deleteFavorite(it) }
+                                    isFavorite = false
+                                    Toast.makeText(
+                                        context,
+                                        "Eliminado de favoritos",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                } else {
+                                    // Guardar en favoritos
+                                    placeId?.let { id ->
+                                        val result = repository.saveFavorite(id, placeName ?: "Lugar")
+                                        if (result.isSuccess) {
+                                            isFavorite = true
+                                            Toast.makeText(
+                                                context,
+                                                "Guardado en favoritos",
+                                                Toast.LENGTH_SHORT
+                                            ).show()
+                                        } else {
+                                            Toast.makeText(
+                                                context,
+                                                "Error al guardar",
+                                                Toast.LENGTH_SHORT
+                                            ).show()
+                                        }
+                                    }
+                                }
+                            }
                         },
                         modifier = Modifier
                             .fillMaxWidth()
@@ -305,14 +340,6 @@ fun RutaOpciones(
                             text = "Iniciar navegación",
                             color = Azul4,
                             onClick = {
-                                val route = when (selectedMode) {
-                                    "walking" -> walkingRoute
-                                    "driving" -> drivingRoute
-                                    "motorcycle" -> motorcycleRoute
-                                    else -> drivingRoute
-                                }
-
-                                // Navegar a pantalla de navegación activa
                                 navController.navigate(
                                     "navegacion_activa/${placeId}/${placeName}/${selectedMode}"
                                 )
