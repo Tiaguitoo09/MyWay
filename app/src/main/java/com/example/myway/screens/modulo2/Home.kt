@@ -33,6 +33,7 @@ import com.example.myway.ui.theme.Azul4
 import com.example.myway.ui.theme.Blanco
 import com.example.myway.ui.theme.Nunito
 import com.example.myway.ui.theme.Verde
+import com.example.myway.ui.theme.Rojo
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
@@ -302,18 +303,54 @@ fun Home(
                 contentAlignment = Alignment.Center
             ) {
                 if (hasDestination) {
-                    // Botón "IR" verde cuando hay destino
-                    CustomButton(
-                        text = "IR",
-                        color = Verde,
-                        onClick = {
-                            navController.navigate("ruta_opciones/${placeId}/${placeName}")
-                        },
-                        modifier = Modifier
-                            .width(330.dp)
-                            .height(55.dp)
-                            .clip(RoundedCornerShape(15.dp))
-                    )
+                    // Cuando hay destino: mostrar botón IR + botón cancelar
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Botón pequeño para cancelar destino
+                        Surface(
+                            modifier = Modifier
+                                .size(55.dp)
+                                .clickable {
+                                    // Volver a Home sin destino
+                                    navController.navigate("home") {
+                                        popUpTo("home") { inclusive = true }
+                                    }
+                                },
+                            shape = RoundedCornerShape(15.dp),
+                            color = Rojo,
+                            shadowElevation = 4.dp
+                        ) {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    painter = painterResource(id = android.R.drawable.ic_menu_close_clear_cancel),
+                                    contentDescription = "Cancelar destino",
+                                    tint = Blanco,
+                                    modifier = Modifier.size(30.dp)
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.width(12.dp))
+
+                        // Botón "IR" verde
+                        CustomButton(
+                            text = "IR",
+                            color = Verde,
+                            onClick = {
+                                navController.navigate("ruta_opciones/${placeId}/${placeName}")
+                            },
+                            modifier = Modifier
+                                .width(260.dp)
+                                .height(55.dp)
+                                .clip(RoundedCornerShape(15.dp))
+                        )
+                    }
                 } else {
                     // Botón "¿A dónde vas?" azul cuando NO hay destino
                     CustomButton(
