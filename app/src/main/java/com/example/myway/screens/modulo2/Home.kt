@@ -32,6 +32,7 @@ import com.example.myway.screens.CustomButton
 import com.example.myway.ui.theme.Azul4
 import com.example.myway.ui.theme.Blanco
 import com.example.myway.ui.theme.Nunito
+import com.example.myway.ui.theme.Verde
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
@@ -68,6 +69,9 @@ fun Home(
     var destinationLocation by remember { mutableStateOf<LatLng?>(null) }
     var routePoints by remember { mutableStateOf<List<LatLng>>(emptyList()) }
     var destinationName by remember { mutableStateOf<String?>(null) }
+
+    // Variable para saber si hay destino
+    val hasDestination = placeId != null && placeId != "null"
 
     val cameraPositionState = rememberCameraPositionState {
         position = CameraPosition.fromLatLngZoom(currentLocation, 12f)
@@ -245,7 +249,7 @@ fun Home(
 
             Spacer(modifier = Modifier.weight(1f))
 
-            // Botón para centrar en ubicación (ARRIBA de "¿A dónde vas?")
+            // Botón para centrar en ubicación (ARRIBA del botón principal)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -290,26 +294,40 @@ fun Home(
                 }
             }
 
-
-
-            // Botón ¿A dónde vas?
+            // Botón principal - Cambia según si hay destino o no
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(bottom = 24.dp),
                 contentAlignment = Alignment.Center
             ) {
-                CustomButton(
-                    text = stringResource(R.string.a_donde_vas),
-                    color = Azul4,
-                    onClick = {
-                        navController.navigate("planea_viaje")
-                    },
-                    modifier = Modifier
-                        .width(330.dp)
-                        .height(55.dp)
-                        .clip(RoundedCornerShape(15.dp))
-                )
+                if (hasDestination) {
+                    // Botón "IR" verde cuando hay destino
+                    CustomButton(
+                        text = "IR",
+                        color = Verde,
+                        onClick = {
+                            navController.navigate("ruta_opciones/${placeId}/${placeName}")
+                        },
+                        modifier = Modifier
+                            .width(330.dp)
+                            .height(55.dp)
+                            .clip(RoundedCornerShape(15.dp))
+                    )
+                } else {
+                    // Botón "¿A dónde vas?" azul cuando NO hay destino
+                    CustomButton(
+                        text = stringResource(R.string.a_donde_vas),
+                        color = Azul4,
+                        onClick = {
+                            navController.navigate("planea_viaje")
+                        },
+                        modifier = Modifier
+                            .width(330.dp)
+                            .height(55.dp)
+                            .clip(RoundedCornerShape(15.dp))
+                    )
+                }
             }
         }
     }
