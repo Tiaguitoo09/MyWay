@@ -48,7 +48,6 @@ fun RutaOpciones(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    // 🆕 Repositorio de favoritos
     val repository = remember { FavoritesRepository(context) }
 
     var isFavorite by remember { mutableStateOf(false) }
@@ -57,7 +56,6 @@ fun RutaOpciones(
     var selectedMode by remember { mutableStateOf("driving") }
     var isLoading by remember { mutableStateOf(true) }
 
-    // Información de rutas
     var walkingRoute by remember { mutableStateOf<RouteInfo?>(null) }
     var drivingRoute by remember { mutableStateOf<RouteInfo?>(null) }
     var motorcycleRoute by remember { mutableStateOf<RouteInfo?>(null) }
@@ -73,14 +71,13 @@ fun RutaOpciones(
         Places.createClient(context)
     }
 
-    // 🆕 Verificar si ya es favorito al cargar
+    // ✅ Verificar si es favorito (solo si placeId existe y no es "null")
     LaunchedEffect(placeId) {
-        placeId?.let { id ->
-            isFavorite = repository.isFavorite(id)
+        if (!placeId.isNullOrEmpty() && placeId != "null") {
+            isFavorite = repository.isFavorite(placeId)
         }
     }
 
-    // Obtener ubicación actual y destino
     LaunchedEffect(Unit) {
         val fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
         try {
@@ -93,14 +90,13 @@ fun RutaOpciones(
             e.printStackTrace()
         }
 
-        // Obtener destino
-        placeId?.let { id ->
-            val placeFields = listOf(Place.Field.LAT_LNG)
-            val request = FetchPlaceRequest.newInstance(id, placeFields)
+        // ✅ Obtener destino solo si placeId existe y no es "null"
+        if (!placeId.isNullOrEmpty() && placeId != "null") {
+            val placeFields = listOf(Place.Field.LAT_LNG, Place.Field.NAME)
+            val request = FetchPlaceRequest.newInstance(placeId, placeFields)
             placesClient.fetchPlace(request)
                 .addOnSuccessListener { response ->
                     destinationLocation = response.place.latLng
-                    // Calcular todas las rutas
                     scope.launch {
                         destinationLocation?.let { dest ->
                             walkingRoute = getRouteInfo(currentLocation, dest, "walking")
@@ -110,11 +106,27 @@ fun RutaOpciones(
                         }
                     }
                 }
+                .addOnFailureListener {
+                    it.printStackTrace()
+                    isLoading = false
+                    Toast.makeText(
+                        context,
+                        "Error al cargar el lugar",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+        } else {
+            // Si no hay placeId válido
+            isLoading = false
+            Toast.makeText(
+                context,
+                "No se pudo obtener información del lugar",
+                Toast.LENGTH_SHORT
+            ).show()
         }
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        // Mapa de fondo
         GoogleMap(
             modifier = Modifier.fillMaxSize(),
             cameraPositionState = cameraPositionState,
@@ -129,7 +141,6 @@ fun RutaOpciones(
                 Marker(state = MarkerState(position = it))
             }
 
-            // Mostrar ruta seleccionada
             val currentRoute = when (selectedMode) {
                 "walking" -> walkingRoute
                 "driving" -> drivingRoute
@@ -152,7 +163,6 @@ fun RutaOpciones(
             modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            // Encabezado
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 color = Azul4,
@@ -196,7 +206,6 @@ fun RutaOpciones(
                 }
             }
 
-            // Opciones de transporte
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 color = Blanco,
@@ -214,24 +223,24 @@ fun RutaOpciones(
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    // 🆕 Botón de favoritos FUNCIONAL
-                    Button(
-                        onClick = {
-                            scope.launch {
-                                if (isFavorite) {
-                                    // Eliminar de favoritos
-                                    placeId?.let { repository.deleteFavorite(it) }
-                                    isFavorite = false
-                                    Toast.makeText(
-                                        context,
-                                        "Eliminado de favoritos",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
-                                } else {
-                                    // Guardar en favoritos
-                                    placeId?.let { id ->
-                                        val result =
-                                            repository.saveFavorite(id, placeName ?: "Lugar")
+                    // ✅ Solo mostrar favoritos si hay placeId válido
+                    if (!placeId.isNullOrEmpty() && placeId != "null") {
+                        Button(
+                            onClick = {
+                                scope.launch {
+                                    if (isFavorite) {
+                                        repository.deleteFavorite(placeId)
+                                        isFavorite = false
+                                        Toast.makeText(
+                                            context,
+                                            "Eliminado de favoritos",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                    } else {
+                                        val result = repository.saveFavorite(
+                                            placeId,
+                                            placeName ?: "Lugar"
+                                        )
                                         if (result.isSuccess) {
                                             isFavorite = true
                                             Toast.makeText(
@@ -248,49 +257,49 @@ fun RutaOpciones(
                                         }
                                     }
                                 }
-                            }
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(48.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = if (isFavorite)
-                                Azul4 else Azul4.copy(alpha = 0.2f)
-                        ),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Row(
-                            horizontalArrangement = Arrangement.Center,
-                            verticalAlignment = Alignment.CenterVertically
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(48.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (isFavorite)
+                                    Azul4 else Azul4.copy(alpha = 0.2f)
+                            ),
+                            shape = RoundedCornerShape(12.dp)
                         ) {
-                            Icon(
-                                painter = painterResource(
-                                    id = if (isFavorite)
-                                        R.drawable.ic_favorite_filled
+                            Row(
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    painter = painterResource(
+                                        id = if (isFavorite)
+                                            R.drawable.ic_favorite_filled
+                                        else
+                                            R.drawable.ic_favorite_outline
+                                    ),
+                                    contentDescription = "Favorito",
+                                    tint = if (isFavorite) Blanco else Azul4,
+                                    modifier = Modifier.size(24.dp)
+                                )
+
+                                Spacer(modifier = Modifier.width(8.dp))
+
+                                Text(
+                                    text = if (isFavorite)
+                                        "Guardado en favoritos"
                                     else
-                                        R.drawable.ic_favorite_outline
-                                ),
-                                contentDescription = "Favorito",
-                                tint = if (isFavorite) Blanco else Azul4,
-                                modifier = Modifier.size(24.dp)
-                            )
-
-                            Spacer(modifier = Modifier.width(8.dp))
-
-                            Text(
-                                text = if (isFavorite)
-                                    "Guardado en favoritos"
-                                else
-                                    "Guardar en favoritos",
-                                fontFamily = Nunito,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 16.sp,
-                                color = if (isFavorite) Blanco else Azul4
-                            )
+                                        "Guardar en favoritos",
+                                    fontFamily = Nunito,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 16.sp,
+                                    color = if (isFavorite) Blanco else Azul4
+                                )
+                            }
                         }
-                    }
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(16.dp))
+                    }
 
                     if (isLoading) {
                         Box(
@@ -302,7 +311,6 @@ fun RutaOpciones(
                             CircularProgressIndicator(color = Azul4)
                         }
                     } else {
-                        // Opción Caminando
                         TransportOption(
                             icon = R.drawable.ic_walk,
                             title = "Caminando",
@@ -314,7 +322,6 @@ fun RutaOpciones(
 
                         Spacer(modifier = Modifier.height(12.dp))
 
-                        // Opción Carro
                         TransportOption(
                             icon = R.drawable.ic_car,
                             title = "En carro",
@@ -326,7 +333,6 @@ fun RutaOpciones(
 
                         Spacer(modifier = Modifier.height(12.dp))
 
-                        // Opción Moto
                         TransportOption(
                             icon = R.drawable.ic_motorcycle,
                             title = "En moto",
@@ -338,14 +344,21 @@ fun RutaOpciones(
 
                         Spacer(modifier = Modifier.height(24.dp))
 
-                        // Botón Iniciar navegación
                         CustomButton(
                             text = "Iniciar navegación",
                             color = Azul4,
                             onClick = {
-                                navController.navigate(
-                                    "navegacion_activa/${placeId}/${placeName}/${selectedMode}"
-                                )
+                                if (!placeId.isNullOrEmpty() && placeId != "null") {
+                                    navController.navigate(
+                                        "navegacion_activa/${placeId}/${placeName}/${selectedMode}"
+                                    )
+                                } else {
+                                    Toast.makeText(
+                                        context,
+                                        "Error: destino no válido",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -444,15 +457,12 @@ suspend fun getRouteInfo(
 
             val response = URL(url).readText()
 
-            // Extraer distancia
             val distancePattern = """"distance"[^}]*"text"\s*:\s*"([^"]+)"""".toRegex()
             val distance = distancePattern.find(response)?.groupValues?.get(1) ?: "N/A"
 
-            // Extraer duración
             val durationPattern = """"duration"[^}]*"text"\s*:\s*"([^"]+)"""".toRegex()
             val duration = durationPattern.find(response)?.groupValues?.get(1) ?: "N/A"
 
-            // Extraer polyline
             val polylinePattern = """"points"\s*:\s*"([^"]+)"""".toRegex()
             val match = polylinePattern.find(response)
             val points = match?.groupValues?.get(1)?.let { PolyUtil.decode(it) } ?: emptyList()

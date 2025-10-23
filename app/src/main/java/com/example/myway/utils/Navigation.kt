@@ -83,28 +83,25 @@ fun MyWayAppNavigation(
             )
         }
 
-        // 🗺️ HOME - Con destino seleccionado (con parámetros)
-        composable(
-            route = "home/{placeId}/{placeName}",
-            arguments = listOf(
-                navArgument("placeId") {
-                    type = NavType.StringType
-                },
-                navArgument("placeName") {
-                    type = NavType.StringType
-                    nullable = true
-                    defaultValue = null
-                }
-            )
-        ) { backStackEntry ->
-            val placeId = backStackEntry.arguments?.getString("placeId")
-            val placeName = backStackEntry.arguments?.getString("placeName")
-            Home(
-                navController = navController,
-                placeId = placeId,
-                placeName = placeName
-            )
-        }
+        // 🏨 HOME - mostrar lugares por tipo (hotel, restaurante, parque, etc.)
+            composable(
+                route = "home/{placeType}",
+                arguments = listOf(
+                    navArgument("placeType") {
+                        type = NavType.StringType
+                    }
+                )
+            ) { backStackEntry ->
+                val placeType = backStackEntry.arguments?.getString("placeType")
+                Home(
+                    navController = navController,
+                    placeType = placeType, // 👈 se lo pasamos al Home
+                    placeId = null,
+                    placeName = null
+                )
+            }
+
+
 
         composable("perfil_ajustes") {
             PerfilAjustes(navController = navController)

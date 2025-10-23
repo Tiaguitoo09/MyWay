@@ -19,7 +19,11 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // 🔑 AGREGA ESTA LÍNEA
+        buildConfigField("String", "MAPS_API_KEY", "\"AIzaSyDQeDHEuDEajRDtKUyNafoay6LfcRe0oso\"")
     }
+
 
     buildTypes {
         release {

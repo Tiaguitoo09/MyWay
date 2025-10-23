@@ -186,7 +186,7 @@
     <string name="a_donde_vamos">¿A dónde vamos?</string>
     <string name="planea_viaje">Planea un viaje</string>
     <string name="activar_permisos">No olvides activar los permisos del Servicio de localización para poder guiarte en tu viaje.</string>
-    <string name="alimentos">Alimentos</string>
+    <string name="alimentos">Restaurantes</string>
     <string name="combustible">Combustible</string>
     <string name="supermercados">Supermercados</string>
     <string name="hoteles">Hoteles</string>
@@ -234,6 +234,10 @@
     <string name="toast_error_guardar_usuario">Error al guardar usuario: %1$s</string>
     <string name="toast_inicio_sesion_google_exitoso">Inicio de sesión con Google exitoso</string>
     <string name="toast_error_iniciar_sesion_google">Error al iniciar sesión con Google</string>
+
+    <string name="recientes_eliminados">Recientes eliminados</string>
+    <string name="no_lugares_recientes">No hay lugares recientes</string>
+    <string name="google_maps_no_instalado">Google Maps no está instalado</string>
 
 
 </resources>

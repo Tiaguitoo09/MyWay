@@ -10,7 +10,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -26,7 +25,6 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.myway.BuildConfig
 import com.example.myway.R
-import com.example.myway.data.models.RecentPlace
 import com.example.myway.data.repository.RecentPlacesRepository
 import com.example.myway.screens.CustomButton
 import com.example.myway.screens.CustomTextField
@@ -43,20 +41,15 @@ import kotlinx.coroutines.launch
 fun PlaneaViaje(navController: NavController) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-
-    // Repository
     val recentPlacesRepository = remember { RecentPlacesRepository() }
 
-    // Estados
     var searchText by remember { mutableStateOf("") }
     var predictions by remember { mutableStateOf<List<AutocompletePrediction>>(emptyList()) }
     var showPredictions by remember { mutableStateOf(false) }
 
-    // Cargar recientes en tiempo real desde Firebase
     val recentPlaces by recentPlacesRepository.getRecentPlacesFlow()
         .collectAsState(initial = emptyList())
 
-    // Inicializar Places API
     val placesClient = remember {
         if (!Places.isInitialized()) {
             Places.initialize(context, BuildConfig.MAPS_API_KEY)
@@ -64,7 +57,6 @@ fun PlaneaViaje(navController: NavController) {
         Places.createClient(context)
     }
 
-    // Buscar predicciones cuando el texto cambia
     LaunchedEffect(searchText) {
         if (searchText.length > 2) {
             delay(500)
@@ -79,7 +71,6 @@ fun PlaneaViaje(navController: NavController) {
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        // Fondo
         Image(
             painter = painterResource(id = R.drawable.fondo2),
             contentDescription = stringResource(R.string.fondo_app),
@@ -161,7 +152,6 @@ fun PlaneaViaje(navController: NavController) {
                     .height(50.dp)
             )
 
-            // Resultados de búsqueda
             if (showPredictions && predictions.isNotEmpty()) {
                 Card(
                     modifier = Modifier
@@ -177,22 +167,16 @@ fun PlaneaViaje(navController: NavController) {
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clickable {
-                                        // ✅ GUARDAR EN RECIENTES
                                         scope.launch {
                                             val placeId = prediction.placeId
-                                            val placeName = prediction
-                                                .getPrimaryText(null)
-                                                .toString()
-                                            val placeAddress = prediction
-                                                .getSecondaryText(null)
-                                                ?.toString() ?: ""
+                                            val placeName = prediction.getPrimaryText(null).toString()
+                                            val placeAddress = prediction.getSecondaryText(null)?.toString() ?: ""
 
                                             recentPlacesRepository.saveRecentPlace(
                                                 placeId = placeId,
                                                 placeName = placeName,
                                                 placeAddress = placeAddress
                                             )
-
                                             navController.navigate("home/${placeId}/${placeName}")
                                         }
                                         showPredictions = false
@@ -218,7 +202,6 @@ fun PlaneaViaje(navController: NavController) {
                     }
                 }
             } else {
-                // Contenido cuando no hay búsqueda
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
@@ -226,7 +209,7 @@ fun PlaneaViaje(navController: NavController) {
                 ) {
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // Botones de categorías
+                    // Botones de categorías (ahora abren Home con placeType)
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             CustomButton(
@@ -248,7 +231,7 @@ fun PlaneaViaje(navController: NavController) {
                                 textColor = Negro,
                                 fontWeight = FontWeight.Normal,
                                 modifier = Modifier.weight(1f),
-                                onClick = { },
+                                onClick = { navController.navigate("home/restaurant") },
                                 icon = painterResource(id = R.drawable.icono_alimentos)
                             )
                         }
@@ -261,9 +244,10 @@ fun PlaneaViaje(navController: NavController) {
                                 textColor = Negro,
                                 fontWeight = FontWeight.Normal,
                                 modifier = Modifier.weight(1f),
-                                onClick = { },
+                                onClick = { navController.navigate("home/gas_station") },
                                 icon = painterResource(id = R.drawable.icono_gasolineria)
                             )
+
                             CustomButton(
                                 alignCenter = false,
                                 text = stringResource(R.string.supermercados),
@@ -272,7 +256,7 @@ fun PlaneaViaje(navController: NavController) {
                                 textColor = Negro,
                                 fontWeight = FontWeight.Normal,
                                 modifier = Modifier.weight(1f),
-                                onClick = { },
+                                onClick = { navController.navigate("home/supermarket") },
                                 icon = painterResource(id = R.drawable.icono_supermercados)
                             )
                         }
@@ -285,9 +269,10 @@ fun PlaneaViaje(navController: NavController) {
                                 textColor = Negro,
                                 fontWeight = FontWeight.Normal,
                                 modifier = Modifier.weight(1f),
-                                onClick = { },
+                                onClick = { navController.navigate("home/lodging") },
                                 icon = painterResource(id = R.drawable.icono_hoteles)
                             )
+
                             CustomButton(
                                 alignCenter = false,
                                 text = stringResource(R.string.parques),
@@ -296,7 +281,7 @@ fun PlaneaViaje(navController: NavController) {
                                 textColor = Negro,
                                 fontWeight = FontWeight.Normal,
                                 modifier = Modifier.weight(1f),
-                                onClick = { },
+                                onClick = { navController.navigate("home/park") },
                                 icon = painterResource(id = R.drawable.icono_parques)
                             )
                         }
@@ -304,7 +289,7 @@ fun PlaneaViaje(navController: NavController) {
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // ✅ SECCIÓN RECIENTES
+                    // Recientes
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -322,7 +307,7 @@ fun PlaneaViaje(navController: NavController) {
 
                         if (recentPlaces.isNotEmpty()) {
                             Text(
-                                text = "Limpiar",
+                                text = stringResource(R.string.limpiar),
                                 color = Blanco.copy(alpha = 0.7f),
                                 fontFamily = Nunito,
                                 fontWeight = FontWeight.Normal,
@@ -332,7 +317,7 @@ fun PlaneaViaje(navController: NavController) {
                                         recentPlacesRepository.clearAllRecents()
                                         Toast.makeText(
                                             context,
-                                            "Recientes eliminados",
+                                            context.getString(R.string.recientes_eliminados),
                                             Toast.LENGTH_SHORT
                                         ).show()
                                     }
@@ -341,10 +326,9 @@ fun PlaneaViaje(navController: NavController) {
                         }
                     }
 
-                    // Mostrar recientes desde Firebase
                     if (recentPlaces.isEmpty()) {
                         Text(
-                            text = "No hay lugares recientes",
+                            text = stringResource(R.string.no_lugares_recientes),
                             color = Blanco.copy(alpha = 0.7f),
                             fontFamily = Nunito,
                             fontSize = 14.sp,
@@ -385,6 +369,7 @@ fun PlaneaViaje(navController: NavController) {
     }
 }
 
+// 🔹 Función búsqueda
 private fun searchPlaces(
     placesClient: PlacesClient,
     query: String,
@@ -397,11 +382,6 @@ private fun searchPlaces(
         .build()
 
     placesClient.findAutocompletePredictions(request)
-        .addOnSuccessListener { response ->
-            onResult(response.autocompletePredictions)
-        }
-        .addOnFailureListener { exception ->
-            exception.printStackTrace()
-            onResult(emptyList())
-        }
+        .addOnSuccessListener { response -> onResult(response.autocompletePredictions) }
+        .addOnFailureListener { onResult(emptyList()) }
 }
