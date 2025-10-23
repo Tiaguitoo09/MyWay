@@ -64,6 +64,12 @@ fun PerfilAjustes(navController: NavController) {
 
     var fotoPerfilUrl by remember { mutableStateOf(UsuarioTemporal.fotoUrl) }
 
+    // Verificar si el usuario se autenticó con Google
+    val user = FirebaseAuth.getInstance().currentUser
+    val isGoogleUser = user?.providerData?.any {
+        it.providerId == "google.com"
+    } ?: false
+
     // 📷 Abrir galería
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -168,7 +174,18 @@ fun PerfilAjustes(navController: NavController) {
                     .border(width = 6.dp, color = Blanco, shape = CircleShape)
                     .clip(CircleShape)
                     .clickable {
-                        if (!isUploading) showDialog = true
+                        if (!isUploading) {
+                            if (isGoogleUser) {
+                                // Mostrar mensaje si es usuario de Google
+                                Toast.makeText(
+                                    context,
+                                    "No puedes cambiar la foto de tu cuenta de Google",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            } else {
+                                showDialog = true
+                            }
+                        }
                     },
                 contentAlignment = Alignment.Center
             ) {
@@ -299,7 +316,8 @@ fun PerfilAjustes(navController: NavController) {
         }
     }
 
-    if (showDialog) {
+    // Solo mostrar el diálogo si NO es usuario de Google
+    if (showDialog && !isGoogleUser) {
         AlertDialog(
             onDismissRequest = { showDialog = false },
             title = { Text(stringResource(id = R.string.cambiar_foto_perfil)) },
