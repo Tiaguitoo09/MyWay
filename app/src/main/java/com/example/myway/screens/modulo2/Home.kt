@@ -30,6 +30,7 @@ import com.example.myway.BuildConfig
 import com.example.myway.R
 import com.example.myway.components.LocationPermissionBanner
 import com.example.myway.components.SafetyWarningOverlay
+import com.example.myway.data.repository.RecentPlacesRepository
 import com.example.myway.screens.CustomButton
 import com.example.myway.ui.theme.*
 import com.example.myway.utils.DrivingDetector
@@ -49,7 +50,6 @@ import org.json.JSONObject
 import java.net.URL
 import java.net.URLEncoder
 
-// Data class de lugares cercanos
 data class NearbyPlace(
     val placeId: String,
     val name: String,
@@ -65,13 +65,12 @@ fun Home(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val recentPlacesRepository = remember { RecentPlacesRepository() }
 
-    // SharedPreferences para modo copiloto
     val sharedPreferences = remember {
         context.getSharedPreferences("MyWayPrefs", Context.MODE_PRIVATE)
     }
 
-    // Permisos - Verificar continuamente
     var hasLocationPermission by remember {
         mutableStateOf(
             ContextCompat.checkSelfPermission(
@@ -81,7 +80,6 @@ fun Home(
         )
     }
 
-    // Verificar permisos periódicamente cuando la app vuelve al primer plano
     val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
         val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
@@ -99,19 +97,16 @@ fun Home(
         }
     }
 
-    // Estado de conducción y modo copiloto
     val isDriving by DrivingDetector.isDriving.collectAsState()
     var modoCopiloto by remember {
         mutableStateOf(sharedPreferences.getBoolean("modo_copiloto", false))
     }
 
-    // Actualizar modo copiloto cuando cambie en SharedPreferences
     LaunchedEffect(Unit) {
-        kotlinx.coroutines.delay(100) // Pequeño delay para asegurar que se cargue
+        kotlinx.coroutines.delay(100)
         modoCopiloto = sharedPreferences.getBoolean("modo_copiloto", false)
     }
 
-    // Calcular si puede usar la app (no conduciendo O modo copiloto activado)
     val canUseApp by remember {
         derivedStateOf {
             !isDriving || modoCopiloto
@@ -140,7 +135,6 @@ fun Home(
         Places.createClient(context)
     }
 
-    // Permiso launcher - Ahora redirige a Permisos de la app
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
@@ -157,12 +151,10 @@ fun Home(
                 )
             }
         } else {
-            // Si rechaza, redirigir a Permisos
             navController.navigate("permisos")
         }
     }
 
-    // Monitorear ubicación continuamente para DrivingDetector
     LaunchedEffect(hasLocationPermission) {
         if (hasLocationPermission) {
             val fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
@@ -183,12 +175,10 @@ fun Home(
         }
     }
 
-    // Actualizar ubicación inicial y mantenerla actualizada
     LaunchedEffect(Unit) {
         if (!hasLocationPermission) {
             permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
         } else {
-            // Obtener ubicación inicial inmediatamente
             updateCurrentLocation(context) { newLocation ->
                 currentLocation = newLocation
                 cameraPositionState.position = CameraPosition.fromLatLngZoom(newLocation, 15f)
@@ -202,10 +192,8 @@ fun Home(
         }
     }
 
-    // Obtener destino Y recalcular ruta cuando cambie la ubicación actual
     LaunchedEffect(placeId, currentLocation) {
         if (hasDestination && destinationLocation != null) {
-            // Si ya tenemos el destino, recalcular la ruta desde la ubicación actual
             scope.launch {
                 val route = getDirections(currentLocation, destinationLocation!!)
                 routePoints = route
@@ -222,7 +210,6 @@ fun Home(
                 }
             }
         } else if (hasDestination) {
-            // Primera vez que se obtiene el destino
             val request = FetchPlaceRequest.newInstance(
                 placeId!!,
                 listOf(Place.Field.LAT_LNG, Place.Field.NAME)
@@ -258,7 +245,6 @@ fun Home(
         }
     }
 
-    // Buscar lugares cercanos
     LaunchedEffect(placeType, currentLocation) {
         if (placeType != null && !hasDestination) {
             scope.launch {
@@ -269,11 +255,8 @@ fun Home(
         }
     }
 
-    // Revisar cambios en modo copiloto cuando se vuelve a esta pantalla
     DisposableEffect(Unit) {
-        onDispose {
-            // Al salir, no hacemos nada
-        }
+        onDispose { }
     }
 
     BackHandler(enabled = true) {}
@@ -297,10 +280,18 @@ fun Home(
                     title = destinationName ?: stringResource(R.string.destino),
                     snippet = "Toca para ver opciones de ruta",
                     onClick = {
-                        // Actualizar estado del modo copiloto
                         modoCopiloto = sharedPreferences.getBoolean("modo_copiloto", false)
 
                         if (!isDriving || modoCopiloto) {
+                            scope.launch {
+                                recentPlacesRepository.saveRecentPlace(
+                                    placeId = placeId ?: "",
+                                    placeName = destinationName ?: placeName ?: "Destino",
+                                    placeAddress = "",
+                                    latitude = destination.latitude,
+                                    longitude = destination.longitude
+                                )
+                            }
                             navController.navigate("ruta_opciones/${placeId}/${placeName}")
                         } else {
                             showWarningOverlay = true
@@ -315,10 +306,18 @@ fun Home(
                     state = MarkerState(position = place.latLng),
                     title = place.name,
                     onClick = {
-                        // Actualizar estado del modo copiloto
                         modoCopiloto = sharedPreferences.getBoolean("modo_copiloto", false)
 
                         if (!isDriving || modoCopiloto) {
+                            scope.launch {
+                                recentPlacesRepository.saveRecentPlace(
+                                    placeId = place.placeId,
+                                    placeName = place.name,
+                                    placeAddress = "",
+                                    latitude = place.latLng.latitude,
+                                    longitude = place.latLng.longitude
+                                )
+                            }
                             val encodedName = URLEncoder.encode(place.name, "UTF-8")
                             navController.navigate("ruta_opciones/${place.placeId}/${encodedName}")
                         } else {
@@ -338,12 +337,10 @@ fun Home(
             }
         }
 
-        // Overlay de seguridad
         if (showWarningOverlay && isDriving && !modoCopiloto) {
             SafetyWarningOverlay(onDismiss = { showWarningOverlay = false })
         }
 
-        // Banner de permisos de ubicación (en la parte superior del mapa)
         if (!hasLocationPermission) {
             Box(
                 modifier = Modifier
@@ -359,7 +356,6 @@ fun Home(
             }
         }
 
-        // Interfaz
         Column(
             modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally
@@ -394,7 +390,6 @@ fun Home(
 
             Spacer(modifier = Modifier.weight(1f))
 
-            // Botón centrar ubicación
             Box(
                 modifier = Modifier.fillMaxWidth().padding(end = 24.dp, bottom = 16.dp),
                 contentAlignment = Alignment.CenterEnd
@@ -408,7 +403,6 @@ fun Home(
                                     CameraPosition.fromLatLngZoom(currentLocation, 15f)
                             }
                         } else {
-                            // Redirigir a Permisos de la app
                             navController.navigate("permisos")
                         }
                     },
@@ -427,7 +421,6 @@ fun Home(
                 }
             }
 
-            // Botones inferiores
             Box(
                 modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp),
                 contentAlignment = Alignment.Center
@@ -463,10 +456,20 @@ fun Home(
                                 text = "IR",
                                 color = Verde,
                                 onClick = {
-                                    // Actualizar estado del modo copiloto antes de navegar
                                     modoCopiloto = sharedPreferences.getBoolean("modo_copiloto", false)
 
                                     if (!isDriving || modoCopiloto) {
+                                        scope.launch {
+                                            destinationLocation?.let { dest ->
+                                                recentPlacesRepository.saveRecentPlace(
+                                                    placeId = placeId ?: "",
+                                                    placeName = destinationName ?: placeName ?: "Destino",
+                                                    placeAddress = "",
+                                                    latitude = dest.latitude,
+                                                    longitude = dest.longitude
+                                                )
+                                            }
+                                        }
                                         navController.navigate("ruta_opciones/${placeId}/${placeName}")
                                     } else {
                                         showWarningOverlay = true
@@ -497,7 +500,6 @@ fun Home(
                             text = stringResource(R.string.a_donde_vas),
                             color = if (!isDriving || modoCopiloto) Azul4 else Azul4.copy(alpha = 0.6f),
                             onClick = {
-                                // Actualizar estado del modo copiloto antes de verificar
                                 modoCopiloto = sharedPreferences.getBoolean("modo_copiloto", false)
 
                                 if (!isDriving || modoCopiloto) {
@@ -516,16 +518,13 @@ fun Home(
     }
 }
 
-// Función para actualizar ubicación con mejor manejo
 private fun updateCurrentLocation(context: android.content.Context, onUpdate: (LatLng) -> Unit) {
     val fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
     try {
-        // Primero intentar obtener la última ubicación conocida
         fusedLocationClient.lastLocation.addOnSuccessListener { location ->
             if (location != null) {
                 onUpdate(LatLng(location.latitude, location.longitude))
             } else {
-                // Si no hay última ubicación, solicitar una actualización única
                 val locationRequest = LocationRequest.Builder(
                     Priority.PRIORITY_HIGH_ACCURACY,
                     1000L
@@ -552,7 +551,6 @@ private fun updateCurrentLocation(context: android.content.Context, onUpdate: (L
     }
 }
 
-// Buscar lugares cercanos
 suspend fun fetchNearbyPlaces(
     placesClient: PlacesClient,
     location: LatLng,
@@ -589,7 +587,6 @@ suspend fun fetchNearbyPlaces(
     }
 }
 
-// Obtener ruta
 suspend fun getDirections(origin: LatLng, destination: LatLng): List<LatLng> {
     return withContext(Dispatchers.IO) {
         try {

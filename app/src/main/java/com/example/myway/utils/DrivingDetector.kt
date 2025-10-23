@@ -19,7 +19,7 @@ object DrivingDetector {
 
     // Configuración de detección
     private const val DRIVING_SPEED_THRESHOLD = 5.0 // m/s (~18 km/h)
-    private const val HIGH_SPEED_THRESHOLD = 15.0 // m/s (~54 km/h)
+    private const val HIGH_SPEED_THRESHOLD = 1.5 // m/s (~54 km/h)
     private const val ACCELERATION_THRESHOLD = 2.0 // m/s²
 
     // Historial de ubicaciones
@@ -32,10 +32,34 @@ object DrivingDetector {
     private var stoppedDetectionCount = 0
     private const val DETECTION_THRESHOLD = 3 // Requiere 3 detecciones consecutivas
 
+    // Context para acceder a SharedPreferences
+    private var context: Context? = null
+
+    /**
+     * Inicializa el detector con el contexto de la aplicación
+     * DEBE ser llamado en onCreate() de MainActivity
+     */
+    fun initialize(appContext: Context) {
+        context = appContext.applicationContext
+    }
+
     /**
      * Actualiza la ubicación y analiza si está conduciendo
      */
     fun updateLocation(location: Location) {
+        // ✅ PRIMERO: Verificar si modo copiloto está activo
+        val modoCopiloto = context?.getSharedPreferences("MyWayPrefs", Context.MODE_PRIVATE)
+            ?.getBoolean("modo_copiloto", false) ?: false
+
+        // Si modo copiloto está ON, siempre marcar como NO conduciendo
+        if (modoCopiloto) {
+            _isDriving.value = false
+            drivingDetectionCount = 0
+            stoppedDetectionCount = 0
+            return
+        }
+
+        // ✅ SEGUNDO: Detección normal de conducción
         val currentTime = System.currentTimeMillis()
 
         lastLocation?.let { last ->
@@ -90,6 +114,21 @@ object DrivingDetector {
 
         // Permitir uso si no está conduciendo O si modo copiloto está activo
         return !_isDriving.value || modoCopiloto
+    }
+
+    /**
+     * Fuerza la verificación del modo copiloto
+     * Útil cuando se activa/desactiva el modo copiloto
+     */
+    fun checkCopilotMode() {
+        val modoCopiloto = context?.getSharedPreferences("MyWayPrefs", Context.MODE_PRIVATE)
+            ?.getBoolean("modo_copiloto", false) ?: false
+
+        if (modoCopiloto) {
+            _isDriving.value = false
+            drivingDetectionCount = 0
+            stoppedDetectionCount = 0
+        }
     }
 
     /**

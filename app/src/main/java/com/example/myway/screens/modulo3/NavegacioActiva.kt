@@ -69,8 +69,8 @@ fun NavegacionActiva(
         )
     }
 
-    // IMPORTANTE: No usar ubicación por defecto, esperar la ubicación real
     var currentLocation by remember { mutableStateOf<LatLng?>(null) }
+    var currentBearing by remember { mutableFloatStateOf(0f) }
     var destinationLocation by remember { mutableStateOf<LatLng?>(null) }
     var routePoints by remember { mutableStateOf<List<LatLng>>(emptyList()) }
     var currentStep by remember { mutableStateOf<NavigationStep?>(null) }
@@ -85,7 +85,6 @@ fun NavegacionActiva(
     var followUserLocation by remember { mutableStateOf(true) }
     var isInitialLocationSet by remember { mutableStateOf(false) }
 
-    // Cámara con posición inicial temporal (se actualizará con ubicación real)
     val cameraPositionState = rememberCameraPositionState {
         position = CameraPosition.fromLatLngZoom(LatLng(4.7110, -74.0721), 15f)
     }
@@ -107,19 +106,16 @@ fun NavegacionActiva(
                 result.lastLocation?.let { location ->
                     val currentTime = System.currentTimeMillis()
 
-                    // Filtro de precisión
                     if (location.accuracy > 50f) {
                         return
                     }
 
-                    // Filtro de tiempo (no actualizar muy frecuentemente)
                     if (currentTime - lastUpdateTime < 2000 && isInitialLocationSet) {
                         return
                     }
 
                     val newLocation = LatLng(location.latitude, location.longitude)
 
-                    // Filtro de velocidad (evitar saltos)
                     lastKnownLocation?.let { lastLoc ->
                         val distance = calculateDistance(lastLoc, newLocation)
                         val timeDiff = (currentTime - lastUpdateTime) / 1000f
@@ -129,13 +125,22 @@ fun NavegacionActiva(
                                 return
                             }
                         }
-                    }
 
+                        // Calcular bearing manualmente si el GPS no lo proporciona
+                        if (distance > 2f) { // Solo actualizar si nos movimos al menos 2 metros
+                            val calculatedBearing = calculateBearing(lastLoc, newLocation)
+                            currentBearing = calculatedBearing
+                        }
+                    } ?: run {
+                        // Primera vez, usar bearing del GPS si está disponible
+                        if (location.bearing != 0f) {
+                            currentBearing = location.bearing
+                        }
+                    }
                     lastKnownLocation = newLocation
                     lastUpdateTime = currentTime
                     currentLocation = newLocation
 
-                    // Primera vez: centrar inmediatamente
                     if (!isInitialLocationSet) {
                         isInitialLocationSet = true
                         scope.launch {
@@ -155,7 +160,6 @@ fun NavegacionActiva(
                             }
                         }
                     } else if (followUserLocation) {
-                        // Actualizaciones subsecuentes: animar
                         scope.launch {
                             try {
                                 cameraPositionState.animate(
@@ -163,7 +167,7 @@ fun NavegacionActiva(
                                         CameraPosition.Builder()
                                             .target(newLocation)
                                             .zoom(17f)
-                                            .bearing(location.bearing)
+                                            .bearing(currentBearing) // Usar bearing calculado
                                             .tilt(45f)
                                             .build()
                                     ),
@@ -175,10 +179,26 @@ fun NavegacionActiva(
                         }
                     }
 
-                    // Actualizar distancia al destino
                     destinationLocation?.let { dest ->
                         val dist = calculateDistance(newLocation, dest)
                         distanceToDestination = formatDistance(dist)
+                    }
+
+                    if (allSteps.isNotEmpty() && routePoints.isNotEmpty()) {
+                        updateNavigationStep(
+                            newLocation,
+                            routePoints,
+                            allSteps,
+                            currentStepIndex
+                        ) { newIndex ->
+                            if (newIndex != currentStepIndex && newIndex < allSteps.size) {
+                                currentStepIndex = newIndex
+                                currentStep = allSteps[newIndex]
+                                nextStep = if (newIndex + 1 < allSteps.size) {
+                                    allSteps[newIndex + 1]
+                                } else null
+                            }
+                        }
                     }
                 }
             }
@@ -190,12 +210,12 @@ fun NavegacionActiva(
     ) { isGranted ->
         hasLocationPermission = isGranted
         if (isGranted) {
-            // Obtener ubicación inmediatamente después de otorgar permiso
             try {
                 fusedLocationClient.lastLocation.addOnSuccessListener { location ->
                     location?.let {
                         val newLoc = LatLng(it.latitude, it.longitude)
                         currentLocation = newLoc
+                        currentBearing = it.bearing
                         isInitialLocationSet = true
                         scope.launch {
                             cameraPositionState.move(
@@ -210,22 +230,20 @@ fun NavegacionActiva(
         }
     }
 
-    // Detectar cuando el usuario mueve el mapa manualmente
     LaunchedEffect(cameraPositionState.isMoving) {
         if (cameraPositionState.isMoving) {
             followUserLocation = false
         }
     }
 
-    // Obtener ubicación inicial INMEDIATAMENTE
     LaunchedEffect(hasLocationPermission) {
         if (hasLocationPermission) {
-            // Primero: intentar obtener última ubicación conocida
             try {
                 fusedLocationClient.lastLocation.addOnSuccessListener { location ->
                     location?.let {
                         val newLoc = LatLng(it.latitude, it.longitude)
                         currentLocation = newLoc
+                        currentBearing = it.bearing
                         lastKnownLocation = newLoc
                         isInitialLocationSet = true
 
@@ -235,7 +253,7 @@ fun NavegacionActiva(
                                     CameraPosition.Builder()
                                         .target(newLoc)
                                         .zoom(17f)
-                                        .bearing(it.bearing)
+                                        .bearing(currentBearing) // Usar bearing calculado
                                         .tilt(45f)
                                         .build()
                                 )
@@ -247,15 +265,14 @@ fun NavegacionActiva(
                 e.printStackTrace()
             }
 
-            // Segundo: configurar actualizaciones continuas
             val locationRequest = LocationRequest.Builder(
                 Priority.PRIORITY_HIGH_ACCURACY,
-                3000L
+                2000L // Actualizar cada 2 segundos
             ).apply {
-                setMinUpdateIntervalMillis(2000L)
-                setMaxUpdateDelayMillis(5000L)
+                setMinUpdateIntervalMillis(1000L) // Mínimo 1 segundo
+                setMaxUpdateDelayMillis(3000L)
                 setWaitForAccurateLocation(true)
-                setMinUpdateDistanceMeters(3f)
+                setMinUpdateDistanceMeters(1f) // Actualizar cada 1 metro
             }.build()
 
             try {
@@ -272,7 +289,6 @@ fun NavegacionActiva(
         }
     }
 
-    // Obtener destino y calcular ruta SOLO cuando tengamos ubicación actual
     LaunchedEffect(placeId, currentLocation) {
         if (placeId != null && currentLocation != null) {
             val placeFields = listOf(Place.Field.LAT_LNG)
@@ -292,7 +308,6 @@ fun NavegacionActiva(
                                 else -> "driving"
                             }
 
-                            // Usar la ubicación actual real, NO una por defecto
                             val routeData = getNavigationRoute(currentLocation!!, dest, mode)
                             routePoints = routeData.first
                             allSteps = routeData.second
@@ -304,7 +319,6 @@ fun NavegacionActiva(
                                 }
                             }
 
-                            // Calcular distancia inicial
                             val dist = calculateDistance(currentLocation!!, dest)
                             distanceToDestination = formatDistance(dist)
                         }
@@ -324,17 +338,16 @@ fun NavegacionActiva(
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        // Solo mostrar mapa cuando tengamos ubicación
         if (currentLocation != null) {
             EnhancedNavigationMap(
                 currentLocation = currentLocation!!,
                 destinationLocation = destinationLocation,
                 routePoints = routePoints,
                 placeName = placeName,
-                cameraPositionState = cameraPositionState
+                cameraPositionState = cameraPositionState,
+                currentBearing = currentBearing
             )
         } else {
-            // Pantalla de carga mientras se obtiene ubicación
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
@@ -358,7 +371,6 @@ fun NavegacionActiva(
             modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            // Panel superior COMPACTO
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 color = Azul4,
@@ -405,7 +417,6 @@ fun NavegacionActiva(
                         }
                     }
 
-                    // Instrucción actual
                     currentStep?.let { step ->
                         Spacer(modifier = Modifier.height(8.dp))
                         Row(
@@ -438,7 +449,6 @@ fun NavegacionActiva(
                         }
                     }
 
-                    // Siguiente paso
                     nextStep?.let { step ->
                         Spacer(modifier = Modifier.height(6.dp))
                         HorizontalDivider(
@@ -470,7 +480,6 @@ fun NavegacionActiva(
                 }
             }
 
-            // Botón para centrar ubicación
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -490,7 +499,7 @@ fun NavegacionActiva(
                                                 CameraPosition.Builder()
                                                     .target(loc)
                                                     .zoom(17f)
-                                                    .bearing(0f)
+                                                    .bearing(currentBearing)
                                                     .tilt(45f)
                                                     .build()
                                             ),
@@ -529,8 +538,15 @@ fun EnhancedNavigationMap(
     destinationLocation: LatLng?,
     routePoints: List<LatLng>,
     placeName: String?,
-    cameraPositionState: CameraPositionState
+    cameraPositionState: CameraPositionState,
+    currentBearing: Float
 ) {
+    val currentMarkerState = rememberMarkerState(position = currentLocation)
+
+    LaunchedEffect(currentLocation) {
+        currentMarkerState.position = currentLocation
+    }
+
     GoogleMap(
         modifier = Modifier.fillMaxSize(),
         cameraPositionState = cameraPositionState,
@@ -575,10 +591,11 @@ fun EnhancedNavigationMap(
         )
 
         Marker(
-            state = MarkerState(position = currentLocation),
+            state = currentMarkerState,
             icon = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE),
             anchor = Offset(0.5f, 0.5f),
-            flat = true
+            flat = true,
+            rotation = currentBearing
         )
 
         destinationLocation?.let {
@@ -588,6 +605,33 @@ fun EnhancedNavigationMap(
                 icon = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED)
             )
         }
+    }
+}
+
+fun updateNavigationStep(
+    currentLocation: LatLng,
+    routePoints: List<LatLng>,
+    steps: List<NavigationStep>,
+    currentIndex: Int,
+    onStepChanged: (Int) -> Unit
+) {
+    var minDistance = Float.MAX_VALUE
+    var closestIndex = 0
+
+    routePoints.forEachIndexed { index, point ->
+        val distance = calculateDistance(currentLocation, point)
+        if (distance < minDistance) {
+            minDistance = distance
+            closestIndex = index
+        }
+    }
+
+    val progressPercentage = closestIndex.toFloat() / routePoints.size
+    val stepSize = 1f / steps.size
+    val estimatedStepIndex = (progressPercentage / stepSize).toInt().coerceIn(0, steps.size - 1)
+
+    if (estimatedStepIndex > currentIndex) {
+        onStepChanged(estimatedStepIndex)
     }
 }
 
@@ -688,6 +732,17 @@ fun calculateDistance(from: LatLng, to: LatLng): Float {
         results
     )
     return results[0]
+}
+
+fun calculateBearing(from: LatLng, to: LatLng): Float {
+    val results = FloatArray(2)
+    Location.distanceBetween(
+        from.latitude, from.longitude,
+        to.latitude, to.longitude,
+        results
+    )
+    // results[1] contiene el bearing inicial
+    return if (results.size > 1) results[1] else 0f
 }
 
 fun formatDistance(distance: Float): String {
