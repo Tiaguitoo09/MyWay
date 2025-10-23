@@ -1,6 +1,7 @@
 package com.example.myway.screens.modulo2
 
 import android.Manifest
+import android.content.Context
 import android.content.pm.PackageManager
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -27,9 +28,12 @@ import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
 import com.example.myway.BuildConfig
 import com.example.myway.R
+import com.example.myway.components.LocationPermissionBanner
+import com.example.myway.components.SafetyWarningOverlay
 import com.example.myway.screens.CustomButton
 import com.example.myway.ui.theme.*
-import com.google.android.gms.location.LocationServices
+import com.example.myway.utils.DrivingDetector
+import com.google.android.gms.location.*
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.libraries.places.api.Places
@@ -45,7 +49,7 @@ import org.json.JSONObject
 import java.net.URL
 import java.net.URLEncoder
 
-// 🆕 Data class para lugares cercanos
+// Data class de lugares cercanos
 data class NearbyPlace(
     val placeId: String,
     val name: String,
@@ -62,6 +66,12 @@ fun Home(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
+    // SharedPreferences para modo copiloto
+    val sharedPreferences = remember {
+        context.getSharedPreferences("MyWayPrefs", Context.MODE_PRIVATE)
+    }
+
+    // Permisos - Verificar continuamente
     var hasLocationPermission by remember {
         mutableStateOf(
             ContextCompat.checkSelfPermission(
@@ -70,6 +80,45 @@ fun Home(
             ) == PackageManager.PERMISSION_GRANTED
         )
     }
+
+    // Verificar permisos periódicamente cuando la app vuelve al primer plano
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                hasLocationPermission = ContextCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.ACCESS_FINE_LOCATION
+                ) == PackageManager.PERMISSION_GRANTED
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
+    // Estado de conducción y modo copiloto
+    val isDriving by DrivingDetector.isDriving.collectAsState()
+    var modoCopiloto by remember {
+        mutableStateOf(sharedPreferences.getBoolean("modo_copiloto", false))
+    }
+
+    // Actualizar modo copiloto cuando cambie en SharedPreferences
+    LaunchedEffect(Unit) {
+        kotlinx.coroutines.delay(100) // Pequeño delay para asegurar que se cargue
+        modoCopiloto = sharedPreferences.getBoolean("modo_copiloto", false)
+    }
+
+    // Calcular si puede usar la app (no conduciendo O modo copiloto activado)
+    val canUseApp by remember {
+        derivedStateOf {
+            !isDriving || modoCopiloto
+        }
+    }
+
+    var showWarningOverlay by remember { mutableStateOf(false) }
 
     val defaultLocation = LatLng(4.7110, -74.0721)
     var currentLocation by remember { mutableStateOf(defaultLocation) }
@@ -91,6 +140,7 @@ fun Home(
         Places.createClient(context)
     }
 
+    // Permiso launcher - Ahora redirige a Permisos de la app
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
@@ -99,23 +149,80 @@ fun Home(
             updateCurrentLocation(context) { newLocation ->
                 currentLocation = newLocation
                 cameraPositionState.position = CameraPosition.fromLatLngZoom(currentLocation, 15f)
+                DrivingDetector.updateLocation(
+                    android.location.Location("").apply {
+                        latitude = newLocation.latitude
+                        longitude = newLocation.longitude
+                    }
+                )
+            }
+        } else {
+            // Si rechaza, redirigir a Permisos
+            navController.navigate("permisos")
+        }
+    }
+
+    // Monitorear ubicación continuamente para DrivingDetector
+    LaunchedEffect(hasLocationPermission) {
+        if (hasLocationPermission) {
+            val fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
+            val request = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 5000L).build()
+            val callback = object : LocationCallback() {
+                override fun onLocationResult(result: LocationResult) {
+                    result.lastLocation?.let {
+                        currentLocation = LatLng(it.latitude, it.longitude)
+                        DrivingDetector.updateLocation(it)
+                    }
+                }
+            }
+            try {
+                fusedLocationClient.requestLocationUpdates(request, callback, null)
+            } catch (e: SecurityException) {
+                e.printStackTrace()
             }
         }
     }
 
+    // Actualizar ubicación inicial y mantenerla actualizada
     LaunchedEffect(Unit) {
         if (!hasLocationPermission) {
             permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
         } else {
+            // Obtener ubicación inicial inmediatamente
             updateCurrentLocation(context) { newLocation ->
                 currentLocation = newLocation
-                cameraPositionState.position = CameraPosition.fromLatLngZoom(currentLocation, 15f)
+                cameraPositionState.position = CameraPosition.fromLatLngZoom(newLocation, 15f)
+                DrivingDetector.updateLocation(
+                    android.location.Location("").apply {
+                        latitude = newLocation.latitude
+                        longitude = newLocation.longitude
+                    }
+                )
             }
         }
     }
 
-    LaunchedEffect(placeId) {
-        if (hasDestination) {
+    // Obtener destino Y recalcular ruta cuando cambie la ubicación actual
+    LaunchedEffect(placeId, currentLocation) {
+        if (hasDestination && destinationLocation != null) {
+            // Si ya tenemos el destino, recalcular la ruta desde la ubicación actual
+            scope.launch {
+                val route = getDirections(currentLocation, destinationLocation!!)
+                routePoints = route
+                if (route.isNotEmpty()) {
+                    cameraPositionState.position = CameraPosition.Builder()
+                        .target(
+                            LatLng(
+                                (currentLocation.latitude + destinationLocation!!.latitude) / 2,
+                                (currentLocation.longitude + destinationLocation!!.longitude) / 2
+                            )
+                        )
+                        .zoom(12f)
+                        .build()
+                }
+            }
+        } else if (hasDestination) {
+            // Primera vez que se obtiene el destino
             val request = FetchPlaceRequest.newInstance(
                 placeId!!,
                 listOf(Place.Field.LAT_LNG, Place.Field.NAME)
@@ -143,9 +250,7 @@ fun Home(
                         }
                     }
                 }
-                .addOnFailureListener {
-                    it.printStackTrace()
-                }
+                .addOnFailureListener { it.printStackTrace() }
         } else {
             destinationLocation = null
             routePoints = emptyList()
@@ -153,7 +258,7 @@ fun Home(
         }
     }
 
-    // ✅ Buscar lugares cercanos reales
+    // Buscar lugares cercanos
     LaunchedEffect(placeType, currentLocation) {
         if (placeType != null && !hasDestination) {
             scope.launch {
@@ -161,6 +266,13 @@ fun Home(
             }
         } else {
             nearbyPlaces = emptyList()
+        }
+    }
+
+    // Revisar cambios en modo copiloto cuando se vuelve a esta pantalla
+    DisposableEffect(Unit) {
+        onDispose {
+            // Al salir, no hacemos nada
         }
     }
 
@@ -173,36 +285,45 @@ fun Home(
             properties = MapProperties(isMyLocationEnabled = hasLocationPermission),
             uiSettings = MapUiSettings(zoomControlsEnabled = false, myLocationButtonEnabled = false)
         ) {
-            // 🔹 Marcador ubicación actual
             Marker(
                 state = MarkerState(position = currentLocation),
                 title = stringResource(R.string.tu_ubicacion),
                 snippet = stringResource(R.string.estas_aqui)
             )
 
-            // 🔹 Marcador destino
             destinationLocation?.let { destination ->
                 Marker(
                     state = MarkerState(position = destination),
                     title = destinationName ?: stringResource(R.string.destino),
                     snippet = "Toca para ver opciones de ruta",
                     onClick = {
-                        navController.navigate("ruta_opciones/${placeId}/${placeName}")
+                        // Actualizar estado del modo copiloto
+                        modoCopiloto = sharedPreferences.getBoolean("modo_copiloto", false)
+
+                        if (!isDriving || modoCopiloto) {
+                            navController.navigate("ruta_opciones/${placeId}/${placeName}")
+                        } else {
+                            showWarningOverlay = true
+                        }
                         true
                     }
                 )
             }
 
-            // 🔹 Marcadores de lugares cercanos → al tocar, navega a ruta_opciones
             nearbyPlaces.forEach { place ->
                 Marker(
                     state = MarkerState(position = place.latLng),
                     title = place.name,
                     onClick = {
-                        val encodedName = URLEncoder.encode(place.name, "UTF-8")
-                        navController.navigate(
-                            "ruta_opciones/${place.placeId}/${encodedName}"
-                        )
+                        // Actualizar estado del modo copiloto
+                        modoCopiloto = sharedPreferences.getBoolean("modo_copiloto", false)
+
+                        if (!isDriving || modoCopiloto) {
+                            val encodedName = URLEncoder.encode(place.name, "UTF-8")
+                            navController.navigate("ruta_opciones/${place.placeId}/${encodedName}")
+                        } else {
+                            showWarningOverlay = true
+                        }
                         true
                     }
                 )
@@ -217,15 +338,34 @@ fun Home(
             }
         }
 
-        // 🔹 Interfaz
+        // Overlay de seguridad
+        if (showWarningOverlay && isDriving && !modoCopiloto) {
+            SafetyWarningOverlay(onDismiss = { showWarningOverlay = false })
+        }
+
+        // Banner de permisos de ubicación (en la parte superior del mapa)
+        if (!hasLocationPermission) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.TopCenter)
+                    .padding(top = 100.dp)
+            ) {
+                LocationPermissionBanner(
+                    onNavigateToPermissions = {
+                        navController.navigate("permisos")
+                    }
+                )
+            }
+        }
+
+        // Interfaz
         Column(
             modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(90.dp),
+                modifier = Modifier.fillMaxWidth().height(90.dp),
                 color = Azul4,
                 shadowElevation = 8.dp,
                 shape = RoundedCornerShape(bottomStart = 40.dp, bottomEnd = 40.dp)
@@ -245,52 +385,51 @@ fun Home(
                             .align(Alignment.TopEnd)
                             .padding(end = 16.dp, top = 16.dp)
                             .size(50.dp)
-                            .clickable { navController.navigate("perfil_ajustes") }
+                            .clickable {
+                                navController.navigate("perfil_ajustes")
+                            }
                     )
                 }
             }
 
             Spacer(modifier = Modifier.weight(1f))
 
-            // 🔹 Botón centrar ubicación
+            // Botón centrar ubicación
             Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(end = 24.dp, bottom = 16.dp),
+                modifier = Modifier.fillMaxWidth().padding(end = 24.dp, bottom = 16.dp),
                 contentAlignment = Alignment.CenterEnd
             ) {
                 Surface(
-                    modifier = Modifier
-                        .size(56.dp)
-                        .clickable {
-                            if (hasLocationPermission) {
-                                updateCurrentLocation(context) { newLoc ->
-                                    currentLocation = newLoc
-                                    cameraPositionState.position =
-                                        CameraPosition.fromLatLngZoom(currentLocation, 15f)
-                                }
-                            } else permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
-                        },
+                    modifier = Modifier.size(56.dp).clickable {
+                        if (hasLocationPermission) {
+                            updateCurrentLocation(context) { newLoc ->
+                                currentLocation = newLoc
+                                cameraPositionState.position =
+                                    CameraPosition.fromLatLngZoom(currentLocation, 15f)
+                            }
+                        } else {
+                            // Redirigir a Permisos de la app
+                            navController.navigate("permisos")
+                        }
+                    },
                     shape = CircleShape,
-                    color = Blanco,
+                    color = if (hasLocationPermission) Blanco else Blanco.copy(alpha = 0.5f),
                     shadowElevation = 4.dp
                 ) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Icon(
                             painter = painterResource(android.R.drawable.ic_menu_mylocation),
                             contentDescription = stringResource(R.string.mi_ubicacion),
-                            tint = Azul4,
+                            tint = if (hasLocationPermission) Azul4 else Azul4.copy(alpha = 0.5f),
                             modifier = Modifier.size(30.dp)
                         )
                     }
                 }
             }
 
-            // 🔹 Botones inferiores
+            // Botones inferiores
             Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 24.dp),
+                modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp),
                 contentAlignment = Alignment.Center
             ) {
                 when {
@@ -301,13 +440,11 @@ fun Home(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Surface(
-                                modifier = Modifier
-                                    .size(55.dp)
-                                    .clickable {
-                                        navController.navigate("home") {
-                                            popUpTo("home") { inclusive = true }
-                                        }
-                                    },
+                                modifier = Modifier.size(55.dp).clickable {
+                                    navController.navigate("home") {
+                                        popUpTo("home") { inclusive = true }
+                                    }
+                                },
                                 shape = RoundedCornerShape(15.dp),
                                 color = Rojo,
                                 shadowElevation = 4.dp
@@ -321,18 +458,21 @@ fun Home(
                                     )
                                 }
                             }
-
                             Spacer(Modifier.width(12.dp))
-
                             CustomButton(
                                 text = "IR",
                                 color = Verde,
                                 onClick = {
-                                    navController.navigate("ruta_opciones/${placeId}/${placeName}")
+                                    // Actualizar estado del modo copiloto antes de navegar
+                                    modoCopiloto = sharedPreferences.getBoolean("modo_copiloto", false)
+
+                                    if (!isDriving || modoCopiloto) {
+                                        navController.navigate("ruta_opciones/${placeId}/${placeName}")
+                                    } else {
+                                        showWarningOverlay = true
+                                    }
                                 },
-                                modifier = Modifier
-                                    .width(260.dp)
-                                    .height(55.dp)
+                                modifier = Modifier.width(260.dp).height(55.dp)
                                     .clip(RoundedCornerShape(15.dp))
                             )
                         }
@@ -347,9 +487,7 @@ fun Home(
                                     popUpTo("home") { inclusive = true }
                                 }
                             },
-                            modifier = Modifier
-                                .width(330.dp)
-                                .height(55.dp)
+                            modifier = Modifier.width(330.dp).height(55.dp)
                                 .clip(RoundedCornerShape(15.dp))
                         )
                     }
@@ -357,13 +495,18 @@ fun Home(
                     else -> {
                         CustomButton(
                             text = stringResource(R.string.a_donde_vas),
-                            color = Azul4,
+                            color = if (!isDriving || modoCopiloto) Azul4 else Azul4.copy(alpha = 0.6f),
                             onClick = {
-                                navController.navigate("planea_viaje")
+                                // Actualizar estado del modo copiloto antes de verificar
+                                modoCopiloto = sharedPreferences.getBoolean("modo_copiloto", false)
+
+                                if (!isDriving || modoCopiloto) {
+                                    navController.navigate("planea_viaje")
+                                } else {
+                                    showWarningOverlay = true
+                                }
                             },
-                            modifier = Modifier
-                                .width(330.dp)
-                                .height(55.dp)
+                            modifier = Modifier.width(330.dp).height(55.dp)
                                 .clip(RoundedCornerShape(15.dp))
                         )
                     }
@@ -373,13 +516,35 @@ fun Home(
     }
 }
 
-// 🔹 Ubicación actual
+// Función para actualizar ubicación con mejor manejo
 private fun updateCurrentLocation(context: android.content.Context, onUpdate: (LatLng) -> Unit) {
     val fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
     try {
+        // Primero intentar obtener la última ubicación conocida
         fusedLocationClient.lastLocation.addOnSuccessListener { location ->
-            location?.let {
-                onUpdate(LatLng(it.latitude, it.longitude))
+            if (location != null) {
+                onUpdate(LatLng(location.latitude, location.longitude))
+            } else {
+                // Si no hay última ubicación, solicitar una actualización única
+                val locationRequest = LocationRequest.Builder(
+                    Priority.PRIORITY_HIGH_ACCURACY,
+                    1000L
+                ).build()
+
+                val callback = object : LocationCallback() {
+                    override fun onLocationResult(result: LocationResult) {
+                        result.lastLocation?.let {
+                            onUpdate(LatLng(it.latitude, it.longitude))
+                            fusedLocationClient.removeLocationUpdates(this)
+                        }
+                    }
+                }
+
+                try {
+                    fusedLocationClient.requestLocationUpdates(locationRequest, callback, null)
+                } catch (e: SecurityException) {
+                    e.printStackTrace()
+                }
             }
         }
     } catch (e: SecurityException) {
@@ -387,7 +552,7 @@ private fun updateCurrentLocation(context: android.content.Context, onUpdate: (L
     }
 }
 
-// 🔹 Buscar lugares cercanos reales (AHORA CON place_id)
+// Buscar lugares cercanos
 suspend fun fetchNearbyPlaces(
     placesClient: PlacesClient,
     location: LatLng,
@@ -398,9 +563,7 @@ suspend fun fetchNearbyPlaces(
             val apiKey = BuildConfig.MAPS_API_KEY
             val url = "https://maps.googleapis.com/maps/api/place/nearbysearch/json?" +
                     "location=${location.latitude},${location.longitude}" +
-                    "&radius=2000" +
-                    "&type=$type" +
-                    "&key=$apiKey"
+                    "&radius=2000&type=$type&key=$apiKey"
 
             val response = URL(url).readText()
             val json = JSONObject(response)
@@ -416,11 +579,7 @@ suspend fun fetchNearbyPlaces(
                 val lng = loc?.optDouble("lng")
 
                 if (placeId.isNotEmpty() && lat != null && lng != null) {
-                    NearbyPlace(
-                        placeId = placeId,
-                        name = name,
-                        latLng = LatLng(lat, lng)
-                    )
+                    NearbyPlace(placeId, name, LatLng(lat, lng))
                 } else null
             }
         } catch (e: Exception) {
@@ -430,7 +589,7 @@ suspend fun fetchNearbyPlaces(
     }
 }
 
-// 🔹 Ruta entre puntos
+// Obtener ruta
 suspend fun getDirections(origin: LatLng, destination: LatLng): List<LatLng> {
     return withContext(Dispatchers.IO) {
         try {
@@ -441,11 +600,8 @@ suspend fun getDirections(origin: LatLng, destination: LatLng): List<LatLng> {
                     "&key=$apiKey"
 
             val response = URL(url).readText()
-            val polylinePattern = """"points"\s*:\s*"([^"]+)"""".toRegex()
-            val match = polylinePattern.find(response)
-            match?.groupValues?.get(1)?.let { encodedPolyline ->
-                PolyUtil.decode(encodedPolyline)
-            } ?: emptyList()
+            val match = """"points"\s*:\s*"([^"]+)"""".toRegex().find(response)
+            match?.groupValues?.get(1)?.let { PolyUtil.decode(it) } ?: emptyList()
         } catch (e: Exception) {
             e.printStackTrace()
             emptyList()

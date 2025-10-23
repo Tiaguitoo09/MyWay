@@ -251,7 +251,7 @@ fun PlaneaViaje(navController: NavController) {
                             CustomButton(
                                 alignCenter = false,
                                 text = stringResource(R.string.supermercados),
-                                fontSize = 14.sp,
+                                fontSize = 13.5.sp,
                                 color = Blanco,
                                 textColor = Negro,
                                 fontWeight = FontWeight.Normal,

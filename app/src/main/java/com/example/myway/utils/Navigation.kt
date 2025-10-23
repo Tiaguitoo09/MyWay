@@ -12,21 +12,8 @@ import com.example.myway.screens.modulo1.IngresoUsuario
 import com.example.myway.screens.modulo1.InicioPantalla
 import com.example.myway.screens.modulo1.OlvidoContraseña
 import com.example.myway.screens.modulo1.RegistroUsuario
-import com.example.myway.screens.modulo2.Cargando
-import com.example.myway.screens.modulo2.CerrarSesion
-import com.example.myway.screens.modulo2.EliminarCuenta
-import com.example.myway.screens.modulo2.Home
-import com.example.myway.screens.modulo2.PerfilAjustes
-import com.example.myway.screens.modulo2.Ajustes
-import com.example.myway.screens.modulo2.Soporte
-import com.example.myway.screens.modulo2.VerPerfil
-import com.example.myway.screens.modulo2.SilenciarNotificaciones
-import com.example.myway.screens.modulo3.DetallesLugar
-import com.example.myway.screens.modulo3.Favoritos
-import com.example.myway.screens.modulo3.PlaneaViaje
-import com.example.myway.screens.modulo3.Guardados
-import com.example.myway.screens.modulo3.RutaOpciones
-import com.example.myway.screens.modulo3.NavegacionActiva
+import com.example.myway.screens.modulo2.*
+import com.example.myway.screens.modulo3.*
 import com.google.firebase.auth.FirebaseAuth
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 
@@ -38,101 +25,92 @@ fun MyWayAppNavigation(
 ) {
     NavHost(navController = navController, startDestination = "inicio") {
 
-        composable("inicio") {
-            InicioPantalla(navController)
-        }
+        // 🏁 Pantallas de autenticación
+        composable("inicio") { InicioPantalla(navController) }
 
         composable("ingreso_usuario") {
-            IngresoUsuario(
-                navController = navController,
-                auth = auth,
-                googleSignInClient = googleSignInClient
-            )
+            IngresoUsuario(navController, auth, googleSignInClient)
         }
 
         composable("registro_usuario") {
-            RegistroUsuario(
-                navController = navController,
-                auth = auth,
-                googleSignInClient = googleSignInClient
-            )
+            RegistroUsuario(navController, auth, googleSignInClient)
         }
 
         composable("olvide_contraseña") {
-            OlvidoContraseña(
-                navController = navController,
-                auth = auth,
-                googleSignInClient = googleSignInClient
-            )
+            OlvidoContraseña(navController, auth, googleSignInClient)
         }
 
-        composable("cambio_exitoso") {
-            CambioExitoso(navController = navController)
-        }
+        composable("cambio_exitoso") { CambioExitoso(navController) }
 
-        composable("cargando") {
-            Cargando(navController)
-        }
+        // ⏳ Pantalla de carga
+        composable("cargando") { Cargando(navController) }
 
-        // 🗺️ HOME - Pantalla principal del mapa (sin parámetros)
+        // 🗺️ HOME - Mapa principal sin parámetros
         composable("home") {
             Home(
                 navController = navController,
+                placeId = null,
+                placeName = null,
+                placeType = null
+            )
+        }
+
+        // 🗺️ HOME - Mostrar lugares por tipo (restaurantes, hoteles, etc.)
+        composable(
+            route = "home/{placeType}",
+            arguments = listOf(
+                navArgument("placeType") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val placeType = backStackEntry.arguments?.getString("placeType")
+            Home(
+                navController = navController,
+                placeType = placeType,
                 placeId = null,
                 placeName = null
             )
         }
 
-        // 🏨 HOME - mostrar lugares por tipo (hotel, restaurante, parque, etc.)
-            composable(
-                route = "home/{placeType}",
-                arguments = listOf(
-                    navArgument("placeType") {
-                        type = NavType.StringType
-                    }
-                )
-            ) { backStackEntry ->
-                val placeType = backStackEntry.arguments?.getString("placeType")
-                Home(
-                    navController = navController,
-                    placeType = placeType, // 👈 se lo pasamos al Home
-                    placeId = null,
-                    placeName = null
-                )
-            }
-
-
-
-        composable("perfil_ajustes") {
-            PerfilAjustes(navController = navController)
+        // 🗺️ HOME - Con destino específico
+        composable(
+            route = "home/{placeId}/{placeName}",
+            arguments = listOf(
+                navArgument("placeId") { type = NavType.StringType },
+                navArgument("placeName") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }
+            )
+        ) { backStackEntry ->
+            val placeId = backStackEntry.arguments?.getString("placeId")
+            val placeName = backStackEntry.arguments?.getString("placeName")
+            Home(
+                navController = navController,
+                placeId = placeId,
+                placeName = placeName,
+                placeType = null
+            )
         }
 
-        composable("eliminar_cuenta") {
-            EliminarCuenta(navController = navController)
+        // 👤 Perfil y configuración
+        composable("perfil_ajustes") { PerfilAjustes(navController) }
+        composable("eliminar_cuenta") { EliminarCuenta(navController) }
+        composable("cerrar_sesion") { CerrarSesion(navController) }
+        composable("ver_perfil") { VerPerfil(navController) }
+        composable("cambio_contraseña") { CambioContrasena(navController) }
+        composable("ajustes") { Ajustes(navController) }
+        composable("soporte") { Soporte(navController) }
+        composable("silenciar_notificaciones") { SilenciarNotificaciones(navController) }
+
+        // 🚗 MODO COPILOTO - uso seguro mientras conduces
+        composable("modo_copiloto") {
+            ModoCopiloto(navController = navController)
         }
 
-        composable("cerrar_sesion") {
-            CerrarSesion(navController = navController)
-        }
-
-        composable("ver_perfil") {
-            VerPerfil(navController = navController)
-        }
-
-        composable("cambio_contraseña") {
-            CambioContrasena(navController = navController)
-        }
-
-        composable("ajustes") {
-            Ajustes(navController = navController)
-        }
-
-        composable("soporte") {
-            Soporte(navController = navController)
-        }
-
-        composable("silenciar_notificaciones") {
-            SilenciarNotificaciones(navController = navController)
+        // 🔐 PERMISOS - Gestión de permisos
+        composable("permisos") {
+            Permisos(navController = navController)
         }
 
         // 🔍 PLANEA VIAJE - Búsqueda de destinos
@@ -144,9 +122,7 @@ fun MyWayAppNavigation(
         composable(
             route = "ruta_opciones/{placeId}/{placeName}",
             arguments = listOf(
-                navArgument("placeId") {
-                    type = NavType.StringType
-                },
+                navArgument("placeId") { type = NavType.StringType },
                 navArgument("placeName") {
                     type = NavType.StringType
                     nullable = true
@@ -156,20 +132,14 @@ fun MyWayAppNavigation(
         ) { backStackEntry ->
             val placeId = backStackEntry.arguments?.getString("placeId")
             val placeName = backStackEntry.arguments?.getString("placeName")
-            RutaOpciones(
-                navController = navController,
-                placeId = placeId,
-                placeName = placeName
-            )
+            RutaOpciones(navController, placeId, placeName)
         }
 
         // 🧭 NAVEGACIÓN ACTIVA - Guía paso a paso
         composable(
             route = "navegacion_activa/{placeId}/{placeName}/{transportMode}",
             arguments = listOf(
-                navArgument("placeId") {
-                    type = NavType.StringType
-                },
+                navArgument("placeId") { type = NavType.StringType },
                 navArgument("placeName") {
                     type = NavType.StringType
                     nullable = true
@@ -184,22 +154,14 @@ fun MyWayAppNavigation(
             val placeId = backStackEntry.arguments?.getString("placeId")
             val placeName = backStackEntry.arguments?.getString("placeName")
             val transportMode = backStackEntry.arguments?.getString("transportMode")
-            NavegacionActiva(
-                navController = navController,
-                placeId = placeId,
-                placeName = placeName,
-                transportMode = transportMode
-            )
+            NavegacionActiva(navController, placeId, placeName, transportMode)
         }
 
-        composable("guardados") {
-            Guardados(navController = navController)
-        }
+        // ⭐ Favoritos y guardados
+        composable("guardados") { Guardados(navController) }
+        composable("favoritos") { Favoritos(navController) }
 
-        composable("favoritos") {
-            Favoritos(navController = navController)
-        }
-
+        // 📍 Detalles de lugar
         composable(
             route = "detalles_lugar/{placeId}/{placeName}",
             arguments = listOf(

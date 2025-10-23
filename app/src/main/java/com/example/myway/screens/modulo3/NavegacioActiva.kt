@@ -13,7 +13,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -43,9 +42,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.net.URL
-import kotlin.math.atan2
-import kotlin.math.cos
-import kotlin.math.sin
 
 data class NavigationStep(
     val instruction: String,
@@ -73,12 +69,13 @@ fun NavegacionActiva(
         )
     }
 
-    var currentLocation by remember { mutableStateOf(LatLng(4.7110, -74.0721)) }
+    // IMPORTANTE: No usar ubicación por defecto, esperar la ubicación real
+    var currentLocation by remember { mutableStateOf<LatLng?>(null) }
     var destinationLocation by remember { mutableStateOf<LatLng?>(null) }
     var routePoints by remember { mutableStateOf<List<LatLng>>(emptyList()) }
     var currentStep by remember { mutableStateOf<NavigationStep?>(null) }
     var nextStep by remember { mutableStateOf<NavigationStep?>(null) }
-    var distanceToDestination by remember { mutableStateOf("Calculando...") }
+    var distanceToDestination by remember { mutableStateOf("Obteniendo ubicación...") }
     var timeToDestination by remember { mutableStateOf("") }
     var currentStepIndex by remember { mutableIntStateOf(0) }
     var allSteps by remember { mutableStateOf<List<NavigationStep>>(emptyList()) }
@@ -86,9 +83,11 @@ fun NavegacionActiva(
     var lastUpdateTime by remember { mutableLongStateOf(0L) }
     var lastKnownLocation by remember { mutableStateOf<LatLng?>(null) }
     var followUserLocation by remember { mutableStateOf(true) }
+    var isInitialLocationSet by remember { mutableStateOf(false) }
 
+    // Cámara con posición inicial temporal (se actualizará con ubicación real)
     val cameraPositionState = rememberCameraPositionState {
-        position = CameraPosition.fromLatLngZoom(currentLocation, 17f)
+        position = CameraPosition.fromLatLngZoom(LatLng(4.7110, -74.0721), 15f)
     }
 
     val placesClient = remember {
@@ -108,23 +107,27 @@ fun NavegacionActiva(
                 result.lastLocation?.let { location ->
                     val currentTime = System.currentTimeMillis()
 
-                    if (location.accuracy > 30f) {
+                    // Filtro de precisión
+                    if (location.accuracy > 50f) {
                         return
                     }
 
-                    if (currentTime - lastUpdateTime < 2000) {
+                    // Filtro de tiempo (no actualizar muy frecuentemente)
+                    if (currentTime - lastUpdateTime < 2000 && isInitialLocationSet) {
                         return
                     }
 
                     val newLocation = LatLng(location.latitude, location.longitude)
 
+                    // Filtro de velocidad (evitar saltos)
                     lastKnownLocation?.let { lastLoc ->
                         val distance = calculateDistance(lastLoc, newLocation)
                         val timeDiff = (currentTime - lastUpdateTime) / 1000f
-                        val speed = distance / timeDiff
-
-                        if (speed > 50f) {
-                            return
+                        if (timeDiff > 0) {
+                            val speed = distance / timeDiff
+                            if (speed > 50f && isInitialLocationSet) {
+                                return
+                            }
                         }
                     }
 
@@ -132,19 +135,39 @@ fun NavegacionActiva(
                     lastUpdateTime = currentTime
                     currentLocation = newLocation
 
-                    if (followUserLocation) {
+                    // Primera vez: centrar inmediatamente
+                    if (!isInitialLocationSet) {
+                        isInitialLocationSet = true
+                        scope.launch {
+                            try {
+                                cameraPositionState.move(
+                                    CameraUpdateFactory.newCameraPosition(
+                                        CameraPosition.Builder()
+                                            .target(newLocation)
+                                            .zoom(17f)
+                                            .bearing(location.bearing)
+                                            .tilt(45f)
+                                            .build()
+                                    )
+                                )
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                            }
+                        }
+                    } else if (followUserLocation) {
+                        // Actualizaciones subsecuentes: animar
                         scope.launch {
                             try {
                                 cameraPositionState.animate(
                                     update = CameraUpdateFactory.newCameraPosition(
                                         CameraPosition.Builder()
-                                            .target(currentLocation)
+                                            .target(newLocation)
                                             .zoom(17f)
                                             .bearing(location.bearing)
                                             .tilt(45f)
                                             .build()
                                     ),
-                                    durationMs = 2000
+                                    durationMs = 1500
                                 )
                             } catch (e: Exception) {
                                 e.printStackTrace()
@@ -152,8 +175,9 @@ fun NavegacionActiva(
                         }
                     }
 
+                    // Actualizar distancia al destino
                     destinationLocation?.let { dest ->
-                        val dist = calculateDistance(currentLocation, dest)
+                        val dist = calculateDistance(newLocation, dest)
                         distanceToDestination = formatDistance(dist)
                     }
                 }
@@ -165,24 +189,73 @@ fun NavegacionActiva(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         hasLocationPermission = isGranted
+        if (isGranted) {
+            // Obtener ubicación inmediatamente después de otorgar permiso
+            try {
+                fusedLocationClient.lastLocation.addOnSuccessListener { location ->
+                    location?.let {
+                        val newLoc = LatLng(it.latitude, it.longitude)
+                        currentLocation = newLoc
+                        isInitialLocationSet = true
+                        scope.launch {
+                            cameraPositionState.move(
+                                CameraUpdateFactory.newLatLngZoom(newLoc, 17f)
+                            )
+                        }
+                    }
+                }
+            } catch (e: SecurityException) {
+                e.printStackTrace()
+            }
+        }
     }
 
+    // Detectar cuando el usuario mueve el mapa manualmente
     LaunchedEffect(cameraPositionState.isMoving) {
         if (cameraPositionState.isMoving) {
             followUserLocation = false
         }
     }
 
+    // Obtener ubicación inicial INMEDIATAMENTE
     LaunchedEffect(hasLocationPermission) {
         if (hasLocationPermission) {
+            // Primero: intentar obtener última ubicación conocida
+            try {
+                fusedLocationClient.lastLocation.addOnSuccessListener { location ->
+                    location?.let {
+                        val newLoc = LatLng(it.latitude, it.longitude)
+                        currentLocation = newLoc
+                        lastKnownLocation = newLoc
+                        isInitialLocationSet = true
+
+                        scope.launch {
+                            cameraPositionState.move(
+                                CameraUpdateFactory.newCameraPosition(
+                                    CameraPosition.Builder()
+                                        .target(newLoc)
+                                        .zoom(17f)
+                                        .bearing(it.bearing)
+                                        .tilt(45f)
+                                        .build()
+                                )
+                            )
+                        }
+                    }
+                }
+            } catch (e: SecurityException) {
+                e.printStackTrace()
+            }
+
+            // Segundo: configurar actualizaciones continuas
             val locationRequest = LocationRequest.Builder(
                 Priority.PRIORITY_HIGH_ACCURACY,
-                5000
+                3000L
             ).apply {
-                setMinUpdateIntervalMillis(3000)
-                setMaxUpdateDelayMillis(8000)
+                setMinUpdateIntervalMillis(2000L)
+                setMaxUpdateDelayMillis(5000L)
                 setWaitForAccurateLocation(true)
-                setMinUpdateDistanceMeters(5f)
+                setMinUpdateDistanceMeters(3f)
             }.build()
 
             try {
@@ -199,17 +272,19 @@ fun NavegacionActiva(
         }
     }
 
-    LaunchedEffect(placeId) {
-        placeId?.let { id ->
+    // Obtener destino y calcular ruta SOLO cuando tengamos ubicación actual
+    LaunchedEffect(placeId, currentLocation) {
+        if (placeId != null && currentLocation != null) {
             val placeFields = listOf(Place.Field.LAT_LNG)
-            val request = FetchPlaceRequest.newInstance(id, placeFields)
+            val request = FetchPlaceRequest.newInstance(placeId, placeFields)
 
             placesClient.fetchPlace(request)
                 .addOnSuccessListener { response ->
-                    destinationLocation = response.place.latLng
+                    val dest = response.place.latLng
+                    if (dest != null) {
+                        destinationLocation = dest
 
-                    scope.launch {
-                        destinationLocation?.let { dest ->
+                        scope.launch {
                             val mode = when (transportMode) {
                                 "walking" -> "walking"
                                 "driving" -> "driving"
@@ -217,7 +292,8 @@ fun NavegacionActiva(
                                 else -> "driving"
                             }
 
-                            val routeData = getNavigationRoute(currentLocation, dest, mode)
+                            // Usar la ubicación actual real, NO una por defecto
+                            val routeData = getNavigationRoute(currentLocation!!, dest, mode)
                             routePoints = routeData.first
                             allSteps = routeData.second
 
@@ -227,8 +303,16 @@ fun NavegacionActiva(
                                     nextStep = allSteps[1]
                                 }
                             }
+
+                            // Calcular distancia inicial
+                            val dist = calculateDistance(currentLocation!!, dest)
+                            distanceToDestination = formatDistance(dist)
                         }
                     }
+                }
+                .addOnFailureListener {
+                    it.printStackTrace()
+                    distanceToDestination = "Error al obtener destino"
                 }
         }
     }
@@ -240,13 +324,35 @@ fun NavegacionActiva(
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        EnhancedNavigationMap(
-            currentLocation = currentLocation,
-            destinationLocation = destinationLocation,
-            routePoints = routePoints,
-            placeName = placeName,
-            cameraPositionState = cameraPositionState
-        )
+        // Solo mostrar mapa cuando tengamos ubicación
+        if (currentLocation != null) {
+            EnhancedNavigationMap(
+                currentLocation = currentLocation!!,
+                destinationLocation = destinationLocation,
+                routePoints = routePoints,
+                placeName = placeName,
+                cameraPositionState = cameraPositionState
+            )
+        } else {
+            // Pantalla de carga mientras se obtiene ubicación
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    CircularProgressIndicator(color = Azul4)
+                    Text(
+                        text = "Obteniendo tu ubicación...",
+                        color = Azul4,
+                        fontFamily = Nunito,
+                        fontSize = 16.sp
+                    )
+                }
+            }
+        }
 
         Column(
             modifier = Modifier.fillMaxSize(),
@@ -274,7 +380,6 @@ fun NavegacionActiva(
                                 .size(28.dp)
                                 .clickable {
                                     fusedLocationClient.removeLocationUpdates(locationCallback)
-                                    // Navegar a home SIN parámetros para limpiar destino
                                     navController.navigate("home") {
                                         popUpTo("home") { inclusive = true }
                                     }
@@ -333,7 +438,7 @@ fun NavegacionActiva(
                         }
                     }
 
-                    // Siguiente paso (más compacto)
+                    // Siguiente paso
                     nextStep?.let { step ->
                         Spacer(modifier = Modifier.height(6.dp))
                         HorizontalDivider(
@@ -377,21 +482,23 @@ fun NavegacionActiva(
                         .size(56.dp)
                         .clickable {
                             followUserLocation = true
-                            scope.launch {
-                                try {
-                                    cameraPositionState.animate(
-                                        update = CameraUpdateFactory.newCameraPosition(
-                                            CameraPosition.Builder()
-                                                .target(currentLocation)
-                                                .zoom(17f)
-                                                .bearing(0f)
-                                                .tilt(45f)
-                                                .build()
-                                        ),
-                                        durationMs = 1000
-                                    )
-                                } catch (e: Exception) {
-                                    e.printStackTrace()
+                            currentLocation?.let { loc ->
+                                scope.launch {
+                                    try {
+                                        cameraPositionState.animate(
+                                            update = CameraUpdateFactory.newCameraPosition(
+                                                CameraPosition.Builder()
+                                                    .target(loc)
+                                                    .zoom(17f)
+                                                    .bearing(0f)
+                                                    .tilt(45f)
+                                                    .build()
+                                            ),
+                                            durationMs = 1000
+                                        )
+                                    } catch (e: Exception) {
+                                        e.printStackTrace()
+                                    }
                                 }
                             }
                         },
@@ -406,7 +513,7 @@ fun NavegacionActiva(
                         Icon(
                             painter = painterResource(id = android.R.drawable.ic_menu_mylocation),
                             contentDescription = "Centrar en mi ubicación",
-                            tint = if (followUserLocation) Azul4 else Azul4,
+                            tint = if (followUserLocation) Azul4 else Azul4.copy(alpha = 0.6f),
                             modifier = Modifier.size(30.dp)
                         )
                     }
