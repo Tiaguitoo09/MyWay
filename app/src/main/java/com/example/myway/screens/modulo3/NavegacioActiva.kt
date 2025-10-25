@@ -106,13 +106,8 @@ fun NavegacionActiva(
                 result.lastLocation?.let { location ->
                     val currentTime = System.currentTimeMillis()
 
-                    if (location.accuracy > 50f) {
-                        return
-                    }
-
-                    if (currentTime - lastUpdateTime < 2000 && isInitialLocationSet) {
-                        return
-                    }
+                    if (location.accuracy > 50f) return
+                    if (currentTime - lastUpdateTime < 2000 && isInitialLocationSet) return
 
                     val newLocation = LatLng(location.latitude, location.longitude)
 
@@ -121,22 +116,19 @@ fun NavegacionActiva(
                         val timeDiff = (currentTime - lastUpdateTime) / 1000f
                         if (timeDiff > 0) {
                             val speed = distance / timeDiff
-                            if (speed > 50f && isInitialLocationSet) {
-                                return
-                            }
+                            if (speed > 50f && isInitialLocationSet) return
                         }
 
-                        // Calcular bearing manualmente si el GPS no lo proporciona
-                        if (distance > 2f) { // Solo actualizar si nos movimos al menos 2 metros
+                        if (distance > 2f) {
                             val calculatedBearing = calculateBearing(lastLoc, newLocation)
                             currentBearing = calculatedBearing
                         }
                     } ?: run {
-                        // Primera vez, usar bearing del GPS si está disponible
                         if (location.bearing != 0f) {
                             currentBearing = location.bearing
                         }
                     }
+
                     lastKnownLocation = newLocation
                     lastUpdateTime = currentTime
                     currentLocation = newLocation
@@ -167,7 +159,7 @@ fun NavegacionActiva(
                                         CameraPosition.Builder()
                                             .target(newLocation)
                                             .zoom(17f)
-                                            .bearing(currentBearing) // Usar bearing calculado
+                                            .bearing(currentBearing)
                                             .tilt(45f)
                                             .build()
                                     ),
@@ -253,7 +245,7 @@ fun NavegacionActiva(
                                     CameraPosition.Builder()
                                         .target(newLoc)
                                         .zoom(17f)
-                                        .bearing(currentBearing) // Usar bearing calculado
+                                        .bearing(currentBearing)
                                         .tilt(45f)
                                         .build()
                                 )
@@ -267,12 +259,12 @@ fun NavegacionActiva(
 
             val locationRequest = LocationRequest.Builder(
                 Priority.PRIORITY_HIGH_ACCURACY,
-                2000L // Actualizar cada 2 segundos
+                2000L
             ).apply {
-                setMinUpdateIntervalMillis(1000L) // Mínimo 1 segundo
+                setMinUpdateIntervalMillis(1000L)
                 setMaxUpdateDelayMillis(3000L)
                 setWaitForAccurateLocation(true)
-                setMinUpdateDistanceMeters(1f) // Actualizar cada 1 metro
+                setMinUpdateDistanceMeters(1f)
             }.build()
 
             try {
@@ -308,19 +300,37 @@ fun NavegacionActiva(
                                 else -> "driving"
                             }
 
-                            val routeData = getNavigationRoute(currentLocation!!, dest, mode)
-                            routePoints = routeData.first
-                            allSteps = routeData.second
+                            val origin = currentLocation
+                            if (origin != null) {
+                                // ✅ Intentar obtener del caché primero
+                                val cachedRoute = RouteCache.get(context, origin, dest, mode)
 
-                            if (allSteps.isNotEmpty()) {
-                                currentStep = allSteps[0]
-                                if (allSteps.size > 1) {
-                                    nextStep = allSteps[1]
+                                val routeData = if (cachedRoute != null) {
+                                    // Usar caché (GRATIS)
+                                    cachedRoute
+                                } else {
+                                    // Llamar a API y guardar en caché
+                                    android.util.Log.d("RouteCache", "⚠️ Llamando a API ($0.005)")
+                                    val apiRoute = getNavigationRoute(origin, dest, mode)
+                                    if (apiRoute.first.isNotEmpty()) {
+                                        RouteCache.put(context, origin, dest, mode, apiRoute.first, apiRoute.second)
+                                    }
+                                    apiRoute
                                 }
-                            }
 
-                            val dist = calculateDistance(currentLocation!!, dest)
-                            distanceToDestination = formatDistance(dist)
+                                routePoints = routeData.first
+                                allSteps = routeData.second
+
+                                if (allSteps.isNotEmpty()) {
+                                    currentStep = allSteps[0]
+                                    if (allSteps.size > 1) {
+                                        nextStep = allSteps[1]
+                                    }
+                                }
+
+                                val dist = calculateDistance(origin, dest)
+                                distanceToDestination = formatDistance(dist)
+                            }
                         }
                     }
                 }
@@ -338,9 +348,10 @@ fun NavegacionActiva(
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        if (currentLocation != null) {
+        val location = currentLocation
+        if (location != null) {
             EnhancedNavigationMap(
-                currentLocation = currentLocation!!,
+                currentLocation = location,
                 destinationLocation = destinationLocation,
                 routePoints = routePoints,
                 placeName = placeName,
@@ -491,13 +502,14 @@ fun NavegacionActiva(
                         .size(56.dp)
                         .clickable {
                             followUserLocation = true
-                            currentLocation?.let { loc ->
+                            val loc = currentLocation
+                            loc?.let {
                                 scope.launch {
                                     try {
                                         cameraPositionState.animate(
                                             update = CameraUpdateFactory.newCameraPosition(
                                                 CameraPosition.Builder()
-                                                    .target(loc)
+                                                    .target(it)
                                                     .zoom(17f)
                                                     .bearing(currentBearing)
                                                     .tilt(45f)
@@ -626,12 +638,17 @@ fun updateNavigationStep(
         }
     }
 
-    val progressPercentage = closestIndex.toFloat() / routePoints.size
-    val stepSize = 1f / steps.size
-    val estimatedStepIndex = (progressPercentage / stepSize).toInt().coerceIn(0, steps.size - 1)
+    if (closestIndex > 0 && closestIndex < routePoints.size - 1) {
+        val stepDistance = PolyUtil.isLocationOnPath(
+            currentLocation,
+            routePoints.subList(0, closestIndex),
+            true,
+            20.0
+        )
 
-    if (estimatedStepIndex > currentIndex) {
-        onStepChanged(estimatedStepIndex)
+        if (stepDistance && currentIndex < steps.size - 1) {
+            onStepChanged(currentIndex + 1)
+        }
     }
 }
 
@@ -643,53 +660,38 @@ suspend fun getNavigationRoute(
     return withContext(Dispatchers.IO) {
         try {
             val apiKey = BuildConfig.MAPS_API_KEY
-            val url = "https://maps.googleapis.com/maps/api/directions/json?" +
-                    "origin=${origin.latitude},${origin.longitude}" +
-                    "&destination=${destination.latitude},${destination.longitude}" +
-                    "&mode=$mode" +
-                    "&language=es" +
-                    "&key=$apiKey"
+            val url =
+                "https://maps.googleapis.com/maps/api/directions/json?origin=${origin.latitude},${origin.longitude}&destination=${destination.latitude},${destination.longitude}&mode=$mode&key=$apiKey"
 
             val response = URL(url).readText()
-            val json = JSONObject(response)
+            val jsonResponse = JSONObject(response)
+            val routes = jsonResponse.getJSONArray("routes")
 
-            val routes = json.getJSONArray("routes")
             if (routes.length() == 0) return@withContext Pair(emptyList(), emptyList())
 
             val route = routes.getJSONObject(0)
             val legs = route.getJSONArray("legs")
-            val leg = legs.getJSONObject(0)
+            val steps = legs.getJSONObject(0).getJSONArray("steps")
 
-            val polylineStr = route.getJSONObject("overview_polyline").getString("points")
-            val points = PolyUtil.decode(polylineStr)
-
-            val steps = leg.getJSONArray("steps")
+            val allPoints = mutableListOf<LatLng>()
             val navigationSteps = mutableListOf<NavigationStep>()
 
             for (i in 0 until steps.length()) {
                 val step = steps.getJSONObject(i)
-                var instruction = step.getString("html_instructions")
+                val polyline = step.getJSONObject("polyline").getString("points")
+                val decodedPoints = PolyUtil.decode(polyline)
+                allPoints.addAll(decodedPoints)
+
+                val instruction = step.getString("html_instructions")
                     .replace("<[^>]*>".toRegex(), "")
-                    .replace("&nbsp;", " ")
-                    .trim()
-
-                instruction = translateInstruction(instruction)
-
                 val distance = step.getJSONObject("distance").getString("text")
                 val duration = step.getJSONObject("duration").getString("text")
-                val maneuver = step.optString("maneuver", "")
+                val maneuver = step.optString("maneuver", null)
 
-                navigationSteps.add(
-                    NavigationStep(
-                        instruction = instruction,
-                        distance = distance,
-                        duration = duration,
-                        maneuver = maneuver
-                    )
-                )
+                navigationSteps.add(NavigationStep(instruction, distance, duration, maneuver))
             }
 
-            Pair(points, navigationSteps)
+            Pair(allPoints, navigationSteps)
         } catch (e: Exception) {
             e.printStackTrace()
             Pair(emptyList(), emptyList())
@@ -697,72 +699,44 @@ suspend fun getNavigationRoute(
     }
 }
 
-fun translateInstruction(instruction: String): String {
-    return instruction
-        .replace("Turn left", "Gira a la izquierda")
-        .replace("Turn right", "Gira a la derecha")
-        .replace("turn left", "gira a la izquierda")
-        .replace("turn right", "gira a la derecha")
-        .replace("Keep left", "Mantente a la izquierda")
-        .replace("Keep right", "Mantente a la derecha")
-        .replace("Continue", "Continúa")
-        .replace("Head", "Dirígete")
-        .replace("toward", "hacia")
-        .replace("onto", "en")
-        .replace("Merge", "Incorpórate")
-        .replace("Take the ramp", "Toma la rampa")
-        .replace("Exit", "Sal")
-        .replace("roundabout", "rotonda")
-        .replace("at the", "en la")
-        .replace("slight left", "ligeramente a la izquierda")
-        .replace("slight right", "ligeramente a la derecha")
-        .replace("sharp left", "cerrada a la izquierda")
-        .replace("sharp right", "cerrada a la derecha")
-        .replace("U-turn", "vuelta en U")
-        .replace("destination", "destino")
-        .replace("on the left", "a la izquierda")
-        .replace("on the right", "a la derecha")
-}
-
-fun calculateDistance(from: LatLng, to: LatLng): Float {
-    val results = FloatArray(1)
+fun calculateDistance(start: LatLng, end: LatLng): Float {
+    val result = FloatArray(1)
     Location.distanceBetween(
-        from.latitude, from.longitude,
-        to.latitude, to.longitude,
-        results
+        start.latitude, start.longitude,
+        end.latitude, end.longitude,
+        result
     )
-    return results[0]
-}
-
-fun calculateBearing(from: LatLng, to: LatLng): Float {
-    val results = FloatArray(2)
-    Location.distanceBetween(
-        from.latitude, from.longitude,
-        to.latitude, to.longitude,
-        results
-    )
-    // results[1] contiene el bearing inicial
-    return if (results.size > 1) results[1] else 0f
+    return result[0]
 }
 
 fun formatDistance(distance: Float): String {
-    return when {
-        distance < 1000 -> "${distance.toInt()} m"
-        else -> String.format("%.1f km", distance / 1000)
+    return if (distance < 1000) {
+        "${distance.toInt()} m"
+    } else {
+        "%.2f km".format(distance / 1000)
     }
+}
+
+fun calculateBearing(start: LatLng, end: LatLng): Float {
+    val result = FloatArray(1)
+    Location.distanceBetween(
+        start.latitude, start.longitude,
+        end.latitude, end.longitude,
+        result
+    )
+    return result[0]
 }
 
 fun getManeuverIcon(maneuver: String?): Int {
     return when (maneuver) {
-        "turn-left" -> android.R.drawable.ic_media_rew
-        "turn-right" -> android.R.drawable.ic_media_ff
-        "turn-sharp-left" -> android.R.drawable.ic_media_rew
-        "turn-sharp-right" -> android.R.drawable.ic_media_ff
-        "uturn-left", "uturn-right" -> android.R.drawable.ic_menu_revert
-        "straight" -> android.R.drawable.ic_menu_upload
-        "ramp-left", "ramp-right" -> android.R.drawable.ic_menu_directions
-        "fork-left", "fork-right" -> android.R.drawable.ic_menu_directions
-        "roundabout-left", "roundabout-right" -> android.R.drawable.ic_menu_rotate
-        else -> android.R.drawable.ic_menu_upload
+        "turn-left" -> R.drawable.ic_turn_left
+        "turn-right" -> R.drawable.ic_turn_right
+        "straight" -> R.drawable.ic_straight
+        "uturn-left" -> R.drawable.ic_uturn
+        "uturn-right" -> R.drawable.ic_uturn
+        "merge" -> R.drawable.ic_merge
+        "roundabout-left" -> R.drawable.ic_roundabout
+        "roundabout-right" -> R.drawable.ic_roundabout
+        else -> R.drawable.ic_straight
     }
 }

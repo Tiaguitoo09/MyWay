@@ -73,6 +73,9 @@ dependencies {
     // 🛣️ Maps Utils (para decodificar polylines de rutas)
     implementation("com.google.maps.android:android-maps-utils:3.8.2")
 
+    // 💾 Gson (para caché de rutas) 🆕 AGREGADO
+    implementation("com.google.code.gson:gson:2.10.1")
+
     // 🗄️ Room Database
     val roomVersion = "2.6.1"
     implementation("androidx.room:room-runtime:$roomVersion")
@@ -91,7 +94,7 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.sceneform.base)
 
-    // 🎨 Material Icons Extended (🆕 AGREGADO)
+    // 🎨 Material Icons Extended
     implementation("androidx.compose.material:material-icons-extended:1.7.5")
 
     // 🧭 Navigation
