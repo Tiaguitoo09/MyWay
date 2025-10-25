@@ -718,25 +718,33 @@ fun formatDistance(distance: Float): String {
 }
 
 fun calculateBearing(start: LatLng, end: LatLng): Float {
-    val result = FloatArray(1)
-    Location.distanceBetween(
-        start.latitude, start.longitude,
-        end.latitude, end.longitude,
-        result
-    )
-    return result[0]
+    val startLat = Math.toRadians(start.latitude)
+    val startLng = Math.toRadians(start.longitude)
+    val endLat = Math.toRadians(end.latitude)
+    val endLng = Math.toRadians(end.longitude)
+
+    val dLng = endLng - startLng
+
+    val y = Math.sin(dLng) * Math.cos(endLat)
+    val x = Math.cos(startLat) * Math.sin(endLat) -
+            Math.sin(startLat) * Math.cos(endLat) * Math.cos(dLng)
+
+    var bearing = Math.toDegrees(Math.atan2(y, x))
+    bearing = (bearing + 360) % 360
+
+    return bearing.toFloat()
 }
 
 fun getManeuverIcon(maneuver: String?): Int {
     return when (maneuver) {
-        "turn-left" -> R.drawable.ic_turn_left
-        "turn-right" -> R.drawable.ic_turn_right
-        "straight" -> R.drawable.ic_straight
-        "uturn-left" -> R.drawable.ic_uturn
-        "uturn-right" -> R.drawable.ic_uturn
-        "merge" -> R.drawable.ic_merge
-        "roundabout-left" -> R.drawable.ic_roundabout
-        "roundabout-right" -> R.drawable.ic_roundabout
-        else -> R.drawable.ic_straight
+        "turn-left" -> android.R.drawable.ic_media_previous
+        "turn-right" -> android.R.drawable.ic_media_next
+        "straight" -> android.R.drawable.arrow_up_float
+        "uturn-left" -> android.R.drawable.ic_menu_revert
+        "uturn-right" -> android.R.drawable.ic_menu_revert
+        "merge" -> android.R.drawable.ic_menu_share
+        "roundabout-left" -> android.R.drawable.ic_menu_rotate
+        "roundabout-right" -> android.R.drawable.ic_menu_rotate
+        else -> android.R.drawable.arrow_up_float
     }
 }
