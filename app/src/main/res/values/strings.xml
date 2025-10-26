@@ -247,6 +247,18 @@
     <string name="error_obtener_destino">Error al obtener destino</string>
     <string name="seleccionado">Seleccionado</string>
 
+    <!-- Sin Plan -->
+    <string name="no_sabes">¿No sabes qué hacer hoy? Déjanos sorprenderte con recomendaciones personalizadas.</string>
+    <string name="tus_mejores">Tus mejores planes no estaban planeados. Hasta ahora.</string>
+    <string name="recomiendame">Recomiendame algo</string>
+    <string name="mood">¿Cual es tu mood?</string>
+
+
+    <!-- Recomiendame -->
+    <string name="recomiendame_search">Te recomendamos este lugar según tu ubicación, clima y gustos.</string>
+
+    <!-- TuMood -->
+
     <!-- Mensajes de Toast -->
     <string name="toast_cuenta_creada">Cuenta creada con éxito</string>
     <string name="toast_error_login_google">Error al iniciar sesión</string>

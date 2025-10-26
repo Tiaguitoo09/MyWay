@@ -14,6 +14,9 @@ import com.example.myway.screens.modulo1.OlvidoContraseña
 import com.example.myway.screens.modulo1.RegistroUsuario
 import com.example.myway.screens.modulo2.*
 import com.example.myway.screens.modulo3.*
+import com.example.myway.screens.modulo4.Recomiendame
+import com.example.myway.screens.modulo4.SinPlan
+import com.example.myway.screens.modulo4.TuMood
 import com.google.firebase.auth.FirebaseAuth
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 
@@ -174,6 +177,18 @@ fun MyWayAppNavigation(
                 placeId = backStackEntry.arguments?.getString("placeId"),
                 placeName = backStackEntry.arguments?.getString("placeName")
             )
+        }
+
+        composable("sin_plan") {
+            SinPlan(navController = navController)
+        }
+
+        composable("recomiendame") {
+            Recomiendame(navController = navController)
+        }
+
+        composable("tu_mood") {
+            TuMood(navController = navController)
         }
     }
 }
