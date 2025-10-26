@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -111,7 +112,7 @@ fun RutaOpciones(
                     isLoading = false
                     Toast.makeText(
                         context,
-                        "Error al cargar el lugar",
+                        context.getString(R.string.error_cargar_lugar),
                         Toast.LENGTH_SHORT
                     ).show()
                 }
@@ -120,7 +121,7 @@ fun RutaOpciones(
             isLoading = false
             Toast.makeText(
                 context,
-                "No se pudo obtener información del lugar",
+                context.getString(R.string.no_info_lugar),
                 Toast.LENGTH_SHORT
             ).show()
         }
@@ -177,7 +178,7 @@ fun RutaOpciones(
                     ) {
                         Icon(
                             painter = painterResource(id = R.drawable.flecha),
-                            contentDescription = "Volver",
+                            contentDescription = stringResource(R.string.volver),
                             tint = Blanco,
                             modifier = Modifier
                                 .size(35.dp)
@@ -185,7 +186,7 @@ fun RutaOpciones(
                         )
 
                         Text(
-                            text = "Opciones de ruta",
+                            text = stringResource(R.string.opciones_de_ruta),
                             color = Blanco,
                             fontFamily = Nunito,
                             fontWeight = FontWeight.Bold,
@@ -198,7 +199,7 @@ fun RutaOpciones(
                     Spacer(modifier = Modifier.height(8.dp))
 
                     Text(
-                        text = placeName ?: "Destino",
+                        text = placeName ?: stringResource(R.string.destino),
                         color = Blanco,
                         fontFamily = Nunito,
                         fontSize = 16.sp
@@ -214,7 +215,7 @@ fun RutaOpciones(
             ) {
                 Column(modifier = Modifier.padding(24.dp)) {
                     Text(
-                        text = "Selecciona tu medio de transporte",
+                        text = stringResource(R.string.selecciona_transporte),
                         fontFamily = Nunito,
                         fontWeight = FontWeight.Bold,
                         fontSize = 18.sp,
@@ -233,25 +234,25 @@ fun RutaOpciones(
                                         isFavorite = false
                                         Toast.makeText(
                                             context,
-                                            "Eliminado de favoritos",
+                                            context.getString(R.string.eliminado_de_favoritos),
                                             Toast.LENGTH_SHORT
                                         ).show()
                                     } else {
                                         val result = repository.saveFavorite(
                                             placeId,
-                                            placeName ?: "Lugar"
+                                            placeName ?: context.getString(R.string.destino)
                                         )
                                         if (result.isSuccess) {
                                             isFavorite = true
                                             Toast.makeText(
                                                 context,
-                                                "Guardado en favoritos",
+                                                context.getString(R.string.guardado_en_favoritos),
                                                 Toast.LENGTH_SHORT
                                             ).show()
                                         } else {
                                             Toast.makeText(
                                                 context,
-                                                "Error al guardar",
+                                                context.getString(R.string.error_al_guardar),
                                                 Toast.LENGTH_SHORT
                                             ).show()
                                         }
@@ -278,7 +279,7 @@ fun RutaOpciones(
                                         else
                                             R.drawable.ic_favorite_outline
                                     ),
-                                    contentDescription = "Favorito",
+                                    contentDescription = stringResource(R.string.favoritos),
                                     tint = if (isFavorite) Blanco else Azul4,
                                     modifier = Modifier.size(24.dp)
                                 )
@@ -287,9 +288,9 @@ fun RutaOpciones(
 
                                 Text(
                                     text = if (isFavorite)
-                                        "Guardado en favoritos"
+                                        stringResource(R.string.guardado_en_favoritos)
                                     else
-                                        "Guardar en favoritos",
+                                        stringResource(R.string.guardar_en_favoritos),
                                     fontFamily = Nunito,
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 16.sp,
@@ -313,7 +314,7 @@ fun RutaOpciones(
                     } else {
                         TransportOption(
                             icon = R.drawable.ic_walk,
-                            title = "Caminando",
+                            title = stringResource(R.string.caminando),
                             duration = walkingRoute?.duration ?: "N/A",
                             distance = walkingRoute?.distance ?: "N/A",
                             isSelected = selectedMode == "walking",
@@ -324,7 +325,7 @@ fun RutaOpciones(
 
                         TransportOption(
                             icon = R.drawable.ic_car,
-                            title = "En carro",
+                            title = stringResource(R.string.en_carro),
                             duration = drivingRoute?.duration ?: "N/A",
                             distance = drivingRoute?.distance ?: "N/A",
                             isSelected = selectedMode == "driving",
@@ -335,7 +336,7 @@ fun RutaOpciones(
 
                         TransportOption(
                             icon = R.drawable.ic_motorcycle,
-                            title = "En moto",
+                            title = stringResource(R.string.en_moto),
                             duration = motorcycleRoute?.duration ?: "N/A",
                             distance = motorcycleRoute?.distance ?: "N/A",
                             isSelected = selectedMode == "motorcycle",
@@ -345,7 +346,7 @@ fun RutaOpciones(
                         Spacer(modifier = Modifier.height(24.dp))
 
                         CustomButton(
-                            text = "Iniciar navegación",
+                            text = stringResource(R.string.iniciar_navegacion),
                             color = Azul4,
                             onClick = {
                                 if (!placeId.isNullOrEmpty() && placeId != "null") {
@@ -355,7 +356,7 @@ fun RutaOpciones(
                                 } else {
                                     Toast.makeText(
                                         context,
-                                        "Error: destino no válido",
+                                        context.getString(R.string.error_destino_invalido),
                                         Toast.LENGTH_SHORT
                                     ).show()
                                 }
@@ -432,7 +433,7 @@ fun TransportOption(
             if (isSelected) {
                 Icon(
                     painter = painterResource(id = android.R.drawable.radiobutton_on_background),
-                    contentDescription = "Seleccionado",
+                    contentDescription = stringResource(R.string.seleccionado),
                     tint = Azul4,
                     modifier = Modifier.size(24.dp)
                 )

@@ -6,7 +6,6 @@
     <string name="volver">Volver</string>
     <string name="perfil">Perfil</string>
 
-
     <!-- Inicio Pantalla -->
     <string name="icono_brujula">Icono Brújula</string>
     <string name="cerrar_sesion">Cerrar sesión</string>
@@ -193,7 +192,6 @@
     <string name="parques">Parques</string>
     <string name="recientes">Recientes</string>
 
-
     <!-- Guardados -->
     <string name="guardados">Guardados</string>
     <string name="tus_listas">Tus Listas</string>
@@ -203,11 +201,10 @@
     <string name="planes_de_viaje">Planes de viaje</string>
     <string name="viajes_guardados">Viajes Guardados</string>
 
-    <!-- favoritos -->
-    <string name= "lugares_favoritos">Algunos de tus lugares favoritos para que los vuelvas a visitar cuando quieras</string>
+    <!-- Favoritos -->
+    <string name="lugares_favoritos">Algunos de tus lugares favoritos para que los vuelvas a visitar cuando quieras</string>
     <string name="lugares_favoritos2">Tus lugares guardados</string>
     <string name="buscar_favoritos">Buscar en favoritos…</string>
-
     <string name="limpiar">Limpiar</string>
     <string name="eliminar_favoritos">Eliminar de favoritos</string>
 
@@ -218,8 +215,37 @@
     <string name="no_resultados_descripcion">No hay favoritos que coincidan con \"%1$s\"</string>
 
     <!-- Detalles Lugares -->
-    <string name="detalles_lugares">Detalles del Lugar</string>
+    <string name="detalles_lugar">Detalles del Lugar</string>
+    <string name="descripcion">Descripción</string>
+    <string name="direccion">Dirección</string>
+    <string name="telefono">Teléfono</string>
+    <string name="horario">Horario</string>
+    <string name="marcar_ruta">Marcar Ruta</string>
+    <string name="abierto_ahora">🟢 Abierto ahora</string>
+    <string name="cerrado_ahora">🔴 Cerrado ahora</string>
 
+    <!-- Ruta Opciones -->
+    <string name="opciones_de_ruta">Opciones de ruta</string>
+    <string name="selecciona_transporte">Selecciona tu medio de transporte</string>
+    <string name="caminando">Caminando</string>
+    <string name="en_carro">En carro</string>
+    <string name="en_moto">En moto</string>
+    <string name="guardado_en_favoritos">Guardado en favoritos</string>
+    <string name="guardar_en_favoritos">Guardar en favoritos</string>
+    <string name="eliminado_de_favoritos">Eliminado de favoritos</string>
+    <string name="error_al_guardar">Error al guardar</string>
+    <string name="iniciar_navegacion">Iniciar navegación</string>
+    <string name="error_cargar_lugar">Error al cargar el lugar</string>
+    <string name="no_info_lugar">No se pudo obtener información del lugar</string>
+    <string name="error_destino_invalido">Error: destino no válido</string>
+
+    <!-- Navegación Activa -->
+    <string name="cerrar">Cerrar</string>
+    <string name="luego">Luego:</string>
+    <string name="centrar_ubicacion">Centrar en mi ubicación</string>
+    <string name="obteniendo_ubicacion">Obteniendo tu ubicación...</string>
+    <string name="error_obtener_destino">Error al obtener destino</string>
+    <string name="seleccionado">Seleccionado</string>
 
     <!-- Mensajes de Toast -->
     <string name="toast_cuenta_creada">Cuenta creada con éxito</string>
@@ -238,6 +264,4 @@
     <string name="recientes_eliminados">Recientes eliminados</string>
     <string name="no_lugares_recientes">No hay lugares recientes</string>
     <string name="google_maps_no_instalado">Google Maps no está instalado</string>
-
-
 </resources>

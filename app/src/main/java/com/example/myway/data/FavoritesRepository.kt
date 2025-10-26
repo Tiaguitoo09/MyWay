@@ -1,9 +1,10 @@
 package com.example.myway.data
 
 import android.content.Context
+import android.graphics.Bitmap
 import android.util.Log
 import com.example.myway.BuildConfig
-import com.example.myway.data.models.FavoritePlace // ← Import del modelo
+import com.example.myway.data.models.FavoritePlace
 import com.google.android.libraries.places.api.Places
 import com.google.android.libraries.places.api.model.Place
 import com.google.android.libraries.places.api.net.FetchPhotoRequest
@@ -11,17 +12,20 @@ import com.google.android.libraries.places.api.net.FetchPlaceRequest
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
+import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
+import java.io.ByteArrayOutputStream
 
 class FavoritesRepository(private val context: Context) {
 
     private val db = FirebaseFirestore.getInstance()
     private val auth = FirebaseAuth.getInstance()
+    private val storage = FirebaseStorage.getInstance()
 
     private val placesClient = if (!Places.isInitialized()) {
         Places.initialize(context, BuildConfig.MAPS_API_KEY)
@@ -32,6 +36,7 @@ class FavoritesRepository(private val context: Context) {
 
     companion object {
         private const val COLLECTION_FAVORITOS = "favoritos"
+        private const val STORAGE_FAVORITES_PATH = "favorites_photos"
         private const val TAG = "FavoritesRepository"
     }
 
@@ -110,12 +115,83 @@ class FavoritesRepository(private val context: Context) {
         }
     }
 
+    /** Subir foto a Firebase Storage **/
+    private suspend fun uploadPhotoToStorage(
+        bitmap: Bitmap,
+        userId: String,
+        placeId: String
+    ): String? = withContext(Dispatchers.IO) {
+        try {
+            Log.d(TAG, "📸 Iniciando subida de foto para placeId: $placeId")
+
+            // Convertir bitmap a byte array con compresión
+            val baos = ByteArrayOutputStream()
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 85, baos)
+            val imageData = baos.toByteArray()
+
+            Log.d(TAG, "📦 Tamaño de imagen: ${imageData.size / 1024} KB")
+
+            // Referencia en Storage
+            val storageRef = storage.reference
+                .child("$STORAGE_FAVORITES_PATH/$userId/$placeId.jpg")
+
+            // Subir imagen
+            val uploadTask = storageRef.putBytes(imageData).await()
+            Log.d(TAG, "✅ Upload task completado: ${uploadTask.metadata?.path}")
+
+            // Obtener URL de descarga
+            val downloadUrl = storageRef.downloadUrl.await()
+            Log.d(TAG, "✅ URL de descarga obtenida: $downloadUrl")
+
+            downloadUrl.toString()
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Error al subir foto a Storage: ${e.message}", e)
+            e.printStackTrace()
+            null
+        }
+    }
+
+    /** Descargar foto de Google Places **/
+    private suspend fun fetchPlacePhoto(place: Place): Bitmap? = withContext(Dispatchers.IO) {
+        try {
+            val photoMetadata = place.photoMetadatas?.firstOrNull()
+
+            if (photoMetadata == null) {
+                Log.w(TAG, "⚠️ No hay metadatos de foto para este lugar")
+                return@withContext null
+            }
+
+            Log.d(TAG, "📷 Descargando foto de Google Places...")
+            Log.d(TAG, "📷 Photo metadata: width=${photoMetadata.width}, height=${photoMetadata.height}")
+
+            val photoRequest = FetchPhotoRequest.builder(photoMetadata)
+                .setMaxWidth(800)  // Aumentado para mejor calidad
+                .setMaxHeight(800)
+                .build()
+
+            val photoResponse = placesClient.fetchPhoto(photoRequest).await()
+            val bitmap = photoResponse.bitmap
+
+            Log.d(TAG, "✅ Foto descargada: ${bitmap.width}x${bitmap.height}")
+
+            bitmap
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Error al descargar foto de Places: ${e.message}", e)
+            e.printStackTrace()
+            null
+        }
+    }
+
     /** Guardar lugar en favoritos **/
     suspend fun saveFavorite(placeId: String, placeName: String): Result<Unit> {
         return withContext(Dispatchers.IO) {
             try {
+                Log.d(TAG, "💾 Iniciando guardado de favorito: $placeName")
+
                 val userId = auth.currentUser?.uid
                     ?: return@withContext Result.failure(Exception("Usuario no autenticado"))
+
+                Log.d(TAG, "👤 UserId: $userId")
 
                 // Obtener datos del lugar desde Google Places
                 val placeFields = listOf(
@@ -125,40 +201,52 @@ class FavoritesRepository(private val context: Context) {
                     Place.Field.LAT_LNG,
                     Place.Field.PHOTO_METADATAS
                 )
+
+                Log.d(TAG, "🔍 Obteniendo detalles del lugar...")
                 val request = FetchPlaceRequest.newInstance(placeId, placeFields)
                 val response = placesClient.fetchPlace(request).await()
                 val place = response.place
 
-                // Descargar foto (opcional)
-                val photoUrl = place.photoMetadatas?.firstOrNull()?.let { photoMetadata ->
-                    try {
-                        val photoRequest = FetchPhotoRequest.builder(photoMetadata)
-                            .setMaxWidth(400)
-                            .setMaxHeight(400)
-                            .build()
-                        val photoResponse = placesClient.fetchPhoto(photoRequest).await()
-                        val bitmap = photoResponse.bitmap
+                Log.d(TAG, "✅ Detalles obtenidos: ${place.name}")
+                Log.d(TAG, "📸 Cantidad de fotos: ${place.photoMetadatas?.size ?: 0}")
 
-                        val filename = "place_${placeId}.jpg"
-                        context.openFileOutput(filename, Context.MODE_PRIVATE).use {
-                            bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 90, it)
+                // Intentar descargar y subir la foto
+                var photoUrl: String? = null
+
+                if (place.photoMetadatas?.isNotEmpty() == true) {
+                    Log.d(TAG, "🖼️ Procesando foto del lugar...")
+
+                    val bitmap = fetchPlacePhoto(place)
+
+                    if (bitmap != null) {
+                        Log.d(TAG, "🚀 Subiendo foto a Firebase Storage...")
+                        photoUrl = uploadPhotoToStorage(bitmap, userId, placeId)
+
+                        if (photoUrl != null) {
+                            Log.d(TAG, "✅ Foto guardada exitosamente en: $photoUrl")
+                        } else {
+                            Log.w(TAG, "⚠️ No se pudo subir la foto a Storage")
                         }
-                        context.filesDir.absolutePath + "/" + filename
-                    } catch (e: Exception) {
-                        Log.e(TAG, "❌ Error al descargar foto: ${e.message}", e)
-                        null
+                    } else {
+                        Log.w(TAG, "⚠️ No se pudo descargar la foto de Places")
                     }
+                } else {
+                    Log.w(TAG, "⚠️ Este lugar no tiene fotos disponibles")
                 }
 
+                // Guardar en Firestore
                 val favoriteData = hashMapOf(
                     "id" to (place.id ?: placeId),
                     "name" to (place.name ?: placeName),
                     "address" to place.address,
-                    "photoUrl" to photoUrl,
+                    "photoUrl" to photoUrl,  // Puede ser null
                     "latitude" to (place.latLng?.latitude ?: 0.0),
                     "longitude" to (place.latLng?.longitude ?: 0.0),
                     "timestamp" to System.currentTimeMillis()
                 )
+
+                Log.d(TAG, "💾 Guardando en Firestore...")
+                Log.d(TAG, "📝 Datos a guardar: $favoriteData")
 
                 db.collection(COLLECTION_FAVORITOS)
                     .document(userId)
@@ -167,8 +255,16 @@ class FavoritesRepository(private val context: Context) {
                     .set(favoriteData)
                     .await()
 
+                Log.d(TAG, "✅ Favorito guardado exitosamente en Firestore")
+
+                if (photoUrl == null) {
+                    Log.w(TAG, "⚠️ ADVERTENCIA: Favorito guardado pero SIN FOTO")
+                }
+
                 Result.success(Unit)
             } catch (e: Exception) {
+                Log.e(TAG, "❌ Error CRÍTICO al guardar favorito: ${e.message}", e)
+                e.printStackTrace()
                 Result.failure(e)
             }
         }
@@ -179,6 +275,8 @@ class FavoritesRepository(private val context: Context) {
         withContext(Dispatchers.IO) {
             try {
                 val userId = auth.currentUser?.uid ?: return@withContext
+
+                // Eliminar de Firestore
                 db.collection(COLLECTION_FAVORITOS)
                     .document(userId)
                     .collection("lugares")
@@ -186,9 +284,17 @@ class FavoritesRepository(private val context: Context) {
                     .delete()
                     .await()
 
-                // Eliminar foto local
-                val filename = "place_${placeId}.jpg"
-                context.deleteFile(filename)
+                // Eliminar imagen de Firebase Storage
+                try {
+                    val storageRef = storage.reference
+                        .child("$STORAGE_FAVORITES_PATH/$userId/$placeId.jpg")
+                    storageRef.delete().await()
+                    Log.d(TAG, "✅ Imagen eliminada de Storage")
+                } catch (e: Exception) {
+                    Log.w(TAG, "⚠️ No se pudo eliminar la imagen de Storage: ${e.message}")
+                }
+
+                Log.d(TAG, "✅ Favorito eliminado")
             } catch (e: Exception) {
                 Log.e(TAG, "❌ Error al eliminar favorito: ${e.message}", e)
             }
@@ -256,12 +362,23 @@ class FavoritesRepository(private val context: Context) {
                     .await()
 
                 snapshot.documents.forEach { doc ->
+                    // Eliminar documento de Firestore
                     doc.reference.delete().await()
-                    context.deleteFile("place_${doc.id}.jpg")
+
+                    // Eliminar imagen de Storage
+                    try {
+                        val storageRef = storage.reference
+                            .child("$STORAGE_FAVORITES_PATH/$userId/${doc.id}.jpg")
+                        storageRef.delete().await()
+                    } catch (e: Exception) {
+                        Log.w(TAG, "⚠️ No se pudo eliminar imagen ${doc.id}: ${e.message}")
+                    }
                 }
 
+                Log.d(TAG, "✅ Todos los favoritos eliminados")
                 Result.success(Unit)
             } catch (e: Exception) {
+                Log.e(TAG, "❌ Error al limpiar favoritos: ${e.message}", e)
                 Result.failure(e)
             }
         }

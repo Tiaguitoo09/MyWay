@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -75,7 +76,7 @@ fun NavegacionActiva(
     var routePoints by remember { mutableStateOf<List<LatLng>>(emptyList()) }
     var currentStep by remember { mutableStateOf<NavigationStep?>(null) }
     var nextStep by remember { mutableStateOf<NavigationStep?>(null) }
-    var distanceToDestination by remember { mutableStateOf("Obteniendo ubicación...") }
+    var distanceToDestination by remember { mutableStateOf(context.getString(R.string.obteniendo_ubicacion)) }
     var timeToDestination by remember { mutableStateOf("") }
     var currentStepIndex by remember { mutableIntStateOf(0) }
     var allSteps by remember { mutableStateOf<List<NavigationStep>>(emptyList()) }
@@ -336,7 +337,7 @@ fun NavegacionActiva(
                 }
                 .addOnFailureListener {
                     it.printStackTrace()
-                    distanceToDestination = "Error al obtener destino"
+                    distanceToDestination = context.getString(R.string.error_obtener_destino)
                 }
         }
     }
@@ -346,6 +347,8 @@ fun NavegacionActiva(
             fusedLocationClient.removeLocationUpdates(locationCallback)
         }
     }
+
+// Continuación de NavegacionActiva.kt
 
     Box(modifier = Modifier.fillMaxSize()) {
         val location = currentLocation
@@ -369,7 +372,7 @@ fun NavegacionActiva(
                 ) {
                     CircularProgressIndicator(color = Azul4)
                     Text(
-                        text = "Obteniendo tu ubicación...",
+                        text = stringResource(R.string.obteniendo_ubicacion),
                         color = Azul4,
                         fontFamily = Nunito,
                         fontSize = 16.sp
@@ -397,7 +400,7 @@ fun NavegacionActiva(
                     ) {
                         Icon(
                             painter = painterResource(id = android.R.drawable.ic_menu_close_clear_cancel),
-                            contentDescription = "Cerrar",
+                            contentDescription = stringResource(R.string.cerrar),
                             tint = Blanco,
                             modifier = Modifier
                                 .size(28.dp)
@@ -480,7 +483,7 @@ fun NavegacionActiva(
                             )
 
                             Text(
-                                text = "Luego: ${step.instruction}",
+                                text = "${stringResource(R.string.luego)} ${step.instruction}",
                                 color = Blanco.copy(alpha = 0.7f),
                                 fontFamily = Nunito,
                                 fontSize = 13.sp,
@@ -533,7 +536,7 @@ fun NavegacionActiva(
                     ) {
                         Icon(
                             painter = painterResource(id = android.R.drawable.ic_menu_mylocation),
-                            contentDescription = "Centrar en mi ubicación",
+                            contentDescription = stringResource(R.string.centrar_ubicacion),
                             tint = if (followUserLocation) Azul4 else Azul4.copy(alpha = 0.6f),
                             modifier = Modifier.size(30.dp)
                         )
@@ -553,6 +556,7 @@ fun EnhancedNavigationMap(
     cameraPositionState: CameraPositionState,
     currentBearing: Float
 ) {
+    val context = LocalContext.current
     val currentMarkerState = rememberMarkerState(position = currentLocation)
 
     LaunchedEffect(currentLocation) {
@@ -613,7 +617,7 @@ fun EnhancedNavigationMap(
         destinationLocation?.let {
             Marker(
                 state = MarkerState(position = it),
-                title = placeName ?: "Destino",
+                title = placeName ?: context.getString(R.string.destino),
                 icon = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED)
             )
         }

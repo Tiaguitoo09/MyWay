@@ -114,7 +114,12 @@ fun Favoritos(navController: NavController) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(bottom = 16.dp),
-                placeholder = { Text(stringResource(R.string.buscar_favoritos), fontFamily = Nunito) },
+                placeholder = {
+                    Text(
+                        stringResource(R.string.buscar_favoritos),
+                        fontFamily = Nunito
+                    )
+                },
                 leadingIcon = {
                     Icon(
                         imageVector = Icons.Default.Search,
@@ -195,14 +200,16 @@ fun FavoriteItemCard(
             verticalAlignment = Alignment.CenterVertically
         ) {
             if (favorite.photoUrl != null) {
+                // ✅ CAMBIO: Ahora carga desde URL de Firebase Storage
                 AsyncImage(
-                    model = java.io.File(favorite.photoUrl),
+                    model = favorite.photoUrl, // URL directa de Firebase
                     contentDescription = favorite.name,
                     modifier = Modifier
                         .size(64.dp)
                         .clip(RoundedCornerShape(12.dp)),
                     contentScale = ContentScale.Crop,
-                    error = painterResource(id = R.drawable.ic_favorite_outline)
+                    error = painterResource(id = R.drawable.ic_favorite_outline),
+                    placeholder = painterResource(id = R.drawable.ic_favorite_outline)
                 )
             } else {
                 Box(

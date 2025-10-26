@@ -1,7 +1,7 @@
 package com.example.myway.screens.modulo3
 
+import android.util.Log
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -32,7 +32,12 @@ import com.example.myway.ui.theme.*
 import com.google.android.libraries.places.api.Places
 import com.google.android.libraries.places.api.model.Place
 import com.google.android.libraries.places.api.net.FetchPlaceRequest
-import java.io.File
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withContext
 import java.util.Calendar
 import kotlin.math.roundToInt
 
@@ -44,11 +49,12 @@ fun DetallesLugar(
 ) {
     val context = LocalContext.current
     val repository = remember { FavoritesRepository(context) }
+    val scope = rememberCoroutineScope()
 
     // Estados
     var placeDetails by remember { mutableStateOf<PlaceDetails?>(null) }
     var isLoading by remember { mutableStateOf(true) }
-    var photoPath by remember { mutableStateOf<String?>(null) }
+    var photoUrl by remember { mutableStateOf<String?>(null) }
 
     val placesClient = remember {
         if (!Places.isInitialized()) {
@@ -57,17 +63,49 @@ fun DetallesLugar(
         Places.createClient(context)
     }
 
-    // Cargar detalles del lugar
     LaunchedEffect(placeId) {
+        Log.d("DetallesLugar", "🔍 Iniciando carga de detalles para placeId: $placeId")
+
         placeId?.let { id ->
-            // Verificar si hay foto guardada localmente
-            val filename = "place_${id}.jpg"
-            val file = File(context.filesDir, filename)
-            if (file.exists()) {
-                photoPath = file.absolutePath
+            // ✅ Obtener foto desde Firestore (solo si es favorito)
+            scope.launch {
+                try {
+                    val userId = FirebaseAuth.getInstance().currentUser?.uid
+                    Log.d("DetallesLugar", "👤 UserId actual: $userId")
+
+                    if (userId != null) {
+                        val docRef = FirebaseFirestore.getInstance()
+                            .collection("favoritos")
+                            .document(userId)
+                            .collection("lugares")
+                            .document(id)
+
+                        Log.d("DetallesLugar", "📂 Buscando foto en Firestore...")
+
+                        val doc = withContext(Dispatchers.IO) {
+                            docRef.get().await()
+                        }
+
+                        if (doc.exists()) {
+                            val storedUrl = doc.getString("photoUrl")
+                            Log.d("DetallesLugar", "📄 Documento encontrado")
+
+                            if (storedUrl != null && storedUrl.isNotEmpty()) {
+                                photoUrl = storedUrl
+                                Log.d("DetallesLugar", "✅ Foto cargada desde Firebase Storage")
+                            } else {
+                                Log.w("DetallesLugar", "⚠️ Este favorito no tiene foto guardada")
+                            }
+                        } else {
+                            Log.d("DetallesLugar", "ℹ️ No es un favorito (no hay foto)")
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.e("DetallesLugar", "❌ Error obteniendo foto: ${e.message}", e)
+                }
             }
 
-            // Obtener detalles del lugar
+            // Obtener detalles del lugar desde Google Places
             try {
                 val placeFields = listOf(
                     Place.Field.ID,
@@ -85,28 +123,30 @@ fun DetallesLugar(
                 placesClient.fetchPlace(request)
                     .addOnSuccessListener { response ->
                         val place = response.place
+                        Log.d("DetallesLugar", "✅ Detalles de Google Places obtenidos")
 
-                        // Obtener horarios si están disponibles
                         val hours = place.openingHours?.weekdayText ?: emptyList()
 
                         placeDetails = PlaceDetails(
                             name = place.name ?: placeName ?: "",
-                            address = place.address ?: "No disponible",
-                            phone = place.phoneNumber ?: "No disponible",
-                            website = place.websiteUri?.toString() ?: "No disponible",
+                            address = place.address ?: context.getString(R.string.no_disponible),
+                            phone = place.phoneNumber ?: context.getString(R.string.no_disponible),
+                            website = place.websiteUri?.toString() ?: context.getString(R.string.no_disponible),
                             rating = place.rating ?: 0.0,
                             totalRatings = place.userRatingsTotal ?: 0,
                             isOpen = place.isOpen,
                             types = place.types?.map { it.name } ?: emptyList(),
                             openingHours = hours
                         )
+
                         isLoading = false
                     }
-                    .addOnFailureListener {
+                    .addOnFailureListener { exception ->
+                        Log.e("DetallesLugar", "❌ Error obteniendo detalles: ${exception.message}")
                         isLoading = false
                     }
             } catch (e: Exception) {
-                e.printStackTrace()
+                Log.e("DetallesLugar", "❌ Error general: ${e.message}", e)
                 isLoading = false
             }
         }
@@ -124,7 +164,7 @@ fun DetallesLugar(
         Column(
             modifier = Modifier.fillMaxSize()
         ) {
-            // Encabezado simple sin caja azul
+            // Encabezado
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -142,7 +182,7 @@ fun DetallesLugar(
                 )
 
                 Text(
-                    text = "Detalles del Lugar",
+                    text = stringResource(R.string.detalles_lugar),
                     color = Blanco,
                     fontFamily = Nunito,
                     fontWeight = FontWeight.Bold,
@@ -173,36 +213,34 @@ fun DetallesLugar(
                         shape = RoundedCornerShape(16.dp),
                         elevation = CardDefaults.cardElevation(8.dp)
                     ) {
-                        if (photoPath != null) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .border(
-                                        width = 3.dp,
-                                        color = Color.White,
-                                        shape = RoundedCornerShape(16.dp)
-                                    )
-                            ) {
+                        Box(
+                            modifier = Modifier.fillMaxSize()
+                        ) {
+                            if (photoUrl != null) {
+                                // ✅ Solo carga desde Firebase Storage
                                 AsyncImage(
-                                    model = File(photoPath!!),
+                                    model = photoUrl,
                                     contentDescription = placeDetails?.name,
                                     modifier = Modifier
                                         .fillMaxSize()
                                         .clip(RoundedCornerShape(16.dp)),
-                                    contentScale = ContentScale.Crop
+                                    contentScale = ContentScale.Crop,
+                                    error = painterResource(id = R.drawable.ic_favorite_outline),
+                                    placeholder = painterResource(id = R.drawable.ic_favorite_outline)
                                 )
-                            }
-                        } else {
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Place,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(80.dp),
-                                    tint = Azul4.copy(alpha = 0.3f)
-                                )
+                            } else {
+                                // Sin foto - mostrar ícono
+                                Box(
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Place,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(80.dp),
+                                        tint = Azul4.copy(alpha = 0.3f)
+                                    )
+                                }
                             }
                         }
                     }
@@ -211,7 +249,7 @@ fun DetallesLugar(
 
                     // Nombre del lugar
                     Text(
-                        text = placeDetails?.name ?: placeName ?: "Lugar",
+                        text = placeDetails?.name ?: placeName ?: stringResource(R.string.destino),
                         fontFamily = Nunito,
                         fontWeight = FontWeight.Bold,
                         fontSize = 24.sp,
@@ -220,12 +258,11 @@ fun DetallesLugar(
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // Rating con corazones (estilo 5 de 5)
+                    // Rating con corazones
                     if (placeDetails?.rating != null && placeDetails!!.rating > 0) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            // Mostrar corazones basados en rating (de 5)
                             val rating = placeDetails!!.rating
                             val fullHearts = rating.roundToInt().coerceIn(0, 5)
 
@@ -257,7 +294,7 @@ fun DetallesLugar(
 
                     // Sección: Descripción
                     Text(
-                        text = "Descripción",
+                        text = stringResource(R.string.descripcion),
                         fontFamily = Nunito,
                         fontWeight = FontWeight.Bold,
                         fontSize = 18.sp,
@@ -276,26 +313,26 @@ fun DetallesLugar(
                         ) {
                             DetailRow(
                                 icon = Icons.Default.LocationOn,
-                                label = "Dirección",
-                                value = placeDetails?.address ?: "No disponible"
+                                label = stringResource(R.string.direccion),
+                                value = placeDetails?.address ?: stringResource(R.string.no_disponible)
                             )
 
                             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
                             DetailRow(
                                 icon = Icons.Default.Phone,
-                                label = "Teléfono",
-                                value = placeDetails?.phone ?: "No disponible"
+                                label = stringResource(R.string.telefono),
+                                value = placeDetails?.phone ?: stringResource(R.string.no_disponible)
                             )
 
-                            // Solo mostrar horario/estado si hay información disponible
                             if (placeDetails?.isOpen != null || placeDetails?.openingHours?.isNotEmpty() == true) {
                                 HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
                                 DetailRow(
                                     icon = Icons.Default.DateRange,
-                                    label = "Horario",
+                                    label = stringResource(R.string.horario),
                                     value = getScheduleText(
+                                        context = context,
                                         isOpen = placeDetails?.isOpen,
                                         openingHours = placeDetails?.openingHours ?: emptyList()
                                     )
@@ -308,7 +345,7 @@ fun DetallesLugar(
 
                     // Botón marcar ruta
                     CustomButton(
-                        text = "Marcar Ruta",
+                        text = stringResource(R.string.marcar_ruta),
                         color = Azul3,
                         onClick = {
                             navController.navigate(
@@ -327,12 +364,8 @@ fun DetallesLugar(
     }
 }
 
-/**
- * Función para obtener el texto del horario de forma inteligente
- */
-fun getScheduleText(isOpen: Boolean?, openingHours: List<String>): String {
+fun getScheduleText(context: android.content.Context, isOpen: Boolean?, openingHours: List<String>): String {
     return when {
-        // Si hay horarios completos, mostrar el de hoy + estado
         openingHours.isNotEmpty() -> {
             val today = Calendar.getInstance().get(Calendar.DAY_OF_WEEK)
             val todayIndex = when(today) {
@@ -348,31 +381,25 @@ fun getScheduleText(isOpen: Boolean?, openingHours: List<String>): String {
 
             val todayHours = openingHours.getOrNull(todayIndex)
                 ?: openingHours.firstOrNull()
-                ?: "No disponible"
+                ?: context.getString(R.string.no_disponible)
 
-            // Traducir el horario al español
             val translatedHours = translateSchedule(todayHours)
 
             val status = when(isOpen) {
-                true -> "🟢 Abierto"
-                false -> "🔴 Cerrado"
+                true -> context.getString(R.string.abierto_ahora)
+                false -> context.getString(R.string.cerrado_ahora)
                 null -> ""
             }
 
             if (status.isNotEmpty()) "$status\n$translatedHours"
             else translatedHours
         }
-        // Si solo hay estado abierto/cerrado
-        isOpen == true -> "🟢 Abierto ahora"
-        isOpen == false -> "🔴 Cerrado ahora"
-        // Si no hay nada
-        else -> "No disponible"
+        isOpen == true -> context.getString(R.string.abierto_ahora)
+        isOpen == false -> context.getString(R.string.cerrado_ahora)
+        else -> context.getString(R.string.no_disponible)
     }
 }
 
-/**
- * Traduce los horarios de inglés a español
- */
 fun translateSchedule(schedule: String): String {
     return schedule
         .replace("Monday", "Lunes")
