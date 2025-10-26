@@ -2,6 +2,7 @@ package com.example.myway.screens.modulo3
 
 import android.util.Log
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -217,13 +218,18 @@ fun DetallesLugar(
                             modifier = Modifier.fillMaxSize()
                         ) {
                             if (photoUrl != null) {
-                                // ✅ Solo carga desde Firebase Storage
+                                // ✅ Solo carga desde Firebase Storage con borde blanco
                                 AsyncImage(
                                     model = photoUrl,
                                     contentDescription = placeDetails?.name,
                                     modifier = Modifier
                                         .fillMaxSize()
-                                        .clip(RoundedCornerShape(16.dp)),
+                                        .clip(RoundedCornerShape(16.dp))
+                                        .border(
+                                            width = 3.dp,
+                                            color = Color.White,
+                                            shape = RoundedCornerShape(16.dp)
+                                        ),
                                     contentScale = ContentScale.Crop,
                                     error = painterResource(id = R.drawable.ic_favorite_outline),
                                     placeholder = painterResource(id = R.drawable.ic_favorite_outline)

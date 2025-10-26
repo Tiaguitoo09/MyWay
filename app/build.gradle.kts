@@ -75,6 +75,7 @@ dependencies {
 
     // 💾 Gson (para caché de rutas) 🆕 AGREGADO
     implementation("com.google.code.gson:gson:2.10.1")
+    implementation(libs.androidx.foundation)
 
     // 🗄️ Room Database
     val roomVersion = "2.6.1"
