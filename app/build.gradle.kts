@@ -94,6 +94,7 @@ dependencies {
     implementation(libs.androidx.compose.foundation)
     implementation(libs.androidx.material3)
     implementation(libs.sceneform.base)
+    implementation("com.google.accompanist:accompanist-permissions:0.31.0-alpha")
 
     // 🎨 Material Icons Extended
     implementation("androidx.compose.material:material-icons-extended:1.7.5")

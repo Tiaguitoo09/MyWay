@@ -1,15 +1,24 @@
 package com.example.myway.screens.modulo4
 
+import android.Manifest
+import android.util.Log
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -17,18 +26,123 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import coil.compose.AsyncImage
+import com.example.myway.BuildConfig
 import com.example.myway.R
+import com.example.myway.ai.*
 import com.example.myway.screens.CustomButton
-import com.example.myway.ui.theme.Blanco
-import com.example.myway.ui.theme.Negro
-import com.example.myway.ui.theme.Nunito
+import com.example.myway.ui.theme.*
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.isGranted
+import com.google.accompanist.permissions.rememberPermissionState
+import com.google.android.gms.location.LocationServices
+import com.google.android.libraries.places.api.Places
+import com.google.android.libraries.places.api.model.Place
+import com.google.android.libraries.places.api.net.FetchPhotoRequest
+import com.google.android.libraries.places.api.net.FetchPlaceRequest
+import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.launch
+import java.util.Calendar
+import kotlin.math.roundToInt
 
+@OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun Recomiendame(navController: NavController) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val repository = remember { AIRepository(context) }
     val scrollState = rememberScrollState()
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    // Estados
+    var isLoading by remember { mutableStateOf(false) }
+    var recommendation by remember { mutableStateOf<AIRecommendation?>(null) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+    var currentLocation by remember { mutableStateOf<UserLocation?>(null) }
+    var placeDetails by remember { mutableStateOf<RecommendedPlaceDetails?>(null) }
+    var photoUrl by remember { mutableStateOf<String?>(null) }
 
+    // Permisos de ubicación
+    val locationPermission = rememberPermissionState(Manifest.permission.ACCESS_FINE_LOCATION)
+
+    val placesClient = remember {
+        if (!Places.isInitialized()) {
+            Places.initialize(context, BuildConfig.MAPS_API_KEY)
+        }
+        Places.createClient(context)
+    }
+
+    // Obtener ubicación actual
+    LaunchedEffect(Unit) {
+        if (locationPermission.status.isGranted) {
+            val fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
+            try {
+                fusedLocationClient.lastLocation.addOnSuccessListener { location ->
+                    location?.let {
+                        currentLocation = UserLocation(it.latitude, it.longitude)
+                        Log.d("Recomiendame", "📍 Ubicación obtenida: ${it.latitude}, ${it.longitude}")
+                    }
+                }
+            } catch (e: SecurityException) {
+                Log.e("Recomiendame", "❌ Error de permisos: ${e.message}")
+            }
+        }
+    }
+
+    // Obtener detalles del lugar recomendado
+    LaunchedEffect(recommendation) {
+        recommendation?.let { rec ->
+            try {
+                val placeFields = listOf(
+                    Place.Field.ID,
+                    Place.Field.NAME,
+                    Place.Field.ADDRESS,
+                    Place.Field.PHONE_NUMBER,
+                    Place.Field.RATING,
+                    Place.Field.USER_RATINGS_TOTAL,
+                    Place.Field.OPENING_HOURS,
+                    Place.Field.PHOTO_METADATAS,
+                    Place.Field.TYPES
+                )
+
+                val request = FetchPlaceRequest.newInstance(rec.place.id, placeFields)
+                placesClient.fetchPlace(request)
+                    .addOnSuccessListener { response ->
+                        val place = response.place
+                        Log.d("Recomiendame", "✅ Detalles obtenidos: ${place.name}")
+
+                        placeDetails = RecommendedPlaceDetails(
+                            name = place.name ?: rec.place.name,
+                            address = place.address ?: "Dirección no disponible",
+                            phone = place.phoneNumber ?: "No disponible",
+                            rating = place.rating ?: 0.0,
+                            totalRatings = place.userRatingsTotal ?: 0,
+                            isOpen = place.isOpen,
+                            openingHours = place.openingHours?.weekdayText ?: emptyList()
+                        )
+
+                        // Obtener foto
+                        place.photoMetadatas?.firstOrNull()?.let { photoMetadata ->
+                            val photoRequest = FetchPhotoRequest.builder(photoMetadata)
+                                .setMaxWidth(800)
+                                .setMaxHeight(600)
+                                .build()
+
+                            placesClient.fetchPhoto(photoRequest)
+                                .addOnSuccessListener { photoResponse ->
+                                    photoUrl = photoResponse.bitmap.toString()
+                                }
+                        }
+                    }
+                    .addOnFailureListener { exception ->
+                        Log.e("Recomiendame", "❌ Error obteniendo detalles: ${exception.message}")
+                    }
+            } catch (e: Exception) {
+                Log.e("Recomiendame", "❌ Error: ${e.message}")
+            }
+        }
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
         // Fondo
         Image(
             painter = painterResource(id = R.drawable.fondo2),
@@ -37,20 +151,16 @@ fun Recomiendame(navController: NavController) {
             contentScale = ContentScale.Crop
         )
 
-        // Contenido principal
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 20.dp, vertical = 16.dp)
-                .verticalScroll(scrollState),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .verticalScroll(scrollState)
         ) {
-
             // Encabezado
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 8.dp, bottom = 24.dp),
+                    .padding(horizontal = 20.dp, vertical = 16.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Image(
@@ -71,22 +181,357 @@ fun Recomiendame(navController: NavController) {
                 )
             }
 
-            // Textos cercanos al título
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // Mostrar recomendación o botón para obtener
+                if (recommendation == null && !isLoading) {
+                    Spacer(modifier = Modifier.height(32.dp))
+
+                    Text(
+                        text = "🎯 Recomendación Inteligente",
+                        color = Blanco,
+                        fontFamily = Nunito,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 20.sp,
+                        textAlign = TextAlign.Center
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Text(
+                        text = "Basado en tu ubicación, clima y hora actual",
+                        color = Blanco,
+                        fontFamily = Nunito,
+                        fontSize = 14.sp,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(horizontal = 16.dp)
+                    )
+
+                    Spacer(modifier = Modifier.height(32.dp))
+
+                    CustomButton(
+                        text = if (!locationPermission.status.isGranted)
+                            "Permitir Ubicación"
+                        else
+                            "Obtener Recomendación",
+                        color = Blanco,
+                        textColor = Negro,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = {
+                            if (!locationPermission.status.isGranted) {
+                                locationPermission.launchPermissionRequest()
+                            } else {
+                                currentLocation?.let { location ->
+                                    isLoading = true
+                                    scope.launch {
+                                        val userId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
+                                        val request = QuickRecommendationRequest(
+                                            userLocation = location,
+                                            currentWeather = getCurrentWeather(),
+                                            timeOfDay = getTimeOfDay(),
+                                            userId = userId
+                                        )
+
+                                        val result = repository.getQuickRecommendation(request)
+                                        result.onSuccess {
+                                            recommendation = it
+                                            Log.d("Recomiendame", "✅ Recomendación: ${it.place.name}")
+                                        }.onFailure {
+                                            errorMessage = it.message
+                                            Log.e("Recomiendame", "❌ Error: ${it.message}")
+                                        }
+                                        isLoading = false
+                                    }
+                                }
+                            }
+                        }
+                    )
+
+                    if (errorMessage != null) {
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = errorMessage ?: "",
+                            color = Color.Red,
+                            fontFamily = Nunito,
+                            fontSize = 14.sp,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+
+                // Mostrar cargando
+                if (isLoading) {
+                    Spacer(modifier = Modifier.height(64.dp))
+                    CircularProgressIndicator(color = Blanco)
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "Analizando opciones...",
+                        color = Blanco,
+                        fontFamily = Nunito,
+                        fontSize = 16.sp
+                    )
+                }
+
+                // Mostrar resultado
+                recommendation?.let { rec ->
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Card con la imagen
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(220.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        elevation = CardDefaults.cardElevation(8.dp)
+                    ) {
+                        Box(modifier = Modifier.fillMaxSize()) {
+                            if (photoUrl != null) {
+                                AsyncImage(
+                                    model = photoUrl,
+                                    contentDescription = rec.place.name,
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .clip(RoundedCornerShape(16.dp))
+                                        .border(
+                                            width = 3.dp,
+                                            color = Color.White,
+                                            shape = RoundedCornerShape(16.dp)
+                                        ),
+                                    contentScale = ContentScale.Crop
+                                )
+                            } else {
+                                Box(
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Place,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(80.dp),
+                                        tint = Azul4.copy(alpha = 0.3f)
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Nombre del lugar
+                    Text(
+                        text = placeDetails?.name ?: rec.place.name,
+                        fontFamily = Nunito,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 24.sp,
+                        color = Blanco
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Rating
+                    if (placeDetails?.rating != null && placeDetails!!.rating > 0) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            val rating = placeDetails!!.rating
+                            val fullHearts = rating.roundToInt().coerceIn(0, 5)
+
+                            repeat(5) { index ->
+                                Icon(
+                                    painter = painterResource(
+                                        id = if (index < fullHearts)
+                                            R.drawable.ic_favorite_filled
+                                        else
+                                            R.drawable.ic_favorite_outline
+                                    ),
+                                    contentDescription = null,
+                                    tint = if (index < fullHearts)
+                                        Color(0xFFE91E63)
+                                    else
+                                        Color.Gray,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                if (index < 4) Spacer(modifier = Modifier.width(4.dp))
+                            }
+
+                            Spacer(modifier = Modifier.width(8.dp))
+
+                            Text(
+                                text = "${"%.1f".format(rating)} (${placeDetails!!.totalRatings} reseñas)",
+                                fontFamily = Nunito,
+                                fontSize = 14.sp,
+                                color = Blanco.copy(alpha = 0.8f)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Razón de la recomendación
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = Azul4.copy(alpha = 0.9f)),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text(
+                                text = "💡 ¿Por qué este lugar?",
+                                fontFamily = Nunito,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp,
+                                color = Blanco
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = rec.reason,
+                                fontFamily = Nunito,
+                                fontSize = 14.sp,
+                                color = Blanco
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Detalles del lugar
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = Blanco),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            RecommendationDetailRow(
+                                icon = Icons.Default.LocationOn,
+                                label = "Dirección",
+                                value = placeDetails?.address ?: rec.place.address
+                            )
+
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+                            RecommendationDetailRow(
+                                icon = Icons.Default.DirectionsCar,
+                                label = "Distancia",
+                                value = "${"%.1f".format(rec.distance)} km • ${rec.estimatedDuration}"
+                            )
+
+                            if (placeDetails?.phone != null && placeDetails!!.phone != "No disponible") {
+                                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                                RecommendationDetailRow(
+                                    icon = Icons.Default.Phone,
+                                    label = "Teléfono",
+                                    value = placeDetails!!.phone
+                                )
+                            }
+
+                            if (placeDetails?.isOpen != null) {
+                                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                                RecommendationDetailRow(
+                                    icon = Icons.Default.Schedule,
+                                    label = "Estado",
+                                    value = if (placeDetails!!.isOpen == true)
+                                        "Abierto ahora"
+                                    else
+                                        "Cerrado ahora"
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    // Botones de acción
+                    CustomButton(
+                        text = "Ver Ruta",
+                        color = Azul3,
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = {
+                            navController.navigate(
+                                "ruta_opciones/${rec.place.id}/${rec.place.name}"
+                            )
+                        }
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    CustomButton(
+                        text = "Otra Recomendación",
+                        color = Blanco,
+                        textColor = Negro,
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = {
+                            recommendation = null
+                            placeDetails = null
+                            photoUrl = null
+                        }
+                    )
+
+                    Spacer(modifier = Modifier.height(80.dp))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun RecommendationDetailRow(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    value: String
+) {
+    Row(
+        verticalAlignment = Alignment.Top,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = Azul4,
+            modifier = Modifier.size(24.dp)
+        )
+        Spacer(modifier = Modifier.width(12.dp))
+        Column {
             Text(
-                text = stringResource(R.string.no_sabes),
-                color = Blanco,
+                text = label,
                 fontFamily = Nunito,
                 fontWeight = FontWeight.Bold,
-                fontSize = 16.sp,
-                textAlign = TextAlign.Center,
-                modifier = Modifier
-                    .padding(bottom = 8.dp)
-                    .fillMaxWidth()
+                fontSize = 14.sp,
+                color = Color.Gray
             )
-
-
-
-
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = value,
+                fontFamily = Nunito,
+                fontSize = 14.sp,
+                color = Color.Black
+            )
         }
+    }
+}
+
+data class RecommendedPlaceDetails(
+    val name: String,
+    val address: String,
+    val phone: String,
+    val rating: Double,
+    val totalRatings: Int,
+    val isOpen: Boolean?,
+    val openingHours: List<String>
+)
+
+// Helper functions
+fun getCurrentWeather(): String {
+    // TODO: Integrar API de clima real (OpenWeather, etc.)
+    return "soleado" // Por ahora retorna valor por defecto
+}
+
+fun getTimeOfDay(): String {
+    val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+    return when (hour) {
+        in 6..11 -> "mañana"
+        in 12..18 -> "tarde"
+        else -> "noche"
     }
 }

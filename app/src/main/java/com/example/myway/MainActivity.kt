@@ -41,6 +41,8 @@ class MainActivity : ComponentActivity() {
                 App(auth, googleSignInClient)
             }
         }
+
+
     }
 }
 
@@ -56,3 +58,4 @@ fun App(
         googleSignInClient = googleSignInClient
     )
 }
+
