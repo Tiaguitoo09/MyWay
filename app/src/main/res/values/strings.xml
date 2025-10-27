@@ -252,12 +252,18 @@
     <string name="tus_mejores">Tus mejores planes no estaban planeados. Hasta ahora.</string>
     <string name="recomiendame">Recomiendame algo</string>
     <string name="mood">¿Cual es tu mood?</string>
+    <string name="ranking_lugares_top">Ranking de lugares top</string>
 
 
     <!-- Recomiendame -->
     <string name="recomiendame_search">Te recomendamos este lugar según tu ubicación, clima y gustos.</string>
 
     <!-- TuMood -->
+
+    <!-- Ranking Lugares -->
+    <string name="ranking_lugares_titulo">Ranking de lugares top</string>
+    <string name="tendencias">Tedencias locales según lo que la gente está explorando y lo que más te gusta.</string>
+    <string name="robot_ia">Robot_ia</string>
 
     <!-- Mensajes de Toast -->
     <string name="toast_cuenta_creada">Cuenta creada con éxito</string>

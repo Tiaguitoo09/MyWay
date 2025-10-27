@@ -270,7 +270,7 @@ fun SinPlan(navController: NavController) {
                 color = Blanco,
                 fontFamily = Nunito,
                 fontWeight = FontWeight.Bold,
-                fontSize = 16.sp,
+                fontSize = 23.sp,
                 textAlign = TextAlign.Center,
                 modifier = Modifier
                     .padding(bottom = 8.dp)
@@ -287,7 +287,7 @@ fun SinPlan(navController: NavController) {
                 modifier = Modifier.fillMaxWidth()
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(50.dp))
 
             // Botón: Recomendación Rápida
             CustomButton(
@@ -301,6 +301,8 @@ fun SinPlan(navController: NavController) {
                 onClick = { navController.navigate("recomiendame") }
             )
 
+            Spacer(modifier = Modifier.height(20.dp))
+
             // Botón: Recomendación Personalizada
             CustomButton(
                 alignCenter = false,
@@ -313,7 +315,29 @@ fun SinPlan(navController: NavController) {
                 onClick = { navController.navigate("tu_mood") }
             )
 
-            Spacer(modifier = Modifier.height(80.dp))
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // Botón: Recomendación Personalizada
+            CustomButton(
+                alignCenter = false,
+                text = stringResource(R.string.ranking_lugares_top),
+                color = Blanco,
+                textColor = Negro,
+                fontWeight = FontWeight.Normal,
+                icon = painterResource(id = R.drawable.ranking),
+                modifier = Modifier.fillMaxWidth(),
+                onClick = { navController.navigate("ranking_lugares") }
+            )
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            Image(
+                painter = painterResource(id = R.drawable.robot_ia),
+                contentDescription = stringResource(R.string.robot_ia),
+                modifier = Modifier
+                    .size(200.dp)
+                    .padding(bottom = 20.dp)
+            )
         }
     }
 }

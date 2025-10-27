@@ -17,6 +17,7 @@ import com.example.myway.screens.modulo3.*
 import com.example.myway.screens.modulo4.Recomiendame
 import com.example.myway.screens.modulo4.SinPlan
 import com.example.myway.screens.modulo4.TuMood
+import com.example.myway.screens.modulo4.RankingLugares
 import com.google.firebase.auth.FirebaseAuth
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 
@@ -189,6 +190,10 @@ fun MyWayAppNavigation(
 
         composable("tu_mood") {
             TuMood(navController = navController)
+        }
+
+        composable("ranking_lugares") {
+            RankingLugares(navController = navController)
         }
     }
 }
