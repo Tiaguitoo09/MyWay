@@ -3,7 +3,6 @@ package com.example.myway.screens.modulo4
 import android.Manifest
 import android.util.Log
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -54,7 +53,7 @@ fun TuMood(navController: NavController) {
     val scrollState = rememberScrollState()
 
     // Estados
-    var currentStep by remember { mutableStateOf(0) } // 0=mood, 1=tipo, 2=presupuesto, 3=duración, 4=resultado
+    var currentStep by remember { mutableStateOf(0) }
     var selectedMood by remember { mutableStateOf("") }
     var selectedPlanType by remember { mutableStateOf("") }
     var selectedBudget by remember { mutableStateOf("") }
@@ -64,7 +63,8 @@ fun TuMood(navController: NavController) {
     var recommendation by remember { mutableStateOf<AIRecommendation?>(null) }
     var currentLocation by remember { mutableStateOf<UserLocation?>(null) }
     var placeDetails by remember { mutableStateOf<RecommendedPlaceDetails?>(null) }
-    var photoUrl by remember { mutableStateOf<String?>(null) }
+    var photoBitmap by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
+    var googlePlaceId by remember { mutableStateOf<String?>(null) }
 
     val locationPermission = rememberPermissionState(Manifest.permission.ACCESS_FINE_LOCATION)
 
@@ -91,8 +91,88 @@ fun TuMood(navController: NavController) {
         }
     }
 
-    // Obtener detalles del lugar recomendado
+    // 🆕 Obtener detalles del lugar recomendado (CORREGIDO - IGUAL QUE RECOMIENDAME)
+    LaunchedEffect(recommendation) {
+        recommendation?.let { rec ->
+            photoBitmap = null
+            placeDetails = null
+            googlePlaceId = null
 
+            try {
+                // Detectar si es Google Place o Firebase Place
+                if (rec.place.id.startsWith("ChIJ") || rec.place.id.startsWith("Ei")) {
+                    Log.d("TuMood", "🌍 Lugar de Google Places: ${rec.place.id}")
+                    googlePlaceId = rec.place.id
+
+                    val placeFields = listOf(
+                        Place.Field.ID,
+                        Place.Field.NAME,
+                        Place.Field.ADDRESS,
+                        Place.Field.PHONE_NUMBER,
+                        Place.Field.RATING,
+                        Place.Field.USER_RATINGS_TOTAL,
+                        Place.Field.OPENING_HOURS,
+                        Place.Field.PHOTO_METADATAS
+                    )
+
+                    val request = FetchPlaceRequest.newInstance(rec.place.id, placeFields)
+                    placesClient.fetchPlace(request)
+                        .addOnSuccessListener { response ->
+                            val place = response.place
+                            placeDetails = RecommendedPlaceDetails(
+                                name = place.name ?: rec.place.name,
+                                address = place.address ?: rec.place.address,
+                                phone = place.phoneNumber ?: "No disponible",
+                                rating = place.rating ?: rec.place.rating,
+                                totalRatings = place.userRatingsTotal ?: 0,
+                                isOpen = place.isOpen,
+                                openingHours = place.openingHours?.weekdayText ?: emptyList()
+                            )
+
+                            // Obtener foto
+                            place.photoMetadatas?.firstOrNull()?.let { photoMetadata ->
+                                val photoRequest = FetchPhotoRequest.builder(photoMetadata)
+                                    .setMaxWidth(800)
+                                    .setMaxHeight(600)
+                                    .build()
+
+                                placesClient.fetchPhoto(photoRequest)
+                                    .addOnSuccessListener { photoResponse ->
+                                        photoBitmap = photoResponse.bitmap
+                                    }
+                            }
+                        }
+                        .addOnFailureListener { exception ->
+                            Log.e("TuMood", "❌ Error: ${exception.message}")
+                        }
+                } else {
+                    // Es un lugar de Firebase - usar datos básicos
+                    Log.d("TuMood", "📦 Lugar de Firebase: ${rec.place.name}")
+                    placeDetails = RecommendedPlaceDetails(
+                        name = rec.place.name,
+                        address = rec.place.address,
+                        phone = "No disponible",
+                        rating = rec.place.rating,
+                        totalRatings = 0,
+                        isOpen = null,
+                        openingHours = emptyList()
+                    )
+                    // La foto se cargará de rec.place.photoUrl directamente
+                }
+            } catch (e: Exception) {
+                Log.e("TuMood", "❌ Error: ${e.message}")
+                placeDetails = RecommendedPlaceDetails(
+                    name = rec.place.name,
+                    address = rec.place.address,
+                    phone = "No disponible",
+                    rating = rec.place.rating,
+                    totalRatings = 0,
+                    isOpen = null,
+                    openingHours = emptyList()
+                )
+            }
+        }
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         // Fondo
@@ -351,31 +431,44 @@ fun TuMood(navController: NavController) {
                         elevation = CardDefaults.cardElevation(8.dp)
                     ) {
                         Box(modifier = Modifier.fillMaxSize()) {
-                            if (photoUrl != null) {
-                                AsyncImage(
-                                    model = photoUrl,
-                                    contentDescription = rec.place.name,
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .clip(RoundedCornerShape(16.dp))
-                                        .border(
-                                            width = 3.dp,
-                                            color = Color.White,
-                                            shape = RoundedCornerShape(16.dp)
-                                        ),
-                                    contentScale = ContentScale.Crop
-                                )
-                            } else {
-                                Box(
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Place,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(80.dp),
-                                        tint = Azul4.copy(alpha = 0.3f)
+                            when {
+                                // Bitmap de Google Places
+                                photoBitmap != null -> {
+                                    AsyncImage(
+                                        model = photoBitmap,
+                                        contentDescription = rec.place.name,
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .clip(RoundedCornerShape(16.dp))
+                                            .border(3.dp, Color.White, RoundedCornerShape(16.dp)),
+                                        contentScale = ContentScale.Crop
                                     )
+                                }
+                                // URL de Firebase
+                                rec.place.photoUrl != null -> {
+                                    AsyncImage(
+                                        model = rec.place.photoUrl,
+                                        contentDescription = rec.place.name,
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .clip(RoundedCornerShape(16.dp))
+                                            .border(3.dp, Color.White, RoundedCornerShape(16.dp)),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                }
+                                // Placeholder
+                                else -> {
+                                    Box(
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Place,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(80.dp),
+                                            tint = Azul4.copy(alpha = 0.3f)
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -459,7 +552,7 @@ fun TuMood(navController: NavController) {
                             }
                             Spacer(modifier = Modifier.height(8.dp))
                             LinearProgressIndicator(
-                                progress = (rec.score / 100).toFloat(),
+                                progress = { (rec.score / 100).toFloat() },
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(8.dp)
@@ -550,9 +643,18 @@ fun TuMood(navController: NavController) {
                         color = Azul3,
                         modifier = Modifier.fillMaxWidth(),
                         onClick = {
-                            navController.navigate(
-                                "ruta_opciones/${rec.place.id}/${rec.place.name}"
-                            )
+                            // 🆕 Usar googlePlaceId si está disponible, sino usar coordenadas
+                            if (googlePlaceId != null) {
+                                navController.navigate(
+                                    "ruta_opciones/$googlePlaceId/${rec.place.name}"
+                                )
+                            } else {
+                                // Usar coordenadas para lugares de Firebase
+                                val coordsString = "${rec.place.latitude},${rec.place.longitude}"
+                                navController.navigate(
+                                    "ruta_opciones/$coordsString/${rec.place.name}"
+                                )
+                            }
                         }
                     )
 
@@ -571,7 +673,9 @@ fun TuMood(navController: NavController) {
                             selectedDuration = ""
                             recommendation = null
                             placeDetails = null
-                            photoUrl = null
+                            photoBitmap = null
+                            googlePlaceId = null
+                            repository.clearRecommendationHistory()
                         }
                     )
 

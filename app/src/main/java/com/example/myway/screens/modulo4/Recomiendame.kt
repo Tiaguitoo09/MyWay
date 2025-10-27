@@ -59,7 +59,7 @@ fun Recomiendame(navController: NavController) {
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var currentLocation by remember { mutableStateOf<UserLocation?>(null) }
     var placeDetails by remember { mutableStateOf<RecommendedPlaceDetails?>(null) }
-    var photoUrl by remember { mutableStateOf<String?>(null) }
+    var photoBitmap by remember { mutableStateOf<android.graphics.Bitmap?>(null) } // Cambio: Bitmap en vez de URL
 
     // Permisos de ubicación
     val locationPermission = rememberPermissionState(Manifest.permission.ACCESS_FINE_LOCATION)
@@ -129,7 +129,7 @@ fun Recomiendame(navController: NavController) {
 
                             placesClient.fetchPhoto(photoRequest)
                                 .addOnSuccessListener { photoResponse ->
-                                    photoUrl = photoResponse.bitmap.toString()
+                                    photoBitmap = photoResponse.bitmap
                                 }
                         }
                     }
@@ -290,9 +290,9 @@ fun Recomiendame(navController: NavController) {
                         elevation = CardDefaults.cardElevation(8.dp)
                     ) {
                         Box(modifier = Modifier.fillMaxSize()) {
-                            if (photoUrl != null) {
+                            if (photoBitmap != null) {
                                 AsyncImage(
-                                    model = photoUrl,
+                                    model = photoBitmap,
                                     contentDescription = rec.place.name,
                                     modifier = Modifier
                                         .fillMaxSize()
@@ -464,7 +464,7 @@ fun Recomiendame(navController: NavController) {
                         onClick = {
                             recommendation = null
                             placeDetails = null
-                            photoUrl = null
+                            photoBitmap = null
                         }
                     )
 

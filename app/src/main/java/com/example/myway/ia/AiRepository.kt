@@ -3,6 +3,7 @@ package com.example.myway.ai
 import android.content.Context
 import android.location.Location
 import android.util.Log
+import com.example.myway.data.CacheManager
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.libraries.places.api.Places
 import com.google.android.libraries.places.api.model.Place as GooglePlace
@@ -15,6 +16,11 @@ class AIRepository(private val context: Context) {
 
     private val firestore = FirebaseFirestore.getInstance()
     private val weights = ScoringWeights()
+    private val cacheManager = CacheManager(context)
+
+    // 🆕 Historial de recomendaciones para evitar repeticiones
+    private val recentRecommendations = mutableListOf<String>()
+    private val maxHistorySize = 5
 
     // ========== RECOMENDACIÓN RÁPIDA ==========
 
@@ -22,10 +28,7 @@ class AIRepository(private val context: Context) {
         request: QuickRecommendationRequest
     ): Result<AIRecommendation> {
         return try {
-            // 1. Obtener contexto del usuario
             val userContext = getUserContext(request.userId)
-
-            // 2. Buscar lugares cercanos (Firebase + Google Places)
             val nearbyPlaces = searchNearbyPlaces(
                 request.userLocation,
                 radiusKm = 10.0
@@ -37,7 +40,6 @@ class AIRepository(private val context: Context) {
 
             Log.d("AIRepository", "📍 Encontrados ${nearbyPlaces.size} lugares")
 
-            // 3. Filtrar por contexto
             val filteredPlaces = filterByContext(
                 places = nearbyPlaces,
                 timeOfDay = request.timeOfDay,
@@ -46,7 +48,6 @@ class AIRepository(private val context: Context) {
 
             Log.d("AIRepository", "✅ Filtrados: ${filteredPlaces.size} lugares")
 
-            // 4. Calcular score
             val scoredPlaces = filteredPlaces.map { place ->
                 val score = calculateQuickScore(
                     place = place,
@@ -72,24 +73,12 @@ class AIRepository(private val context: Context) {
                 )
             }
 
-            // 5. Seleccionar el mejor
-            val topRecommendations = scoredPlaces
-                .sortedByDescending { it.score }
-                .take(5)
+            // 🆕 Selección inteligente que evita repeticiones
+            val selected = selectBestRecommendation(scoredPlaces)
+                ?: return Result.failure(Exception("No se encontró una buena recomendación"))
 
-            if (topRecommendations.isEmpty()) {
-                return Result.failure(Exception("No se encontró una buena recomendación"))
-            }
-
-            val selected = if (topRecommendations.size > 1) {
-                if (Random.nextDouble() < 0.7) {
-                    topRecommendations.first()
-                } else {
-                    topRecommendations.drop(1).randomOrNull() ?: topRecommendations.first()
-                }
-            } else {
-                topRecommendations.first()
-            }
+            // 🆕 Agregar al historial
+            addToHistory(selected.place.id)
 
             Log.d("AIRepository", "🏆 Seleccionado: ${selected.place.name} (Score: ${selected.score})")
 
@@ -151,12 +140,14 @@ class AIRepository(private val context: Context) {
                 )
             }
 
-            val best = scoredPlaces
-                .sortedByDescending { it.score }
-                .firstOrNull()
+            // 🆕 Selección inteligente
+            val selected = selectBestRecommendation(scoredPlaces)
                 ?: return Result.failure(Exception("No se encontró ninguna recomendación"))
 
-            Result.success(best)
+            // 🆕 Agregar al historial
+            addToHistory(selected.place.id)
+
+            Result.success(selected)
 
         } catch (e: Exception) {
             Log.e("AIRepository", "❌ Error: ${e.message}", e)
@@ -164,7 +155,78 @@ class AIRepository(private val context: Context) {
         }
     }
 
-    // ========== BÚSQUEDA DE LUGARES (HÍBRIDO) ==========
+    // ========== 🆕 SISTEMA DE SELECCIÓN INTELIGENTE ==========
+
+    /**
+     * Selecciona una recomendación evitando repeticiones recientes
+     */
+    private fun selectBestRecommendation(
+        recommendations: List<AIRecommendation>
+    ): AIRecommendation? {
+        if (recommendations.isEmpty()) return null
+
+        // 1. Ordenar por score
+        val sorted = recommendations.sortedByDescending { it.score }
+
+        // 2. Filtrar los que NO están en historial reciente
+        val notRecent = sorted.filter { it.place.id !in recentRecommendations }
+
+        // 3. Si todos ya fueron recomendados, usar todos
+        val available = notRecent.ifEmpty { sorted }
+
+        // 4. Tomar top 5
+        val topCandidates = available.take(5)
+
+        // 5. Selección ponderada por score
+        return when {
+            topCandidates.size == 1 -> topCandidates.first()
+
+            topCandidates.size > 1 -> {
+                // 70% probabilidad del mejor, 30% de los siguientes
+                val random = Random.nextDouble()
+                if (random < 0.7) {
+                    topCandidates.first()
+                } else {
+                    // Selección ponderada entre el resto
+                    val remaining = topCandidates.drop(1)
+                    val weights = remaining.map { it.score }
+                    val totalWeight = weights.sum()
+
+                    var randomWeight = Random.nextDouble() * totalWeight
+                    for (i in remaining.indices) {
+                        randomWeight -= weights[i]
+                        if (randomWeight <= 0) {
+                            return remaining[i]
+                        }
+                    }
+                    remaining.lastOrNull() ?: topCandidates.first()
+                }
+            }
+
+            else -> null
+        }
+    }
+
+    /**
+     * Agregar al historial de recomendaciones recientes
+     */
+    private fun addToHistory(placeId: String) {
+        recentRecommendations.add(placeId)
+        if (recentRecommendations.size > maxHistorySize) {
+            recentRecommendations.removeAt(0)
+        }
+        Log.d("AIRepository", "📝 Historial: ${recentRecommendations.size} lugares recientes")
+    }
+
+    /**
+     * Limpiar historial (llamar cuando cambia de ubicación o contexto)
+     */
+    fun clearRecommendationHistory() {
+        recentRecommendations.clear()
+        Log.d("AIRepository", "🧹 Historial de recomendaciones limpiado")
+    }
+
+    // ========== BÚSQUEDA DE LUGARES CON CACHÉ ==========
 
     private suspend fun searchNearbyPlaces(
         location: UserLocation,
@@ -172,33 +234,39 @@ class AIRepository(private val context: Context) {
     ): List<Place> {
         val allPlaces = mutableListOf<Place>()
 
-        // 1. Buscar en Firebase primero (tus lugares curados)
-        val firebasePlaces = getPlacesFromFirebase(location, radiusKm)
+        val firebasePlaces = getPlacesFromFirebaseWithCache(location, radiusKm)
         allPlaces.addAll(firebasePlaces)
-
         Log.d("AIRepository", "📦 Firebase: ${firebasePlaces.size} lugares")
 
-        // 2. Buscar en Google Places (lugares reales)
-        val googlePlaces = searchGooglePlaces(location)
+        val googlePlaces = searchGooglePlacesWithCache(location, radiusKm)
         allPlaces.addAll(googlePlaces)
-
         Log.d("AIRepository", "🌍 Google Places: ${googlePlaces.size} lugares")
 
-        // 3. Eliminar duplicados por nombre
         return allPlaces.distinctBy { it.name.lowercase() }
     }
 
-    // Buscar en Firebase (tus 20 lugares curados)
-    private suspend fun getPlacesFromFirebase(
+    private suspend fun getPlacesFromFirebaseWithCache(
         location: UserLocation,
         radiusKm: Double
     ): List<Place> {
+        cacheManager.getFirebasePlacesCache()?.let { cachedPlaces ->
+            Log.d("AIRepository", "✅ Usando caché de Firebase")
+            return cachedPlaces.filter { place ->
+                val distance = calculateDistance(
+                    location.latitude, location.longitude,
+                    place.latitude, place.longitude
+                )
+                distance <= radiusKm
+            }
+        }
+
+        Log.d("AIRepository", "⬇️ Descargando lugares de Firebase...")
         return try {
             val snapshot = firestore.collection("lugares")
                 .get()
                 .await()
 
-            snapshot.documents.mapNotNull { doc ->
+            val places = snapshot.documents.mapNotNull { doc ->
                 try {
                     Place(
                         id = doc.id,
@@ -217,7 +285,13 @@ class AIRepository(private val context: Context) {
                     Log.e("AIRepository", "Error parseando lugar: ${e.message}")
                     null
                 }
-            }.filter { place ->
+            }
+
+            if (places.isNotEmpty()) {
+                cacheManager.cacheFirebasePlaces(places)
+            }
+
+            places.filter { place ->
                 val distance = calculateDistance(
                     location.latitude, location.longitude,
                     place.latitude, place.longitude
@@ -230,86 +304,41 @@ class AIRepository(private val context: Context) {
         }
     }
 
-    // Buscar en Google Places API usando HTTP
-    private suspend fun searchGooglePlaces(location: UserLocation): List<Place> {
+    private suspend fun searchGooglePlacesWithCache(
+        location: UserLocation,
+        radiusKm: Double
+    ): List<Place> {
+        val locationKey = cacheManager.generateLocationKey(
+            location.latitude,
+            location.longitude,
+            radiusKm
+        )
+
+        cacheManager.getGooglePlacesCache(locationKey)?.let { cachedPlaces ->
+            Log.d("AIRepository", "✅ Usando caché de Google Places")
+            return cachedPlaces
+        }
+
+        Log.d("AIRepository", "⬇️ Buscando en Google Places...")
         return try {
-            // Usar el servicio HTTP de búsqueda cercana
-            GooglePlacesNearby.searchNearby(
+            val places = GooglePlacesNearby.searchNearby(
                 location = location,
-                radiusMeters = 5000, // 5 km
+                radiusMeters = (radiusKm * 1000).toInt(),
                 types = listOf("restaurant", "cafe", "park", "museum", "bar", "shopping_mall")
             )
+
+            if (places.isNotEmpty()) {
+                cacheManager.cacheGooglePlaces(locationKey, places)
+            }
+
+            places
         } catch (e: Exception) {
             Log.e("AIRepository", "❌ Error buscando en Google Places: ${e.message}")
             emptyList()
         }
     }
 
-    // Inferir categoría de tipos de Google
-    private fun inferCategoryFromTypes(types: List<GooglePlace.Type>?): String {
-        if (types == null) return "otro"
-
-        return when {
-            types.any { it.name.contains("restaurant", true) } -> "restaurante"
-            types.any { it.name.contains("cafe", true) } -> "cafe"
-            types.any { it.name.contains("park", true) } -> "parque"
-            types.any { it.name.contains("museum", true) } -> "museo"
-            types.any { it.name.contains("bar", true) || it.name.contains("night_club", true) } -> "bar"
-            types.any { it.name.contains("shopping", true) || it.name.contains("mall", true) } -> "centro_comercial"
-            types.any { it.name.contains("movie", true) || it.name.contains("theater", true) } -> "cine"
-            else -> "otro"
-        }
-    }
-
-    // Inferir tags automáticamente de datos de Google
-    private fun inferTagsFromGoogle(googlePlace: GooglePlace): List<String> {
-        val tags = mutableListOf<String>()
-
-        // Por rating
-        val rating = googlePlace.rating ?: 0.0
-        when {
-            rating >= 4.5 -> tags.addAll(listOf("excelente", "recomendado"))
-            rating >= 4.0 -> tags.add("bueno")
-        }
-
-        // Por precio
-        when (googlePlace.priceLevel) {
-            0, 1 -> tags.add("económico")
-            2 -> tags.add("moderado")
-            3, 4 -> tags.addAll(listOf("premium", "elegante"))
-        }
-
-        // Por tipo
-        googlePlace.types?.forEach { type ->
-            when {
-                type.name.contains("restaurant", true) -> tags.add("gastronomía")
-                type.name.contains("cafe", true) -> tags.addAll(listOf("acogedor", "café"))
-                type.name.contains("park", true) -> tags.addAll(listOf("natural", "familiar", "aire libre"))
-                type.name.contains("museum", true) -> tags.addAll(listOf("cultural", "educativo"))
-                type.name.contains("bar", true) -> tags.addAll(listOf("social", "nocturno"))
-                type.name.contains("romantic", true) -> tags.add("romántico")
-            }
-        }
-
-        // Por popularidad
-        val ratingsTotal = googlePlace.userRatingsTotal ?: 0
-        if (ratingsTotal > 1000) {
-            tags.add("popular")
-        }
-
-        return tags.distinct()
-    }
-
-    // Idoneidad climática según categoría
-    private fun getWeatherSuitability(category: String): List<String> {
-        return when (category) {
-            "parque", "mirador" -> listOf("soleado", "nublado")
-            "museo", "cafe", "centro_comercial", "cine" -> listOf("soleado", "nublado", "lluvioso")
-            else -> listOf("soleado", "nublado", "lluvioso")
-        }
-    }
-
-    // ========== CÁLCULO DE SCORES (sin cambios) ==========
+    // ========== CÁLCULO DE SCORES ==========
 
     private fun calculateQuickScore(
         place: Place,
@@ -554,5 +583,26 @@ class AIRepository(private val context: Context) {
         }
 
         return reasons.joinToString(", ").replaceFirstChar { it.uppercase() }
+    }
+
+    // ========== MÉTODOS DE GESTIÓN DE CACHÉ ==========
+
+    fun cleanExpiredCache() {
+        cacheManager.cleanExpiredCache()
+    }
+
+    suspend fun forceRefresh(location: UserLocation, radiusKm: Double) {
+        cacheManager.clearMemoryCache()
+        clearRecommendationHistory() // 🆕 También limpiar historial
+        searchNearbyPlaces(location, radiusKm)
+    }
+
+    fun clearAllCache() {
+        cacheManager.clearAllCache()
+        clearRecommendationHistory() // 🆕 También limpiar historial
+    }
+
+    fun getCacheStats(): CacheManager.CacheStats {
+        return cacheManager.getCacheStats()
     }
 }

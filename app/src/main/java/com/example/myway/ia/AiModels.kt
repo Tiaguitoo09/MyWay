@@ -13,6 +13,8 @@ data class UserLocation(
 
 // ========== LUGAR ==========
 
+// dentro del mismo archivo donde defines data class Place(...)
+
 data class Place(
     val id: String,
     val name: String,
@@ -20,12 +22,49 @@ data class Place(
     val latitude: Double,
     val longitude: Double,
     val photoUrl: String?,
-    val category: String, // restaurante, cafe, parque, museo, bar, etc.
-    val priceLevel: Int, // 0-4 (0=gratis, 4=muy caro)
-    val rating: Double, // 0.0-5.0
-    val tags: List<String>, // vibrante, tranquilo, romántico, familiar, etc.
-    val weatherSuitable: List<String> // soleado, nublado, lluvioso
-)
+    val category: String,
+    val priceLevel: Int,
+    val rating: Double,
+    val tags: List<String>,
+    val weatherSuitable: List<String>
+) {
+    companion object {
+        fun fromMap(map: Map<String, Any?>): Place {
+            return Place(
+                id = map["id"] as? String ?: "",
+                name = map["name"] as? String ?: "",
+                address = map["address"] as? String ?: "",
+                latitude = (map["latitude"] as? Number)?.toDouble() ?: 0.0,
+                longitude = (map["longitude"] as? Number)?.toDouble() ?: 0.0,
+                photoUrl = map["photoUrl"] as? String,
+                category = map["category"] as? String ?: "",
+                priceLevel = (map["priceLevel"] as? Number)?.toInt() ?: 0,
+                rating = (map["rating"] as? Number)?.toDouble() ?: 0.0,
+                tags = (map["tags"] as? List<*>)?.filterIsInstance<String>() ?: emptyList(),
+                weatherSuitable = (map["weatherSuitable"] as? List<*>)?.filterIsInstance<String>() ?: emptyList()
+            )
+        }
+    }
+}
+
+// 👇 Esta parte va fuera de la clase
+fun Place.toMap(): Map<String, Any?> {
+    return mapOf(
+        "id" to id,
+        "name" to name,
+        "address" to address,
+        "latitude" to latitude,
+        "longitude" to longitude,
+        "photoUrl" to photoUrl,
+        "category" to category,
+        "priceLevel" to priceLevel,
+        "rating" to rating,
+        "tags" to tags,
+        "weatherSuitable" to weatherSuitable
+    )
+}
+
+
 
 // ========== REQUESTS DE RECOMENDACIÓN ==========
 

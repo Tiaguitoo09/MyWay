@@ -4,7 +4,10 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.compose.rememberNavController
+import com.example.myway.ai.AIRepository
 import com.example.myway.utils.MyWayAppNavigation
 import com.example.myway.ui.theme.MyWayTheme
 import com.google.firebase.auth.FirebaseAuth
@@ -26,8 +29,6 @@ class MainActivity : ComponentActivity() {
 
         // 🔹 Configurar Google Sign-In
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-            // Este ID se genera automáticamente al agregar Firebase a tu proyecto
-            // y está en el archivo google-services.json
             .requestIdToken(getString(R.string.default_web_client_id))
             .requestEmail()
             .build()
@@ -41,8 +42,6 @@ class MainActivity : ComponentActivity() {
                 App(auth, googleSignInClient)
             }
         }
-
-
     }
 }
 
@@ -52,10 +51,21 @@ fun App(
     googleSignInClient: GoogleSignInClient
 ) {
     val navController = rememberNavController()
+    val context = LocalContext.current
+
+    // 🧹 Limpiar caché expirado al iniciar la app
+    LaunchedEffect(Unit) {
+        try {
+            val repository = AIRepository(context)
+            repository.cleanExpiredCache()
+        } catch (e: Exception) {
+            // Manejo silencioso, no afecta la funcionalidad
+        }
+    }
+
     MyWayAppNavigation(
         navController = navController,
         auth = auth,
         googleSignInClient = googleSignInClient
     )
 }
-
