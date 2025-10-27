@@ -1,6 +1,7 @@
 package com.example.myway.screens.modulo4
 
 import android.Manifest
+import android.content.Context
 import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
@@ -31,6 +32,7 @@ import com.example.myway.BuildConfig
 import com.example.myway.R
 import com.example.myway.ai.*
 import com.example.myway.screens.CustomButton
+import com.example.myway.services.WeatherAPIService
 import com.example.myway.ui.theme.*
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
@@ -230,9 +232,14 @@ fun Recomiendame(navController: NavController) {
                                     isLoading = true
                                     scope.launch {
                                         val userId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
+
+                                        // ✅ Pasar location y context
+                                        val weather = getCurrentWeather(location, context)
+                                        val timeOfDay = getTimeOfDay()
+
                                         val request = QuickRecommendationRequest(
                                             userLocation = location,
-                                            currentWeather = getCurrentWeather(),
+                                            currentWeather = weather,
                                             timeOfDay = getTimeOfDay(),
                                             userId = userId
                                         )
@@ -522,12 +529,11 @@ data class RecommendedPlaceDetails(
 )
 
 // Helper functions
-fun getCurrentWeather(): String {
-    // TODO: Integrar API de clima real (OpenWeather, etc.)
-    return "soleado" // Por ahora retorna valor por defecto
+private suspend fun getCurrentWeather(location: UserLocation, context: Context): String {
+    return WeatherAPIService.getCurrentWeather(location, context)
 }
 
-fun getTimeOfDay(): String {
+private fun getTimeOfDay(): String {
     val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
     return when (hour) {
         in 6..11 -> "mañana"

@@ -43,6 +43,8 @@ import com.google.android.libraries.places.api.net.FetchPlaceRequest
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
+import com.example.myway.services.WeatherAPIService
+import android.content.Context
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
@@ -370,7 +372,7 @@ fun TuMood(navController: NavController) {
                                                 planType = selectedPlanType,
                                                 budget = selectedBudget,
                                                 duration = selectedDuration,
-                                                currentWeather = getCurrentWeather(),
+                                                currentWeather = getCurrentWeather(location, context),
                                                 timeOfDay = getTimeOfDay(),
                                                 userId = userId
                                             )
@@ -721,5 +723,18 @@ fun MoodOption(
                 color = if (selectedValue == value) Blanco else Negro
             )
         }
+    }
+}
+
+private suspend fun getCurrentWeather(location: UserLocation, context: Context): String {
+    return WeatherAPIService.getCurrentWeather(location, context)
+}
+
+private fun getTimeOfDay(): String {
+    val hour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
+    return when (hour) {
+        in 6..11 -> "mañana"
+        in 12..18 -> "tarde"
+        else -> "noche"
     }
 }
