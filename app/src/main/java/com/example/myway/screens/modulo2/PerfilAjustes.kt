@@ -10,19 +10,9 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -40,10 +30,7 @@ import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.myway.R
 import com.example.myway.screens.CustomButton
-import com.example.myway.ui.theme.Azul1
-import com.example.myway.ui.theme.Azul3
-import com.example.myway.ui.theme.Blanco
-import com.example.myway.ui.theme.Rojo
+import com.example.myway.ui.theme.*
 import com.example.myway.utils.UsuarioTemporal
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -65,9 +52,28 @@ fun PerfilAjustes(navController: NavController) {
     val userAuth = FirebaseAuth.getInstance().currentUser
     val isGoogleUser = userAuth?.providerData?.any { it.providerId == "google.com" } ?: false
 
-    // 🔄 Función para cargar datos desde Firestore
+    // 🔄 Función para cargar datos
     fun cargarDatosUsuario() {
         Log.d("PerfilAjustes", "🔄 Iniciando carga de datos...")
+
+        // ✅ PRIMERO: Cargar desde SharedPreferences (caché local)
+        val sharedPrefs = context.getSharedPreferences("MyWayPrefs", Context.MODE_PRIVATE)
+        val cachedFoto = sharedPrefs.getString("cached_foto_perfil", null)
+        val cachedNombre = sharedPrefs.getString("cached_nombre", null)
+
+        // Mostrar datos en caché inmediatamente
+        if (cachedFoto != null) {
+            fotoPerfilUrl = cachedFoto
+            UsuarioTemporal.fotoUrl = cachedFoto
+            Log.d("PerfilAjustes", "📦 Foto cargada desde caché: $cachedFoto")
+        }
+        if (cachedNombre != null) {
+            nombreUsuario = cachedNombre
+            UsuarioTemporal.nombre = cachedNombre
+            Log.d("PerfilAjustes", "📦 Nombre cargado desde caché: $cachedNombre")
+        }
+
+        // ✅ SEGUNDO: Actualizar desde Firestore
         userAuth?.let { u ->
             isLoading = true
             val db = FirebaseFirestore.getInstance()
@@ -79,17 +85,24 @@ fun PerfilAjustes(navController: NavController) {
                         val nombre = document.getString("nombre")
                         val foto = document.getString("fotoPerfil")
 
-                        Log.d("PerfilAjustes", "✅ Datos obtenidos:")
+                        Log.d("PerfilAjustes", "✅ Datos obtenidos de Firestore:")
                         Log.d("PerfilAjustes", "   - Nombre: $nombre")
                         Log.d("PerfilAjustes", "   - Foto URL: $foto")
 
+                        // Actualizar en memoria
                         UsuarioTemporal.nombre = nombre
                         UsuarioTemporal.fotoUrl = foto
-
                         nombreUsuario = nombre
                         fotoPerfilUrl = foto
 
-                        Log.d("PerfilAjustes", "✅ Estados actualizados correctamente")
+                        // ✅ Guardar en SharedPreferences
+                        sharedPrefs.edit().apply {
+                            putString("cached_foto_perfil", foto)
+                            putString("cached_nombre", nombre)
+                            apply()
+                        }
+
+                        Log.d("PerfilAjustes", "💾 Datos guardados en caché")
                     } else {
                         Log.w("PerfilAjustes", "⚠️ El documento no existe en Firestore")
                     }
@@ -97,42 +110,38 @@ fun PerfilAjustes(navController: NavController) {
                 .addOnFailureListener { error ->
                     isLoading = false
                     Log.e("PerfilAjustes", "❌ Error al cargar datos: ${error.message}")
-                    error.printStackTrace()
+                    Log.d("PerfilAjustes", "📦 Usando datos en caché por error de red")
                 }
         } ?: run {
             Log.e("PerfilAjustes", "❌ No hay usuario autenticado")
         }
     }
 
-    // 🔄 Cargar datos cuando la pantalla se monta
+    // 🔄 Cargar datos al iniciar
     LaunchedEffect(Unit) {
         Log.d("PerfilAjustes", "📱 LaunchedEffect - Carga inicial")
         cargarDatosUsuario()
     }
 
-    // 🔄 Recargar cuando regresas de los permisos del sistema
+    // 🔄 Recargar cuando vuelves de Permisos
     val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
         val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
             when (event) {
                 androidx.lifecycle.Lifecycle.Event.ON_RESUME -> {
-                    Log.d("PerfilAjustes", "🔄 ON_RESUME - Volviste a la app, recargando...")
+                    Log.d("PerfilAjustes", "🔄 ON_RESUME - Recargando...")
                     cargarDatosUsuario()
-                }
-                androidx.lifecycle.Lifecycle.Event.ON_START -> {
-                    Log.d("PerfilAjustes", "▶️ ON_START - Pantalla visible")
                 }
                 else -> {}
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
-            Log.d("PerfilAjustes", "🗑️ DisposableEffect - Limpiando observer")
             lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }
 
-    // 📷 Abrir galería
+    // 📷 Galería
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
@@ -144,31 +153,22 @@ fun PerfilAjustes(navController: NavController) {
             subirFotoAFirebase(
                 context, it,
                 onSuccess = { nuevaUrl ->
-                    Log.d("PerfilAjustes", "✅ Foto subida exitosamente: $nuevaUrl")
+                    Log.d("PerfilAjustes", "✅ Foto subida: $nuevaUrl")
                     fotoPerfilUrl = nuevaUrl
                     isUploading = false
-                    Toast.makeText(
-                        context,
-                        context.getString(R.string.foto_actualizada),
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    Toast.makeText(context, "Foto actualizada", Toast.LENGTH_SHORT).show()
                     cargarDatosUsuario()
                 },
                 onError = { error ->
                     isUploading = false
                     uploadError = error
-                    Toast.makeText(
-                        context,
-                        context.getString(R.string.error_foto, error),
-                        Toast.LENGTH_LONG
-                    ).show()
-                    Log.e("PerfilAjustes", "❌ Error: $error")
+                    Toast.makeText(context, "Error: $error", Toast.LENGTH_LONG).show()
                 }
             )
         }
     }
 
-    // 📸 Tomar foto
+    // 📸 Cámara
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicturePreview()
     ) { bitmap ->
@@ -182,25 +182,16 @@ fun PerfilAjustes(navController: NavController) {
             subirFotoAFirebase(
                 context, uri,
                 onSuccess = { nuevaUrl ->
-                    Log.d("PerfilAjustes", "✅ Foto subida exitosamente: $nuevaUrl")
+                    Log.d("PerfilAjustes", "✅ Foto subida: $nuevaUrl")
                     fotoPerfilUrl = nuevaUrl
                     isUploading = false
-                    Toast.makeText(
-                        context,
-                        context.getString(R.string.foto_actualizada),
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    Toast.makeText(context, "Foto actualizada", Toast.LENGTH_SHORT).show()
                     cargarDatosUsuario()
                 },
                 onError = { error ->
                     isUploading = false
                     uploadError = error
-                    Toast.makeText(
-                        context,
-                        context.getString(R.string.error_foto, error),
-                        Toast.LENGTH_LONG
-                    ).show()
-                    Log.e("PerfilAjustes", "❌ Error: $error")
+                    Toast.makeText(context, "Error: $error", Toast.LENGTH_LONG).show()
                 }
             )
         }
@@ -209,14 +200,14 @@ fun PerfilAjustes(navController: NavController) {
     Box(modifier = Modifier.fillMaxSize()) {
         Image(
             painter = painterResource(id = R.drawable.fondo2),
-            contentDescription = stringResource(id = R.string.fondo_app),
+            contentDescription = "Fondo",
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop
         )
 
         Image(
             painter = painterResource(id = R.drawable.flecha),
-            contentDescription = stringResource(id = R.string.volver),
+            contentDescription = "Volver",
             modifier = Modifier
                 .align(Alignment.TopStart)
                 .padding(16.dp)
@@ -232,7 +223,7 @@ fun PerfilAjustes(navController: NavController) {
         ) {
             Spacer(modifier = Modifier.height(60.dp))
 
-            // Imagen de perfil
+            // Foto de perfil
             Box(
                 modifier = Modifier
                     .size(150.dp)
@@ -244,7 +235,7 @@ fun PerfilAjustes(navController: NavController) {
                             if (isGoogleUser) {
                                 Toast.makeText(
                                     context,
-                                    "No puedes cambiar la foto de tu cuenta de Google",
+                                    "No puedes cambiar la foto de Google",
                                     Toast.LENGTH_SHORT
                                 ).show()
                             } else {
@@ -254,7 +245,6 @@ fun PerfilAjustes(navController: NavController) {
                     },
                 contentAlignment = Alignment.Center
             ) {
-                // 🖼️ Mostrar foto de perfil
                 when {
                     isUploading || isLoading -> {
                         CircularProgressIndicator(
@@ -263,29 +253,21 @@ fun PerfilAjustes(navController: NavController) {
                         )
                     }
                     !fotoPerfilUrl.isNullOrEmpty() -> {
-                        Log.d("PerfilAjustes", "🖼️ Mostrando AsyncImage con URL: $fotoPerfilUrl")
                         AsyncImage(
                             model = fotoPerfilUrl,
-                            contentDescription = stringResource(id = R.string.foto_perfil),
+                            contentDescription = "Foto perfil",
                             contentScale = ContentScale.Crop,
                             modifier = Modifier
                                 .size(150.dp)
                                 .clip(CircleShape),
                             error = painterResource(id = R.drawable.icono_perfil2),
-                            placeholder = painterResource(id = R.drawable.icono_perfil2),
-                            onSuccess = {
-                                Log.d("PerfilAjustes", "✅ Imagen cargada exitosamente")
-                            },
-                            onError = { error ->
-                                Log.e("PerfilAjustes", "❌ Error al cargar imagen: ${error.result.throwable.message}")
-                            }
+                            placeholder = painterResource(id = R.drawable.icono_perfil2)
                         )
                     }
                     else -> {
-                        Log.d("PerfilAjustes", "👤 Mostrando icono por defecto")
                         Image(
                             painter = painterResource(id = R.drawable.icono_perfil2),
-                            contentDescription = stringResource(id = R.string.icono_perfil),
+                            contentDescription = "Icono perfil",
                             modifier = Modifier
                                 .size(150.dp)
                                 .clip(CircleShape)
@@ -296,7 +278,7 @@ fun PerfilAjustes(navController: NavController) {
 
             uploadError?.let { error ->
                 Text(
-                    text = stringResource(id = R.string.error, error),
+                    text = "Error: $error",
                     color = Rojo,
                     fontSize = 12.sp,
                     modifier = Modifier.padding(8.dp)
@@ -305,17 +287,16 @@ fun PerfilAjustes(navController: NavController) {
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // 🔹 Mostrar nombre
             val displayName = (nombreUsuario ?: userAuth?.displayName)
                 ?.trim()
                 ?.split(" ")
                 ?.firstOrNull()
                 ?.lowercase()
                 ?.replaceFirstChar { it.uppercase() }
-                ?: stringResource(id = R.string.usuario)
+                ?: "Usuario"
 
             Text(
-                text = stringResource(id = R.string.hola_usuario, displayName),
+                text = "Hola, $displayName",
                 color = Blanco,
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold
@@ -324,7 +305,7 @@ fun PerfilAjustes(navController: NavController) {
             Spacer(modifier = Modifier.height(12.dp))
 
             Text(
-                text = stringResource(id = R.string.ver_perfil),
+                text = "Ver Perfil",
                 color = Blanco,
                 fontSize = 18.sp,
                 textDecoration = TextDecoration.Underline,
@@ -336,7 +317,7 @@ fun PerfilAjustes(navController: NavController) {
             Spacer(modifier = Modifier.height(20.dp))
 
             CustomButton(
-                text = stringResource(id = R.string.soporte),
+                text = "Soporte",
                 color = Azul3,
                 fontSize = 22.sp,
                 modifier = Modifier.fillMaxWidth(0.85f).height(70.dp),
@@ -347,7 +328,7 @@ fun PerfilAjustes(navController: NavController) {
             Spacer(modifier = Modifier.height(18.dp))
 
             CustomButton(
-                text = stringResource(id = R.string.ajustes),
+                text = "Ajustes",
                 color = Azul3,
                 fontSize = 22.sp,
                 modifier = Modifier.fillMaxWidth(0.85f).height(70.dp),
@@ -358,7 +339,7 @@ fun PerfilAjustes(navController: NavController) {
             Spacer(modifier = Modifier.height(18.dp))
 
             CustomButton(
-                text = stringResource(id = R.string.eliminar_cuenta),
+                text = "Eliminar Cuenta",
                 color = Rojo,
                 fontSize = 22.sp,
                 modifier = Modifier.fillMaxWidth(0.85f).height(70.dp),
@@ -370,7 +351,7 @@ fun PerfilAjustes(navController: NavController) {
 
             Image(
                 painter = painterResource(id = R.drawable.cerrar_sesion),
-                contentDescription = stringResource(id = R.string.cerrar_sesion),
+                contentDescription = "Cerrar sesión",
                 modifier = Modifier
                     .size(50.dp)
                     .clickable { navController.navigate("cerrar_sesion") }
@@ -379,7 +360,7 @@ fun PerfilAjustes(navController: NavController) {
             Spacer(modifier = Modifier.height(30.dp))
 
             Text(
-                text = stringResource(id = R.string.cerrar_sesion),
+                text = "Cerrar Sesión",
                 color = Azul1,
                 textDecoration = TextDecoration.Underline,
                 fontSize = 20.sp,
@@ -393,10 +374,10 @@ fun PerfilAjustes(navController: NavController) {
     if (showDialog && !isGoogleUser) {
         AlertDialog(
             onDismissRequest = { showDialog = false },
-            title = { Text(stringResource(id = R.string.cambiar_foto_perfil)) },
+            title = { Text("Cambiar foto de perfil") },
             text = {
                 Column {
-                    Text(stringResource(id = R.string.selecciona_opcion))
+                    Text("Selecciona una opción")
                     Spacer(modifier = Modifier.height(16.dp))
 
                     Button(
@@ -405,7 +386,7 @@ fun PerfilAjustes(navController: NavController) {
                             showDialog = false
                         },
                         modifier = Modifier.fillMaxWidth()
-                    ) { Text(stringResource(id = R.string.galeria)) }
+                    ) { Text("Galería") }
 
                     Spacer(modifier = Modifier.height(8.dp))
 
@@ -415,14 +396,14 @@ fun PerfilAjustes(navController: NavController) {
                             showDialog = false
                         },
                         modifier = Modifier.fillMaxWidth()
-                    ) { Text(stringResource(id = R.string.camara)) }
+                    ) { Text("Cámara") }
 
                     Spacer(modifier = Modifier.height(8.dp))
 
                     Button(
                         onClick = { showDialog = false },
                         modifier = Modifier.fillMaxWidth()
-                    ) { Text(stringResource(id = R.string.cancelar)) }
+                    ) { Text("Cancelar") }
                 }
             },
             confirmButton = {},
@@ -448,52 +429,44 @@ fun subirFotoAFirebase(
     val user = FirebaseAuth.getInstance().currentUser
 
     if (user == null) {
-        Log.e("Firebase", "No hay usuario autenticado")
-        onError(context.getString(R.string.no_usuario_autenticado))
+        onError("No hay usuario autenticado")
         return
     }
 
     val userId = user.uid
-    Log.d("Firebase", "Usuario: $userId")
-    Log.d("Firebase", "URI a subir: $uri")
 
     try {
         val inputStream = context.contentResolver.openInputStream(uri)
         if (inputStream == null) {
-            Log.e("Firebase", "No se puede leer el archivo")
-            onError(context.getString(R.string.no_leer_archivo))
+            onError("No se puede leer el archivo")
             return
         }
         val size = inputStream.available()
         inputStream.close()
-        Log.d("Firebase", "Tamaño del archivo: ${size / 1024} KB")
 
         if (size > 10 * 1024 * 1024) {
-            onError(context.getString(R.string.archivo_muy_grande))
+            onError("Archivo muy grande")
             return
         }
     } catch (e: Exception) {
-        Log.e("Firebase", "Error al leer archivo: ${e.message}")
-        onError(context.getString(R.string.error_leer_archivo, e.message))
+        onError("Error al leer archivo: ${e.message}")
         return
     }
 
     val storageRef = FirebaseStorage.getInstance().reference
     val imageRef = storageRef.child("fotos_usuarios/$userId")
 
-    val uploadTask = imageRef.putFile(uri)
-
-    uploadTask.addOnProgressListener { taskSnapshot ->
-        val progress = (100.0 * taskSnapshot.bytesTransferred / taskSnapshot.totalByteCount).toInt()
-        Log.d("Firebase", "Progreso: $progress%")
-    }
-
-    uploadTask
+    imageRef.putFile(uri)
         .addOnSuccessListener {
             imageRef.downloadUrl
                 .addOnSuccessListener { url ->
                     val fotoUrl = url.toString()
                     UsuarioTemporal.fotoUrl = fotoUrl
+
+                    // ✅ Guardar en SharedPreferences inmediatamente
+                    val sharedPrefs = context.getSharedPreferences("MyWayPrefs", Context.MODE_PRIVATE)
+                    sharedPrefs.edit().putString("cached_foto_perfil", fotoUrl).apply()
+                    Log.d("Firebase", "💾 Foto guardada en caché: $fotoUrl")
 
                     val db = FirebaseFirestore.getInstance()
                     db.collection("usuarios").document(userId)
@@ -501,18 +474,15 @@ fun subirFotoAFirebase(
                         .addOnSuccessListener {
                             onSuccess(fotoUrl)
                         }
-                        .addOnFailureListener { e ->
-                            Log.e("Firebase", "Error Firestore: ${e.message}")
+                        .addOnFailureListener {
                             onSuccess(fotoUrl)
                         }
                 }
                 .addOnFailureListener { e ->
-                    Log.e("Firebase", "Error al obtener URL: ${e.message}")
-                    onError(context.getString(R.string.error_obtener_url, e.message))
+                    onError("Error al obtener URL: ${e.message}")
                 }
         }
         .addOnFailureListener { e ->
-            Log.e("Firebase", "Error al subir: ${e.message}")
-            onError(context.getString(R.string.error_subir, e.message))
+            onError("Error al subir: ${e.message}")
         }
 }

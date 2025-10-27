@@ -4,52 +4,29 @@ import android.Manifest
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.net.Uri
+import android.location.LocationManager
+import android.os.Build
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
@@ -58,13 +35,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.navigation.NavController
 import com.example.myway.R
-import com.example.myway.ui.theme.Azul1
-import com.example.myway.ui.theme.Azul3
-import com.example.myway.ui.theme.Azul4
-import com.example.myway.ui.theme.Blanco
-import com.example.myway.ui.theme.Nunito
-import com.example.myway.ui.theme.Rojo
-import com.example.myway.ui.theme.Verde
+import com.example.myway.ui.theme.*
 
 @Composable
 fun Permisos(navController: NavController) {
@@ -72,31 +43,35 @@ fun Permisos(navController: NavController) {
     val scrollState = rememberScrollState()
     val lifecycleOwner = LocalLifecycleOwner.current
 
-    // Estados de permisos
-    var ubicacionPermitida by remember {
-        mutableStateOf(
-            ContextCompat.checkSelfPermission(
-                context,
-                Manifest.permission.ACCESS_FINE_LOCATION
-            ) == PackageManager.PERMISSION_GRANTED
-        )
+    var mostrarDialogoUbicacionSistema by remember { mutableStateOf(false) }
+    var ubicacionPermitida by remember { mutableStateOf(false) }
+    var camaraPermitida by remember { mutableStateOf(false) }
+
+    fun abrirConfiguracionUbicacion() {
+        val intent = Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
+        context.startActivity(intent)
     }
 
-    var camaraPermitida by remember {
-        mutableStateOf(
-            ContextCompat.checkSelfPermission(
-                context,
-                Manifest.permission.CAMERA
-            ) == PackageManager.PERMISSION_GRANTED
-        )
+    fun isLocationEnabled(): Boolean {
+        val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            locationManager.isLocationEnabled
+        } else {
+            locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) ||
+                    locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
+        }
     }
 
-    // Función para verificar permisos
     fun verificarPermisos() {
-        ubicacionPermitida = ContextCompat.checkSelfPermission(
+        val tienePermisoUbicacion = ContextCompat.checkSelfPermission(
             context,
             Manifest.permission.ACCESS_FINE_LOCATION
         ) == PackageManager.PERMISSION_GRANTED
+
+        val ubicacionHabilitada = isLocationEnabled()
+
+        // Solo está activo si AMBOS están habilitados
+        ubicacionPermitida = tienePermisoUbicacion && ubicacionHabilitada
 
         camaraPermitida = ContextCompat.checkSelfPermission(
             context,
@@ -104,33 +79,25 @@ fun Permisos(navController: NavController) {
         ) == PackageManager.PERMISSION_GRANTED
     }
 
-    // Launcher para permisos de ubicación
+    // Launcher para ubicación
     val ubicacionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         ubicacionPermitida = isGranted
-        if (!isGranted) {
-            // Si no otorga el permiso, abrir configuración
-            abrirConfiguracionApp(context)
-        }
     }
 
-    // Launcher para permisos de cámara
+    // Launcher para cámara
     val camaraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         camaraPermitida = isGranted
-        if (!isGranted) {
-            abrirConfiguracionApp(context)
-        }
     }
 
-    // Verificar permisos al cargar la pantalla
     LaunchedEffect(Unit) {
         verificarPermisos()
     }
 
-    // Verificar permisos cuando la app vuelve del primer plano (ej: después de ir a Settings)
+    // Verificar permisos cuando la app vuelve al frente
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
@@ -144,9 +111,15 @@ fun Permisos(navController: NavController) {
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    // Verificar permisos constantemente cada segundo
+    LaunchedEffect(Unit) {
+        while (true) {
+            kotlinx.coroutines.delay(1000)
+            verificarPermisos()
+        }
+    }
 
-        // Fondo
+    Box(modifier = Modifier.fillMaxSize()) {
         Image(
             painter = painterResource(id = R.drawable.fondo2),
             contentDescription = stringResource(id = R.string.fondo_app),
@@ -154,7 +127,6 @@ fun Permisos(navController: NavController) {
             contentScale = ContentScale.Crop
         )
 
-        // Flecha volver
         Image(
             painter = painterResource(id = R.drawable.flecha),
             contentDescription = stringResource(id = R.string.volver),
@@ -166,7 +138,6 @@ fun Permisos(navController: NavController) {
                 .clickable { navController.popBackStack() }
         )
 
-        // Contenido principal
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -176,25 +147,22 @@ fun Permisos(navController: NavController) {
         ) {
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Ícono de permisos
             Box(
                 modifier = Modifier
                     .size(80.dp)
-                    .clip(CircleShape)
-                    .background(Blanco),
+                    .clip(CircleShape),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     painter = painterResource(id = android.R.drawable.ic_menu_info_details),
                     contentDescription = "Permisos",
-                    tint = Azul4,
-                    modifier = Modifier.size(45.dp)
+                    tint = Blanco,
+                    modifier = Modifier.size(80.dp)
                 )
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Título
             Text(
                 text = "Permisos",
                 color = Blanco,
@@ -205,7 +173,6 @@ fun Permisos(navController: NavController) {
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Tarjeta principal
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(20.dp),
@@ -215,7 +182,6 @@ fun Permisos(navController: NavController) {
                 Column(
                     modifier = Modifier.padding(24.dp)
                 ) {
-                    // Título de la tarjeta
                     Text(
                         text = "Permisos de la App",
                         color = Blanco,
@@ -227,7 +193,7 @@ fun Permisos(navController: NavController) {
                     Spacer(modifier = Modifier.height(8.dp))
 
                     Text(
-                        text = "Controla qué permisos has otorgado a MyWay para ofrecerte la mejor experiencia. Puedes activarlos o desactivarlos en cualquier momento.",
+                        text = "Controla qué permisos has otorgado a MyWay para ofrecerte la mejor experiencia.",
                         color = Blanco.copy(alpha = 0.9f),
                         fontSize = 14.sp,
                         fontFamily = Nunito,
@@ -237,19 +203,29 @@ fun Permisos(navController: NavController) {
                     Spacer(modifier = Modifier.height(28.dp))
 
                     // PERMISO: UBICACIÓN
-                    PermisoItem(
+                    PermisoItemMejorado(
                         icono = android.R.drawable.ic_menu_mylocation,
                         titulo = "Ubicación",
-                        descripcion = "Necesario para calcular rutas y mostrar tu posición en el mapa",
+                        descripcion = "Necesario para calcular rutas y mostrar tu posición",
                         isEnabled = ubicacionPermitida,
                         esObligatorio = true,
-                        onToggle = {
-                            if (ubicacionPermitida) {
-                                // Si está activado, abrir configuración para desactivar
-                                abrirConfiguracionApp(context)
-                            } else {
-                                // Si está desactivado, solicitar permiso
-                                ubicacionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+                        onActivar = {
+                            val tienePermiso = ContextCompat.checkSelfPermission(
+                                context,
+                                Manifest.permission.ACCESS_FINE_LOCATION
+                            ) == PackageManager.PERMISSION_GRANTED
+
+                            val ubicacionSistema = isLocationEnabled()
+
+                            when {
+                                // Caso 1: No tiene permiso de app
+                                !tienePermiso -> {
+                                    ubicacionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+                                }
+                                // Caso 2: Tiene permiso pero ubicación del sistema OFF
+                                !ubicacionSistema -> {
+                                    mostrarDialogoUbicacionSistema = true
+                                }
                             }
                         }
                     )
@@ -257,24 +233,19 @@ fun Permisos(navController: NavController) {
                     Spacer(modifier = Modifier.height(16.dp))
 
                     // PERMISO: CÁMARA
-                    PermisoItem(
+                    PermisoItemMejorado(
                         icono = android.R.drawable.ic_menu_camera,
                         titulo = "Cámara",
                         descripcion = "Para tomar fotos de perfil y escanear códigos QR",
                         isEnabled = camaraPermitida,
                         esObligatorio = false,
-                        onToggle = {
-                            if (camaraPermitida) {
-                                abrirConfiguracionApp(context)
-                            } else {
-                                camaraLauncher.launch(Manifest.permission.CAMERA)
-                            }
+                        onActivar = {
+                            camaraLauncher.launch(Manifest.permission.CAMERA)
                         }
                     )
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // Nota informativa
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
@@ -296,7 +267,7 @@ fun Permisos(navController: NavController) {
                             Spacer(modifier = Modifier.height(8.dp))
 
                             Text(
-                                text = "La ubicación es necesaria para el funcionamiento de la aplicación. Sin ella, no podrás usar el mapa ni calcular rutas.",
+                                text = "La ubicación es necesaria para el funcionamiento de la aplicación.",
                                 color = Blanco.copy(alpha = 0.9f),
                                 fontSize = 13.sp,
                                 fontFamily = Nunito,
@@ -309,7 +280,6 @@ fun Permisos(navController: NavController) {
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Resumen de estado de permisos
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(20.dp),
@@ -357,9 +327,9 @@ fun Permisos(navController: NavController) {
 
                         Text(
                             text = when {
-                                ubicacionPermitida && camaraPermitida -> "MyWay tiene acceso completo a todas las funciones"
-                                ubicacionPermitida -> "Funciones básicas de navegación disponibles"
-                                else -> "La app necesita ubicación para funcionar"
+                                ubicacionPermitida && camaraPermitida -> "MyWay tiene acceso completo"
+                                ubicacionPermitida -> "Funciones básicas disponibles"
+                                else -> "La app necesita ubicación"
                             },
                             color = Blanco.copy(alpha = 0.8f),
                             fontSize = 13.sp,
@@ -370,37 +340,87 @@ fun Permisos(navController: NavController) {
                 }
             }
         }
+
+        // Diálogo para activar ubicación del sistema
+        if (mostrarDialogoUbicacionSistema) {
+            AlertDialog(
+                onDismissRequest = { mostrarDialogoUbicacionSistema = false },
+                containerColor = Azul3,
+                title = {
+                    Text(
+                        text = "📍 Ubicación desactivada",
+                        color = Blanco,
+                        fontFamily = Nunito,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 20.sp
+                    )
+                },
+                text = {
+                    Column {
+                        Text(
+                            text = "La ubicación de tu dispositivo está desactivada.\n\n" +
+                                    "Para usar MyWay, necesitas activar la ubicación desde el panel rápido " +
+                                    "o ir a la configuración de ubicación.",
+                            color = Blanco,
+                            fontFamily = Nunito,
+                            fontSize = 14.sp,
+                            lineHeight = 20.sp
+                        )
+                    }
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            mostrarDialogoUbicacionSistema = false
+                            abrirConfiguracionUbicacion()
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Verde)
+                    ) {
+                        Text("Activar ubicación", color = Blanco)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { mostrarDialogoUbicacionSistema = false }) {
+                        Text("Ahora no", color = Blanco.copy(alpha = 0.7f))
+                    }
+                }
+            )
+        }
     }
 }
 
 @Composable
-fun PermisoItem(
+fun PermisoItemMejorado(
     icono: Int,
     titulo: String,
     descripcion: String,
     isEnabled: Boolean,
     esObligatorio: Boolean,
-    onToggle: () -> Unit
+    onActivar: () -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Blanco.copy(alpha = 0.1f)
+            containerColor = if (isEnabled)
+                Verde.copy(alpha = 0.15f)
+            else
+                Rojo.copy(alpha = 0.15f)
         )
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .clickable(enabled = !isEnabled) {
+                    onActivar()
+                }
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Ícono
             Box(
                 modifier = Modifier
                     .size(48.dp)
-                    .clip(CircleShape)
-                    .background(if (isEnabled) Verde.copy(alpha = 0.2f) else Rojo.copy(alpha = 0.2f)),
+                    .clip(CircleShape),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
@@ -413,13 +433,8 @@ fun PermisoItem(
 
             Spacer(modifier = Modifier.width(16.dp))
 
-            // Texto
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         text = titulo,
                         color = Blanco,
@@ -447,46 +462,56 @@ fun PermisoItem(
                     fontFamily = Nunito,
                     lineHeight = 18.sp
                 )
+
+                if (!isEnabled) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Toca para activar",
+                        color = if (esObligatorio) Rojo else Azul1,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = Nunito
+                    )
+                } else {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "✓ Activado",
+                        color = Verde,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = Nunito
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.width(12.dp))
 
-            // Switch
-            Switch(
-                checked = isEnabled,
-                onCheckedChange = { onToggle() },
-                modifier = Modifier.scale(1.0f),
-                colors = SwitchDefaults.colors(
-                    checkedThumbColor = Verde,
-                    checkedTrackColor = Verde.copy(alpha = 0.5f),
-                    uncheckedThumbColor = Rojo,
-                    uncheckedTrackColor = Rojo.copy(alpha = 0.5f)
-                )
-            )
-        }
-    }
-}
+            // Switch visual personalizado
+            Box(
+                modifier = Modifier
+                    .width(51.dp)
+                    .height(31.dp)
+                    .clip(RoundedCornerShape(15.5.dp))
+                    .clickable(enabled = !isEnabled) {
+                        onActivar()
+                    },
+                contentAlignment = if (isEnabled) Alignment.CenterEnd else Alignment.CenterStart
+            ) {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = if (isEnabled) Verde.copy(alpha = 0.5f) else Rojo.copy(alpha = 0.5f),
+                    shape = RoundedCornerShape(15.5.dp)
+                ) {}
 
-/**
- * Abre la configuración de la app para que el usuario cambie permisos manualmente
- */
-fun abrirConfiguracionApp(context: Context) {
-    try {
-        val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-            data = Uri.fromParts("package", context.packageName, null)
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK
-        }
-        context.startActivity(intent)
-    } catch (e: Exception) {
-        e.printStackTrace()
-        // Si falla, intentar abrir la configuración general
-        try {
-            val fallbackIntent = Intent(Settings.ACTION_SETTINGS).apply {
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                Surface(
+                    modifier = Modifier
+                        .padding(2.dp)
+                        .size(27.dp),
+                    shape = CircleShape,
+                    color = if (isEnabled) Verde else Rojo,
+                    shadowElevation = 2.dp
+                ) {}
             }
-            context.startActivity(fallbackIntent)
-        } catch (ex: Exception) {
-            ex.printStackTrace()
         }
     }
 }

@@ -67,14 +67,17 @@ fun ModoCopiloto(navController: NavController) {
     var mostrarDialogo by remember { mutableStateOf(false) }
     val scrollState = rememberScrollState()
 
+    // Observar estado de conducción
     val isDriving by DrivingDetector.isDriving.collectAsState()
 
+    // Sincronizar con SharedPreferences al iniciar
     LaunchedEffect(Unit) {
         modoCopilotoActivado = sharedPreferences.getBoolean("modo_copiloto", false)
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
 
+        // Fondo
         Image(
             painter = painterResource(id = R.drawable.fondo2),
             contentDescription = stringResource(id = R.string.fondo_app),
@@ -82,6 +85,7 @@ fun ModoCopiloto(navController: NavController) {
             contentScale = ContentScale.Crop
         )
 
+        // Flecha volver
         Image(
             painter = painterResource(id = R.drawable.flecha),
             contentDescription = stringResource(id = R.string.volver),
@@ -93,6 +97,7 @@ fun ModoCopiloto(navController: NavController) {
                 .clickable { navController.popBackStack() }
         )
 
+        // Contenido principal
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -102,6 +107,7 @@ fun ModoCopiloto(navController: NavController) {
         ) {
             Spacer(modifier = Modifier.height(20.dp))
 
+            // Título principal
             Text(
                 text = "Modo Copiloto",
                 color = Blanco,
@@ -111,6 +117,7 @@ fun ModoCopiloto(navController: NavController) {
                 modifier = Modifier.padding(bottom = 24.dp)
             )
 
+            // Tarjeta informativa
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -135,6 +142,7 @@ fun ModoCopiloto(navController: NavController) {
                         modifier = Modifier.padding(bottom = 24.dp)
                     )
 
+                    // Switch ON / OFF con indicador visual
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.Center,
@@ -165,6 +173,7 @@ fun ModoCopiloto(navController: NavController) {
 
                     Spacer(modifier = Modifier.height(28.dp))
 
+                    // Mostrar estado de conducción actual
                     if (isDriving && modoCopilotoActivado) {
                         Card(
                             shape = RoundedCornerShape(12.dp),
@@ -193,6 +202,7 @@ fun ModoCopiloto(navController: NavController) {
                         Spacer(modifier = Modifier.height(16.dp))
                     }
 
+                    // Información adicional
                     Text(
                         text = "Cuando actives el Modo Copiloto:",
                         color = Blanco,
@@ -218,6 +228,7 @@ fun ModoCopiloto(navController: NavController) {
 
                     Spacer(modifier = Modifier.height(24.dp))
 
+                    // Nota de recordatorio
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
@@ -239,6 +250,7 @@ fun ModoCopiloto(navController: NavController) {
             }
         }
 
+        // Diálogo de confirmación
         if (mostrarDialogo) {
             Box(
                 modifier = Modifier
@@ -254,6 +266,7 @@ fun ModoCopiloto(navController: NavController) {
                         .padding(24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
+                    // Icono de advertencia
                     Image(
                         painter = painterResource(id = R.drawable.circuloadvertencia),
                         contentDescription = "Advertencia",

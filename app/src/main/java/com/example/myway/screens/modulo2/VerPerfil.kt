@@ -13,7 +13,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
@@ -23,7 +22,6 @@ import coil.compose.AsyncImage
 import com.example.myway.R
 import com.example.myway.screens.InfoBlock
 import com.example.myway.ui.theme.Blanco
-import com.example.myway.ui.theme.Azul3
 import com.example.myway.utils.UsuarioTemporal
 import android.util.Log
 
@@ -32,20 +30,29 @@ fun VerPerfil(navController: NavController) {
     val context = LocalContext.current
     var fotoPerfilUrl by remember { mutableStateOf(UsuarioTemporal.fotoUrl) }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    // ✅ Cargar desde SharedPreferences al iniciar
+    LaunchedEffect(Unit) {
+        val sharedPrefs = context.getSharedPreferences("MyWayPrefs", android.content.Context.MODE_PRIVATE)
+        val cachedFoto = sharedPrefs.getString("cached_foto_perfil", null)
 
-        // Fondo
+        if (cachedFoto != null) {
+            fotoPerfilUrl = cachedFoto
+            UsuarioTemporal.fotoUrl = cachedFoto
+            Log.d("VerPerfil", "📦 Foto cargada desde caché: $cachedFoto")
+        }
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
         Image(
             painter = painterResource(id = R.drawable.fondo2),
-            contentDescription = stringResource(id = R.string.fondo_app),
+            contentDescription = "Fondo",
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop
         )
 
-        // Flecha volver
         Image(
             painter = painterResource(id = R.drawable.flecha),
-            contentDescription = stringResource(id = R.string.volver),
+            contentDescription = "Volver",
             modifier = Modifier
                 .align(Alignment.TopStart)
                 .padding(16.dp)
@@ -53,7 +60,6 @@ fun VerPerfil(navController: NavController) {
                 .clickable { navController.popBackStack() }
         )
 
-        // Contenido principal
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -61,7 +67,6 @@ fun VerPerfil(navController: NavController) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // Imagen de perfil dinámica
             Box(
                 modifier = Modifier
                     .size(150.dp)
@@ -73,7 +78,7 @@ fun VerPerfil(navController: NavController) {
                 if (!fotoPerfilUrl.isNullOrEmpty()) {
                     AsyncImage(
                         model = fotoPerfilUrl,
-                        contentDescription = stringResource(id = R.string.foto_perfil),
+                        contentDescription = "Foto perfil",
                         contentScale = ContentScale.Crop,
                         modifier = Modifier
                             .size(150.dp)
@@ -87,7 +92,7 @@ fun VerPerfil(navController: NavController) {
                 } else {
                     Image(
                         painter = painterResource(id = R.drawable.icono_perfil2),
-                        contentDescription = stringResource(id = R.string.icono_perfil),
+                        contentDescription = "Icono perfil",
                         modifier = Modifier
                             .size(150.dp)
                             .clip(CircleShape)
@@ -95,27 +100,25 @@ fun VerPerfil(navController: NavController) {
                 }
             }
 
-            // Bloques de información
             InfoBlock(
-                label = stringResource(id = R.string.nombre),
-                value = UsuarioTemporal.nombre ?: stringResource(id = R.string.usuario)
+                label = "Nombre",
+                value = UsuarioTemporal.nombre ?: "Usuario"
             )
             InfoBlock(
-                label = stringResource(id = R.string.apellido),
-                value = UsuarioTemporal.apellido ?: stringResource(id = R.string.no_disponible)
+                label = "Apellido",
+                value = UsuarioTemporal.apellido ?: "No disponible"
             )
             InfoBlock(
-                label = stringResource(id = R.string.correo_label),
-                value = UsuarioTemporal.correo ?: stringResource(id = R.string.no_disponible)
+                label = "Correo",
+                value = UsuarioTemporal.correo ?: "No disponible"
             )
             InfoBlock(
-                label = stringResource(id = R.string.fecha_nacimiento_label),
-                value = UsuarioTemporal.fechaNacimiento ?: stringResource(id = R.string.no_registrada)
+                label = "Fecha de Nacimiento",
+                value = UsuarioTemporal.fechaNacimiento ?: "No registrada"
             )
 
-            // Enlace para cambiar contraseña
             Text(
-                text = stringResource(id = R.string.cambiar_contrasena),
+                text = "Cambiar Contraseña",
                 color = Blanco,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,

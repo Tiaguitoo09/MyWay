@@ -19,7 +19,7 @@ object DrivingDetector {
 
     // Configuración de detección
     private const val DRIVING_SPEED_THRESHOLD = 5.0 // m/s (~18 km/h)
-    private const val HIGH_SPEED_THRESHOLD = 1.5 // m/s (~54 km/h)
+    private const val HIGH_SPEED_THRESHOLD = 15.0 // m/s (~54 km/h)
     private const val ACCELERATION_THRESHOLD = 2.0 // m/s²
 
     // Historial de ubicaciones
