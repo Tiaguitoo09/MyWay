@@ -605,4 +605,66 @@ class AIRepository(private val context: Context) {
     fun getCacheStats(): CacheManager.CacheStats {
         return cacheManager.getCacheStats()
     }
+
+    // ========== 🏆 RANKING DE LUGARES TOP ==========
+
+    /**
+     * Obtiene una lista de los lugares mejor valorados según calificación.
+     * Integra datos tanto de Firebase como de Google Places.
+     */
+    suspend fun getTopPlaces(
+        location: UserLocation,
+        radiusKm: Double = 10.0,
+        limit: Int = 10
+    ): List<Place> {
+        return try {
+            // Buscar lugares cercanos con la función ya existente
+            val allPlaces = searchNearbyPlaces(location, radiusKm)
+
+            if (allPlaces.isEmpty()) {
+                Log.w("AIRepository", "⚠️ No se encontraron lugares para ranking")
+                return emptyList()
+            }
+
+            // Ordenar por calificación descendente
+            val topPlaces = allPlaces
+                .filter { it.rating > 0 }
+                .sortedByDescending { it.rating }
+                .take(limit)
+
+            Log.d("AIRepository", "🏆 Top ${topPlaces.size} lugares seleccionados")
+
+            topPlaces
+        } catch (e: Exception) {
+            Log.e("AIRepository", "❌ Error obteniendo ranking: ${e.message}")
+            emptyList()
+        }
+    }
+
+    /**
+     * Convierte la lista de lugares top en un formato más amigable para la UI.
+     */
+    suspend fun getTopPlaceRecommendations(
+        location: UserLocation,
+        radiusKm: Double = 10.0,
+        limit: Int = 10
+    ): List<PlaceRecommendation> {
+        val topPlaces = getTopPlaces(location, radiusKm, limit)
+
+        return topPlaces.map { place ->
+            PlaceRecommendation(
+                nombre = place.name,
+                ciudad = place.address.split(",").lastOrNull()?.trim() ?: "Desconocida",
+                descripcion = "Muy recomendado por los visitantes.",
+                calificacion = place.rating,
+                categoria = place.category,
+                razon = "Alta valoración y popularidad en la zona."
+            )
+        }
+    }
+    suspend fun getTopPlacesAI(limit: Int = 10): List<PlaceRecommendation> {
+        // ⚠️ Usa una ubicación genérica o la que tengas guardada
+        val fakeLocation = UserLocation(latitude = 4.7110, longitude = -74.0721) // Bogotá 🇨🇴
+        return getTopPlaceRecommendations(fakeLocation, radiusKm = 10.0, limit = limit)
+    }
 }

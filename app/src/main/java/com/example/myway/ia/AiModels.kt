@@ -203,3 +203,13 @@ data class Meal(
     val recommendation: String,
     val estimatedCost: String
 )
+
+
+data class PlaceRecommendation(
+    val nombre: String,
+    val ciudad: String,
+    val descripcion: String,
+    val calificacion: Double,
+    val categoria: String,
+    val razon: String
+)
