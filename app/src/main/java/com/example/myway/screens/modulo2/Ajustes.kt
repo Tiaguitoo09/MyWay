@@ -68,7 +68,7 @@ fun Ajustes(navController: NavController) {
     val opciones = listOf(
         OpcionAjuste(R.string.activar_modo_copiloto, "modo_copiloto"),
         OpcionAjuste(R.string.silenciar_notificaciones, "silenciar_notificaciones"),
-        OpcionAjuste(R.string.preferencias_viaje, ""),
+        OpcionAjuste(R.string.preferencias_viaje, "preferencias_viaje"),
         OpcionAjuste(R.string.permisos, "permisos")
     )
 

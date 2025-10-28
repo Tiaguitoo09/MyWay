@@ -192,6 +192,10 @@ fun MyWayAppNavigation(
             TuMood(navController = navController)
         }
 
+        composable("preferencias_viaje") {
+            PreferenciasViaje(navController)
+        }
+
         composable("ranking_lugares") {
             RankingLugares(navController = navController)
         }

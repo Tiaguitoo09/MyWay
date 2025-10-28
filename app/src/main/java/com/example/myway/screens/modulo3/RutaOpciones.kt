@@ -20,6 +20,7 @@ import com.example.myway.BuildConfig
 import com.example.myway.R
 import com.example.myway.data.FavoritesRepository
 import com.example.myway.screens.CustomButton
+import com.example.myway.screens.modulo2.PreferenciasManager
 import com.example.myway.ui.theme.*
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.model.CameraPosition
@@ -49,17 +50,24 @@ fun RutaOpciones(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
+    // CARGAR PREFERENCIAS DEL USUARIO
+    val preferencias = remember { PreferenciasManager.cargarPreferencias(context) }
+
     val repository = remember { FavoritesRepository(context) }
 
     var isFavorite by remember { mutableStateOf(false) }
     var currentLocation by remember { mutableStateOf(LatLng(4.7110, -74.0721)) }
     var destinationLocation by remember { mutableStateOf<LatLng?>(null) }
-    var selectedMode by remember { mutableStateOf("driving") }
+
+    // USAR TRANSPORTE PREFERIDO POR DEFECTO
+    var selectedMode by remember { mutableStateOf(preferencias.transportePreferido) }
     var isLoading by remember { mutableStateOf(true) }
 
     var walkingRoute by remember { mutableStateOf<RouteInfo?>(null) }
     var drivingRoute by remember { mutableStateOf<RouteInfo?>(null) }
     var motorcycleRoute by remember { mutableStateOf<RouteInfo?>(null) }
+    var bicyclingRoute by remember { mutableStateOf<RouteInfo?>(null) }
+    var transitRoute by remember { mutableStateOf<RouteInfo?>(null) }
 
     val cameraPositionState = rememberCameraPositionState {
         position = CameraPosition.fromLatLngZoom(currentLocation, 12f)
@@ -100,9 +108,12 @@ fun RutaOpciones(
                     destinationLocation = response.place.latLng
                     scope.launch {
                         destinationLocation?.let { dest ->
+                            // Cargar todas las opciones de transporte
                             walkingRoute = getRouteInfo(currentLocation, dest, "walking")
                             drivingRoute = getRouteInfo(currentLocation, dest, "driving")
                             motorcycleRoute = getRouteInfo(currentLocation, dest, "driving")
+                            bicyclingRoute = getRouteInfo(currentLocation, dest, "bicycling")
+                            transitRoute = getRouteInfo(currentLocation, dest, "transit")
                             isLoading = false
                         }
                     }
@@ -146,6 +157,8 @@ fun RutaOpciones(
                 "walking" -> walkingRoute
                 "driving" -> drivingRoute
                 "motorcycle" -> motorcycleRoute
+                "bicycling" -> bicyclingRoute
+                "transit" -> transitRoute
                 else -> drivingRoute
             }
 
@@ -153,7 +166,14 @@ fun RutaOpciones(
                 if (points.isNotEmpty()) {
                     Polyline(
                         points = points,
-                        color = Color(0xFF4285F4),
+                        color = when (selectedMode) {
+                            "walking" -> Color(0xFF34A853) // Verde
+                            "driving" -> Color(0xFF4285F4) // Azul
+                            "motorcycle" -> Color(0xFFEA4335) // Rojo
+                            "bicycling" -> Color(0xFFFBBC04) // Amarillo
+                            "transit" -> Color(0xFF9C27B0) // Morado
+                            else -> Color(0xFF4285F4)
+                        },
                         width = 10f
                     )
                 }
@@ -204,6 +224,18 @@ fun RutaOpciones(
                         fontFamily = Nunito,
                         fontSize = 16.sp
                     )
+
+                    // Mostrar transporte preferido
+                    if (selectedMode == preferencias.transportePreferido) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "⭐ Usando tu transporte preferido",
+                            color = Verde,
+                            fontFamily = Nunito,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
             }
 
@@ -312,35 +344,67 @@ fun RutaOpciones(
                             CircularProgressIndicator(color = Azul4)
                         }
                     } else {
+                        // Caminando
                         TransportOption(
                             icon = R.drawable.ic_walk,
                             title = stringResource(R.string.caminando),
                             duration = walkingRoute?.duration ?: "N/A",
                             distance = walkingRoute?.distance ?: "N/A",
                             isSelected = selectedMode == "walking",
+                            isPreferred = preferencias.transportePreferido == "walking",
                             onClick = { selectedMode = "walking" }
                         )
 
                         Spacer(modifier = Modifier.height(12.dp))
 
+                        // Carro
                         TransportOption(
                             icon = R.drawable.ic_car,
                             title = stringResource(R.string.en_carro),
                             duration = drivingRoute?.duration ?: "N/A",
                             distance = drivingRoute?.distance ?: "N/A",
                             isSelected = selectedMode == "driving",
+                            isPreferred = preferencias.transportePreferido == "driving",
                             onClick = { selectedMode = "driving" }
                         )
 
                         Spacer(modifier = Modifier.height(12.dp))
 
+                        // Moto
                         TransportOption(
                             icon = R.drawable.ic_motorcycle,
                             title = stringResource(R.string.en_moto),
                             duration = motorcycleRoute?.duration ?: "N/A",
                             distance = motorcycleRoute?.distance ?: "N/A",
                             isSelected = selectedMode == "motorcycle",
+                            isPreferred = preferencias.transportePreferido == "motorcycle",
                             onClick = { selectedMode = "motorcycle" }
+                        )
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        // Bicicleta
+                        TransportOption(
+                            icon = R.drawable.ic_walk, // Usar el mismo ícono o crear uno nuevo
+                            title = "En bicicleta",
+                            duration = bicyclingRoute?.duration ?: "N/A",
+                            distance = bicyclingRoute?.distance ?: "N/A",
+                            isSelected = selectedMode == "bicycling",
+                            isPreferred = preferencias.transportePreferido == "bicycling",
+                            onClick = { selectedMode = "bicycling" }
+                        )
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        // Transporte público
+                        TransportOption(
+                            icon = android.R.drawable.ic_dialog_map,
+                            title = "Transporte público",
+                            duration = transitRoute?.duration ?: "N/A",
+                            distance = transitRoute?.distance ?: "N/A",
+                            isSelected = selectedMode == "transit",
+                            isPreferred = preferencias.transportePreferido == "transit",
+                            onClick = { selectedMode = "transit" }
                         )
 
                         Spacer(modifier = Modifier.height(24.dp))
@@ -379,6 +443,7 @@ fun TransportOption(
     duration: String,
     distance: String,
     isSelected: Boolean,
+    isPreferred: Boolean = false,
     onClick: () -> Unit
 ) {
     Card(
@@ -386,10 +451,12 @@ fun TransportOption(
             .fillMaxWidth()
             .clickable { onClick() },
         colors = CardDefaults.cardColors(
-            containerColor = if (isSelected)
-                Azul4.copy(alpha = 0.1f)
-            else
-                Color.White
+            containerColor = when {
+                isSelected && isPreferred -> Verde.copy(alpha = 0.2f)
+                isSelected -> Azul4.copy(alpha = 0.1f)
+                isPreferred -> Verde.copy(alpha = 0.05f)
+                else -> Color.White
+            }
         ),
         elevation = CardDefaults.cardElevation(if (isSelected) 8.dp else 2.dp),
         shape = RoundedCornerShape(16.dp)
@@ -408,18 +475,33 @@ fun TransportOption(
                 Icon(
                     painter = painterResource(id = icon),
                     contentDescription = title,
-                    tint = if (isSelected) Azul4 else Color.Gray,
+                    tint = when {
+                        isSelected && isPreferred -> Verde
+                        isSelected -> Azul4
+                        isPreferred -> Verde
+                        else -> Color.Gray
+                    },
                     modifier = Modifier.size(32.dp)
                 )
 
                 Column {
-                    Text(
-                        text = title,
-                        fontFamily = Nunito,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp,
-                        color = if (isSelected) Azul4 else Color.Black
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = title,
+                            fontFamily = Nunito,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp,
+                            color = if (isSelected) Azul4 else Color.Black
+                        )
+
+                        if (isPreferred && !isSelected) {
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "⭐",
+                                fontSize = 14.sp
+                            )
+                        }
+                    }
 
                     Text(
                         text = "$duration • $distance",
@@ -434,7 +516,7 @@ fun TransportOption(
                 Icon(
                     painter = painterResource(id = android.R.drawable.radiobutton_on_background),
                     contentDescription = stringResource(R.string.seleccionado),
-                    tint = Azul4,
+                    tint = if (isPreferred) Verde else Azul4,
                     modifier = Modifier.size(24.dp)
                 )
             }
@@ -475,4 +557,3 @@ suspend fun getRouteInfo(
         }
     }
 }
-
