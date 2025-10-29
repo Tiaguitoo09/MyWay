@@ -6,7 +6,21 @@ import kotlinx.coroutines.tasks.await
 
 object PopulatePlaces {
 
+
+
     private val firestore = FirebaseFirestore.getInstance()
+
+
+    private fun fixUnsplashUrl(url: String?): String? {
+        return url?.let {
+            if (it.contains("unsplash.com")) {
+                // Agregar parámetros necesarios para que funcione
+                "$it&auto=format&q=80"
+            } else {
+                it
+            }
+        }
+    }
 
     suspend fun addSamplePlaces() {
         val lugares = listOf(
@@ -355,7 +369,7 @@ object PopulatePlaces {
                     "address" to lugar.address,
                     "latitude" to lugar.latitude,
                     "longitude" to lugar.longitude,
-                    "photoUrl" to lugar.photoUrl, // ✅ Esta línea es crítica
+                    "photoUrl" to fixUnsplashUrl(lugar.photoUrl), // ✅ APLICAR FIX
                     "category" to lugar.category,
                     "priceLevel" to lugar.priceLevel,
                     "rating" to lugar.rating,
@@ -365,7 +379,7 @@ object PopulatePlaces {
                 batch.set(docRef, data)
 
                 // Log para verificar
-                Log.d("PopulatePlaces", "✅ ${lugar.name}: ${lugar.photoUrl}")
+                Log.d("PopulatePlaces", "✅ ${lugar.name}: ${fixUnsplashUrl(lugar.photoUrl)}")
             }
 
             batch.commit().await()

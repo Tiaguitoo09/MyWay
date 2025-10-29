@@ -91,55 +91,91 @@ fun Recomiendame(navController: NavController) {
     }
 
     // Obtener detalles del lugar recomendado
+// Reemplaza el LaunchedEffect(recommendation) completo (línea ~63-98) con esto:
+
     LaunchedEffect(recommendation) {
         recommendation?.let { rec ->
+            Log.d("Recomiendame", "═══════════════════════")
+            Log.d("Recomiendame", "🏆 Lugar: ${rec.place.name}")
+            Log.d("Recomiendame", "🆔 ID: ${rec.place.id}")
+            Log.d("Recomiendame", "📸 PhotoURL: '${rec.place.photoUrl}'")
+            Log.d("Recomiendame", "📍 Categoría: ${rec.place.category}")
+            Log.d("Recomiendame", "═══════════════════════")
+
+            photoBitmap = null
+            placeDetails = null
+
             try {
-                val placeFields = listOf(
-                    Place.Field.ID,
-                    Place.Field.NAME,
-                    Place.Field.ADDRESS,
-                    Place.Field.PHONE_NUMBER,
-                    Place.Field.RATING,
-                    Place.Field.USER_RATINGS_TOTAL,
-                    Place.Field.OPENING_HOURS,
-                    Place.Field.PHOTO_METADATAS,
-                    Place.Field.TYPES
-                )
+                // ✅ Detectar si es Google Place o Firebase Place
+                if (rec.place.id.startsWith("ChIJ") || rec.place.id.startsWith("Ei")) {
+                    Log.d("Recomiendame", "🌍 Lugar de Google Places: ${rec.place.id}")
 
-                val request = FetchPlaceRequest.newInstance(rec.place.id, placeFields)
-                placesClient.fetchPlace(request)
-                    .addOnSuccessListener { response ->
-                        val place = response.place
-                        Log.d("Recomiendame", "✅ Detalles obtenidos: ${place.name}")
+                    val placeFields = listOf(
+                        Place.Field.ID,
+                        Place.Field.NAME,
+                        Place.Field.ADDRESS,
+                        Place.Field.PHONE_NUMBER,
+                        Place.Field.RATING,
+                        Place.Field.USER_RATINGS_TOTAL,
+                        Place.Field.OPENING_HOURS,
+                        Place.Field.PHOTO_METADATAS
+                    )
 
-                        placeDetails = RecommendedPlaceDetails(
-                            name = place.name ?: rec.place.name,
-                            address = place.address ?: "Dirección no disponible",
-                            phone = place.phoneNumber ?: "No disponible",
-                            rating = place.rating ?: 0.0,
-                            totalRatings = place.userRatingsTotal ?: 0,
-                            isOpen = place.isOpen,
-                            openingHours = place.openingHours?.weekdayText ?: emptyList()
-                        )
+                    val request = FetchPlaceRequest.newInstance(rec.place.id, placeFields)
+                    placesClient.fetchPlace(request)
+                        .addOnSuccessListener { response ->
+                            val place = response.place
+                            placeDetails = RecommendedPlaceDetails(
+                                name = place.name ?: rec.place.name,
+                                address = place.address ?: rec.place.address,
+                                phone = place.phoneNumber ?: "No disponible",
+                                rating = place.rating ?: rec.place.rating,
+                                totalRatings = place.userRatingsTotal ?: 0,
+                                isOpen = place.isOpen,
+                                openingHours = place.openingHours?.weekdayText ?: emptyList()
+                            )
 
-                        // Obtener foto
-                        place.photoMetadatas?.firstOrNull()?.let { photoMetadata ->
-                            val photoRequest = FetchPhotoRequest.builder(photoMetadata)
-                                .setMaxWidth(800)
-                                .setMaxHeight(600)
-                                .build()
+                            // Obtener foto de Google
+                            place.photoMetadatas?.firstOrNull()?.let { photoMetadata ->
+                                val photoRequest = FetchPhotoRequest.builder(photoMetadata)
+                                    .setMaxWidth(800)
+                                    .setMaxHeight(600)
+                                    .build()
 
-                            placesClient.fetchPhoto(photoRequest)
-                                .addOnSuccessListener { photoResponse ->
-                                    photoBitmap = photoResponse.bitmap
-                                }
+                                placesClient.fetchPhoto(photoRequest)
+                                    .addOnSuccessListener { photoResponse ->
+                                        photoBitmap = photoResponse.bitmap
+                                    }
+                            }
                         }
-                    }
-                    .addOnFailureListener { exception ->
-                        Log.e("Recomiendame", "❌ Error obteniendo detalles: ${exception.message}")
-                    }
+                        .addOnFailureListener { exception ->
+                            Log.e("Recomiendame", "❌ Error: ${exception.message}")
+                        }
+                } else {
+                    // ✅ Es un lugar de Firebase - usar datos básicos
+                    Log.d("Recomiendame", "📦 Lugar de Firebase: ${rec.place.name}")
+                    placeDetails = RecommendedPlaceDetails(
+                        name = rec.place.name,
+                        address = rec.place.address,
+                        phone = "No disponible",
+                        rating = rec.place.rating,
+                        totalRatings = 0,
+                        isOpen = null,
+                        openingHours = emptyList()
+                    )
+                    // La foto se cargará de rec.place.photoUrl directamente
+                }
             } catch (e: Exception) {
                 Log.e("Recomiendame", "❌ Error: ${e.message}")
+                placeDetails = RecommendedPlaceDetails(
+                    name = rec.place.name,
+                    address = rec.place.address,
+                    phone = "No disponible",
+                    rating = rec.place.rating,
+                    totalRatings = 0,
+                    isOpen = null,
+                    openingHours = emptyList()
+                )
             }
         }
     }
@@ -297,31 +333,61 @@ fun Recomiendame(navController: NavController) {
                         elevation = CardDefaults.cardElevation(8.dp)
                     ) {
                         Box(modifier = Modifier.fillMaxSize()) {
-                            if (photoBitmap != null) {
-                                AsyncImage(
-                                    model = photoBitmap,
-                                    contentDescription = rec.place.name,
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .clip(RoundedCornerShape(16.dp))
-                                        .border(
-                                            width = 3.dp,
-                                            color = Color.White,
-                                            shape = RoundedCornerShape(16.dp)
-                                        ),
-                                    contentScale = ContentScale.Crop
-                                )
-                            } else {
-                                Box(
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Place,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(80.dp),
-                                        tint = Azul4.copy(alpha = 0.3f)
+                            when {
+                                photoBitmap != null -> {
+                                    // ✅ Foto de Google Places (Bitmap)
+                                    AsyncImage(
+                                        model = photoBitmap,
+                                        contentDescription = rec.place.name,
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .clip(RoundedCornerShape(16.dp))
+                                            .border(3.dp, Color.White, RoundedCornerShape(16.dp)),
+                                        contentScale = ContentScale.Crop,
+                                        onLoading = { Log.d("Recomiendame", "⏳ Cargando bitmap") },
+                                        onSuccess = { Log.d("Recomiendame", "✅ Bitmap cargado") },
+                                        onError = { Log.e("Recomiendame", "❌ Error bitmap") }
                                     )
+                                }
+                                !rec.place.photoUrl.isNullOrEmpty() -> {
+                                    // ✅ Foto de Firebase/Unsplash (URL)
+                                    AsyncImage(
+                                        model = coil.request.ImageRequest.Builder(LocalContext.current)
+                                            .data(rec.place.photoUrl)
+                                            .crossfade(true)
+                                            .allowHardware(false)
+                                            .build(),
+                                        contentDescription = rec.place.name,
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .clip(RoundedCornerShape(16.dp))
+                                            .border(3.dp, Color.White, RoundedCornerShape(16.dp)),
+                                        contentScale = ContentScale.Crop,
+                                        onLoading = {
+                                            Log.d("Recomiendame", "⏳ Cargando: ${rec.place.photoUrl}")
+                                        },
+                                        onSuccess = {
+                                            Log.d("Recomiendame", "✅ Imagen cargada: ${rec.place.photoUrl}")
+                                        },
+                                        onError = { error ->
+                                            Log.e("Recomiendame", "❌ Error: ${error.result.throwable.message}")
+                                            Log.e("Recomiendame", "❌ URL: ${rec.place.photoUrl}")
+                                        }
+                                    )
+                                }
+                                else -> {
+                                    // ❌ Sin imagen - Placeholder
+                                    Box(
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Place,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(80.dp),
+                                            tint = Azul4.copy(alpha = 0.3f)
+                                        )
+                                    }
                                 }
                             }
                         }
