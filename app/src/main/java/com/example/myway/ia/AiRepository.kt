@@ -4,21 +4,15 @@ import android.content.Context
 import android.location.Location
 import android.util.Log
 import com.example.myway.data.CacheManager
-import com.google.android.gms.maps.model.LatLng
-import com.google.android.libraries.places.api.Places
-import com.google.android.libraries.places.api.model.Place as GooglePlace
-import com.google.android.libraries.places.api.net.FindCurrentPlaceRequest
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
 import kotlin.random.Random
+import java.util.Calendar
 
 class AIRepository(private val context: Context) {
 
     private val firestore = FirebaseFirestore.getInstance()
-    private val weights = ScoringWeights()
     private val cacheManager = CacheManager(context)
-
-    // 🆕 Historial de recomendaciones para evitar repeticiones
     private val recentRecommendations = mutableListOf<String>()
     private val maxHistorySize = 5
 
@@ -33,6 +27,7 @@ class AIRepository(private val context: Context) {
                 request.userLocation,
                 radiusKm = 10.0
             )
+            debugRecommendations(nearbyPlaces)
 
             if (nearbyPlaces.isEmpty()) {
                 return Result.failure(Exception("No se encontraron lugares cercanos"))
@@ -47,6 +42,10 @@ class AIRepository(private val context: Context) {
             )
 
             Log.d("AIRepository", "✅ Filtrados: ${filteredPlaces.size} lugares")
+
+            if (filteredPlaces.isEmpty()) {
+                return Result.failure(Exception("No hay lugares disponibles para tus criterios"))
+            }
 
             val scoredPlaces = filteredPlaces.map { place ->
                 val score = calculateQuickScore(
@@ -73,13 +72,10 @@ class AIRepository(private val context: Context) {
                 )
             }
 
-            // 🆕 Selección inteligente que evita repeticiones
             val selected = selectBestRecommendation(scoredPlaces)
                 ?: return Result.failure(Exception("No se encontró una buena recomendación"))
 
-            // 🆕 Agregar al historial
             addToHistory(selected.place.id)
-
             Log.d("AIRepository", "🏆 Seleccionado: ${selected.place.name} (Score: ${selected.score})")
 
             Result.success(selected)
@@ -102,6 +98,8 @@ class AIRepository(private val context: Context) {
                 request.userLocation,
                 radiusKm = 15.0
             )
+
+            debugRecommendations(nearbyPlaces)
 
             if (nearbyPlaces.isEmpty()) {
                 return Result.failure(Exception("No se encontraron lugares cercanos"))
@@ -140,11 +138,9 @@ class AIRepository(private val context: Context) {
                 )
             }
 
-            // 🆕 Selección inteligente
             val selected = selectBestRecommendation(scoredPlaces)
                 ?: return Result.failure(Exception("No se encontró ninguna recomendación"))
 
-            // 🆕 Agregar al historial
             addToHistory(selected.place.id)
 
             Result.success(selected)
@@ -153,77 +149,6 @@ class AIRepository(private val context: Context) {
             Log.e("AIRepository", "❌ Error: ${e.message}", e)
             Result.failure(e)
         }
-    }
-
-    // ========== 🆕 SISTEMA DE SELECCIÓN INTELIGENTE ==========
-
-    /**
-     * Selecciona una recomendación evitando repeticiones recientes
-     */
-    private fun selectBestRecommendation(
-        recommendations: List<AIRecommendation>
-    ): AIRecommendation? {
-        if (recommendations.isEmpty()) return null
-
-        // 1. Ordenar por score
-        val sorted = recommendations.sortedByDescending { it.score }
-
-        // 2. Filtrar los que NO están en historial reciente
-        val notRecent = sorted.filter { it.place.id !in recentRecommendations }
-
-        // 3. Si todos ya fueron recomendados, usar todos
-        val available = notRecent.ifEmpty { sorted }
-
-        // 4. Tomar top 5
-        val topCandidates = available.take(5)
-
-        // 5. Selección ponderada por score
-        return when {
-            topCandidates.size == 1 -> topCandidates.first()
-
-            topCandidates.size > 1 -> {
-                // 70% probabilidad del mejor, 30% de los siguientes
-                val random = Random.nextDouble()
-                if (random < 0.7) {
-                    topCandidates.first()
-                } else {
-                    // Selección ponderada entre el resto
-                    val remaining = topCandidates.drop(1)
-                    val weights = remaining.map { it.score }
-                    val totalWeight = weights.sum()
-
-                    var randomWeight = Random.nextDouble() * totalWeight
-                    for (i in remaining.indices) {
-                        randomWeight -= weights[i]
-                        if (randomWeight <= 0) {
-                            return remaining[i]
-                        }
-                    }
-                    remaining.lastOrNull() ?: topCandidates.first()
-                }
-            }
-
-            else -> null
-        }
-    }
-
-    /**
-     * Agregar al historial de recomendaciones recientes
-     */
-    private fun addToHistory(placeId: String) {
-        recentRecommendations.add(placeId)
-        if (recentRecommendations.size > maxHistorySize) {
-            recentRecommendations.removeAt(0)
-        }
-        Log.d("AIRepository", "📝 Historial: ${recentRecommendations.size} lugares recientes")
-    }
-
-    /**
-     * Limpiar historial (llamar cuando cambia de ubicación o contexto)
-     */
-    fun clearRecommendationHistory() {
-        recentRecommendations.clear()
-        Log.d("AIRepository", "🧹 Historial de recomendaciones limpiado")
     }
 
     // ========== BÚSQUEDA DE LUGARES CON CACHÉ ==========
@@ -242,7 +167,31 @@ class AIRepository(private val context: Context) {
         allPlaces.addAll(googlePlaces)
         Log.d("AIRepository", "🌍 Google Places: ${googlePlaces.size} lugares")
 
-        return allPlaces.distinctBy { it.name.lowercase() }
+        // 🔥 FILTRADO FINAL - Eliminar duplicados y lugares no deseados
+        return allPlaces
+            .distinctBy { it.name.lowercase() }
+            .filter { place ->
+                // ❌ Rechazar hoteles/hospedaje
+                val isValidCategory = place.category !in listOf("hotel", "hospedaje", "motel", "otro")
+
+                // ❌ Rechazar por palabras clave en el nombre
+                val hasInvalidKeyword = listOf(
+                    "hotel", "hostel", "motel", "inn", "hospedaje",
+                    "hospital", "clínica", "farmacia",
+                    "banco", "cajero",
+                    "gasolinera", "estación de servicio"
+                ).any { keyword ->
+                    place.name.contains(keyword, ignoreCase = true)
+                }
+
+                val isValid = isValidCategory && !hasInvalidKeyword
+
+                if (!isValid) {
+                    Log.d("AIRepository", "❌ Filtrado: ${place.name} (${place.category})")
+                }
+
+                isValid
+            }
     }
 
     private suspend fun getPlacesFromFirebaseWithCache(
@@ -324,7 +273,7 @@ class AIRepository(private val context: Context) {
             val places = GooglePlacesNearby.searchNearby(
                 location = location,
                 radiusMeters = (radiusKm * 1000).toInt(),
-                types = listOf("restaurant", "cafe", "park", "museum", "bar", "shopping_mall")
+                types = listOf("restaurant", "cafe", "park", "museum", "bar", "shopping_mall", "night_club")
             )
 
             if (places.isNotEmpty()) {
@@ -338,7 +287,7 @@ class AIRepository(private val context: Context) {
         }
     }
 
-    // ========== CÁLCULO DE SCORES ==========
+    // ========== SCORING MEJORADO ==========
 
     private fun calculateQuickScore(
         place: Place,
@@ -349,28 +298,22 @@ class AIRepository(private val context: Context) {
     ): Double {
         var score = 0.0
 
-        val timeMatch = when (timeOfDay.lowercase()) {
-            "mañana" -> if (place.category in listOf("cafe", "parque", "museo")) 1.0 else 0.5
-            "tarde" -> if (place.category in listOf("restaurante", "parque")) 1.0 else 0.6
-            "noche" -> if (place.category in listOf("bar", "restaurante", "teatro")) 1.0 else 0.4
-            else -> 0.5
-        }
+        // 1. MATCHING POR HORA DEL DÍA (30 puntos)
+        val timeScore = calculateTimeScore(place, timeOfDay)
+        score += timeScore * 30
+        Log.d("AIRepository", "${place.name} - Time: $timeScore")
 
-        val weatherMatch = if (weather != null) {
-            when (weather.lowercase()) {
-                "soleado" -> if (place.category in listOf("parque", "mirador")) 1.0 else 0.7
-                "lluvioso" -> if (place.category in listOf("museo", "cafe", "cine")) 1.0 else 0.3
-                else -> 0.7
-            }
-        } else 0.7
+        // 2. MATCHING POR CLIMA (20 puntos)
+        val weatherScore = calculateWeatherScore(place, weather)
+        score += weatherScore * 20
+        Log.d("AIRepository", "${place.name} - Weather: $weatherScore")
 
-        score += (timeMatch * 0.25 + weatherMatch * 0.15) * 100
+        // 3. RATING (20 puntos)
+        val ratingScore = (place.rating / 5.0)
+        score += ratingScore * 20
+        Log.d("AIRepository", "${place.name} - Rating: $ratingScore")
 
-        val categoryMatch = if (place.category in userContext.favoriteCategories) 1.0 else 0.5
-        score += categoryMatch * 30
-
-        score += (place.rating / 5.0) * 20
-
+        // 4. DISTANCIA (15 puntos)
         val distance = calculateDistance(
             userLocation.latitude, userLocation.longitude,
             place.latitude, place.longitude
@@ -378,68 +321,144 @@ class AIRepository(private val context: Context) {
         val distanceScore = when {
             distance < 2.0 -> 1.0
             distance < 5.0 -> 0.8
-            distance < 10.0 -> 0.5
-            else -> 0.2
+            distance < 10.0 -> 0.6
+            else -> 0.3
         }
-        score += distanceScore * 10
+        score += distanceScore * 15
+        Log.d("AIRepository", "${place.name} - Distance: $distanceScore")
+
+        // 5. TAGS (10 puntos)
+        val tagScore = calculateTagScore(place, timeOfDay, weather)
+        score += tagScore * 10
+
+        // 6. CATEGORÍAS FAVORITAS (5 puntos)
+        val categoryBonus = if (place.category in userContext.favoriteCategories) 1.0 else 0.0
+        score += categoryBonus * 5
 
         return score.coerceIn(0.0, 100.0)
     }
 
-    private fun calculatePersonalizedScore(
-        place: Place,
-        request: PersonalizedRecommendationRequest,
-        userContext: UserContext
-    ): Double {
-        var score = 0.0
+    private fun calculateTimeScore(place: Place, timeOfDay: String): Double {
+        val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+        val dayOfWeek = Calendar.getInstance().get(Calendar.DAY_OF_WEEK)
+        val isWeekend = dayOfWeek == Calendar.SATURDAY || dayOfWeek == Calendar.SUNDAY
 
-        val moodTags = when (request.mood.lowercase()) {
-            "feliz" -> listOf("vibrante", "social", "energético")
-            "triste" -> listOf("tranquilo", "reconfortante", "acogedor")
-            "aventurero" -> listOf("aventura", "emocionante", "único")
-            "relajado" -> listOf("calmado", "pacífico", "natural")
-            "romántico", "romantico" -> listOf("romántico", "íntimo", "elegante")
-            else -> emptyList()
-        }
+        return when (timeOfDay.lowercase()) {
+            "mañana" -> when (place.category) {
+                "cafe" -> 1.0
+                "parque" -> 0.95
+                "museo" -> 0.9
+                "restaurante" -> 0.7
+                "centro_comercial" -> 0.8
+                "bar" -> 0.0  // 🔥 NUNCA en la mañana
+                "discoteca" -> 0.0  // 🔥 NUNCA en la mañana
+                else -> 0.5
+            }
 
-        val tagMatch = place.tags.count { it in moodTags }.toDouble() / moodTags.size.coerceAtLeast(1)
-        score += tagMatch * 30
+            "tarde" -> when (place.category) {
+                "restaurante" -> 1.0
+                "parque" -> 0.9
+                "centro_comercial" -> 0.95
+                "museo" -> 0.85
+                "cafe" -> 0.8
+                "mirador" -> 0.9
+                "bar" -> 0.3  // 🔥 Bajo en la tarde
+                "discoteca" -> 0.0  // 🔥 NUNCA en la tarde
+                else -> 0.7
+            }
 
-        val timeMatch = when (request.timeOfDay.lowercase()) {
-            "mañana" -> if (place.category in listOf("cafe", "parque", "museo")) 1.0 else 0.5
-            "tarde" -> if (place.category in listOf("restaurante", "parque")) 1.0 else 0.6
-            "noche" -> if (place.category in listOf("bar", "restaurante", "teatro")) 1.0 else 0.4
+            "noche" -> when (place.category) {
+                "bar" -> if (isWeekend) 1.0 else 0.9
+                "discoteca" -> if (isWeekend) 1.0 else 0.85
+                "restaurante" -> 0.95
+                "teatro" -> 0.9
+                "centro_comercial" -> 0.7
+                "cafe" -> 0.6
+                "museo" -> 0.2  // 🔥 Reducido
+                "parque" -> 0.1  // 🔥 Muy reducido
+                else -> 0.4  // 🔥 Reducido el default
+            }
+
             else -> 0.5
         }
-        score += timeMatch * 25
-
-        val categoryMatch = if (place.category in userContext.favoriteCategories) 1.0 else 0.6
-        score += categoryMatch * 20
-
-        val budgetScore = when (request.budget.lowercase()) {
-            "economico" -> if (place.priceLevel <= 2) 1.0 else 0.3
-            "moderado" -> if (place.priceLevel in 2..3) 1.0 else 0.6
-            "alto" -> if (place.priceLevel >= 3) 1.0 else 0.7
-            else -> 0.7
-        }
-        score += budgetScore * 15
-
-        val distance = calculateDistance(
-            request.userLocation.latitude, request.userLocation.longitude,
-            place.latitude, place.longitude
-        )
-        val distanceScore = when {
-            distance < 3.0 -> 1.0
-            distance < 7.0 -> 0.8
-            distance < 15.0 -> 0.5
-            else -> 0.2
-        }
-        score += distanceScore * 10
-
-        return score.coerceIn(0.0, 100.0)
     }
 
-    // ========== FILTROS ==========
+    private fun calculateWeatherScore(place: Place, weather: String?): Double {
+        if (weather == null) return 0.8
+
+        if (place.weatherSuitable.isNotEmpty()) {
+            return if (weather.lowercase() in place.weatherSuitable.map { it.lowercase() }) {
+                1.0
+            } else {
+                0.4
+            }
+        }
+
+        return when (weather.lowercase()) {
+            "soleado" -> when (place.category) {
+                "parque" -> 1.0
+                "mirador" -> 1.0
+                "mercado" -> 0.95
+                "zona_comercial" -> 0.9
+                "restaurante" -> 0.8
+                "cafe" -> 0.85
+                "museo" -> 0.7
+                else -> 0.8
+            }
+
+            "lluvioso" -> when (place.category) {
+                "museo" -> 1.0
+                "cafe" -> 0.95
+                "centro_comercial" -> 1.0
+                "restaurante" -> 0.9
+                "cine" -> 0.95
+                "bar" -> 0.85
+                "discoteca" -> 0.9
+                "parque" -> 0.2
+                "mirador" -> 0.1
+                else -> 0.7
+            }
+
+            "nublado" -> when (place.category) {
+                "museo" -> 0.95
+                "restaurante" -> 0.9
+                "cafe" -> 0.9
+                "centro_comercial" -> 0.95
+                "parque" -> 0.7
+                else -> 0.85
+            }
+
+            else -> 0.8
+        }
+    }
+
+    private fun calculateTagScore(place: Place, timeOfDay: String, weather: String?): Double {
+        val relevantTags = mutableListOf<String>()
+
+        when (timeOfDay.lowercase()) {
+            "mañana" -> relevantTags.addAll(listOf("café especial", "tranquilo", "acogedor"))
+            "tarde" -> relevantTags.addAll(listOf("familiar", "social", "popular"))
+            "noche" -> relevantTags.addAll(listOf("nocturno", "vibrante", "romántico", "festivo"))
+        }
+
+        when (weather?.lowercase()) {
+            "soleado" -> relevantTags.addAll(listOf("natural", "aire libre", "mirador"))
+            "lluvioso" -> relevantTags.addAll(listOf("acogedor", "íntimo", "indoor"))
+        }
+
+        val matches = place.tags.count { tag ->
+            relevantTags.any { it.contains(tag, ignoreCase = true) ||
+                    tag.contains(it, ignoreCase = true) }
+        }
+
+        return if (relevantTags.isNotEmpty()) {
+            (matches.toDouble() / relevantTags.size.coerceAtLeast(1)).coerceIn(0.0, 1.0)
+        } else {
+            0.5
+        }
+    }
+
+    // ========== FILTROS MEJORADOS ==========
 
     private fun filterByContext(
         places: List<Place>,
@@ -447,20 +466,65 @@ class AIRepository(private val context: Context) {
         weather: String?
     ): List<Place> {
         return places.filter { place ->
-            val timeMatch = when (timeOfDay.lowercase()) {
-                "mañana" -> place.category !in listOf("bar", "discoteca")
-                "noche" -> true
+
+            // ✅ Validación de categoría base
+            val validCategories = setOf(
+                "restaurante", "cafe", "parque", "museo",
+                "bar", "discoteca", "centro_comercial",
+                "cine", "mirador", "zona_comercial",
+                "mercado", "atraccion_turistica", "entretenimiento"
+            )
+
+            if (place.category !in validCategories) {
+                Log.d("AIRepository", "❌ Categoría inválida: ${place.name} (${place.category})")
+                return@filter false
+            }
+
+            // ✅ Filtro por hora del día
+            val timeOk = when (timeOfDay.lowercase()) {
+                "mañana" -> {
+                    // Por la mañana NO mostrar discotecas ni bares
+                    place.category !in listOf("discoteca", "bar")
+                }
+                "tarde" -> {
+                    // Por la tarde permitir casi todo
+                    true
+                }
+                "noche" -> {
+                    // Por la noche reducir parques
+                    if (place.category == "parque") {
+                        // Solo parques con iluminación/seguros
+                        place.rating >= 4.0
+                    } else {
+                        true
+                    }
+                }
                 else -> true
             }
 
-            val weatherMatch = if (weather != null) {
-                when (weather.lowercase()) {
-                    "lluvioso" -> place.category !in listOf("parque")
-                    else -> true
+            // ✅ Filtro por clima
+            val weatherOk = when (weather?.lowercase()) {
+                "lluvioso" -> {
+                    // Con lluvia evitar lugares al aire libre
+                    if (place.category in listOf("parque", "mirador")) {
+                        "lluvioso" in place.weatherSuitable.map { it.lowercase() }
+                    } else {
+                        true
+                    }
                 }
-            } else true
+                else -> true
+            }
 
-            timeMatch && weatherMatch
+            // ✅ Rating mínimo
+            val ratingOk = place.rating >= 3.5
+
+            val passes = timeOk && weatherOk && ratingOk
+
+            if (!passes) {
+                Log.d("AIRepository", "❌ Filtrado contexto: ${place.name} - time:$timeOk weather:$weatherOk rating:$ratingOk")
+            }
+
+            passes
         }
     }
 
@@ -474,52 +538,192 @@ class AIRepository(private val context: Context) {
         weather: String?
     ): List<Place> {
         return places.filter { place ->
-            val budgetMatch = when (budget.lowercase()) {
+            val budgetOk = when (budget.lowercase()) {
                 "economico" -> place.priceLevel <= 2
-                "moderado" -> place.priceLevel in 2..3
+                "moderado" -> place.priceLevel in 1..3
                 "alto" -> true
                 else -> true
             }
 
-            val planTypeMatch = when (planType.lowercase()) {
-                "pareja" -> "romántico" in place.tags || place.category in listOf("restaurante", "cafe")
-                "familia" -> "familiar" in place.tags || place.category in listOf("parque", "museo")
-                "amigos" -> place.category in listOf("bar", "restaurante", "parque")
+            val planTypeOk = when (planType.lowercase()) {
+                "pareja" -> {
+                    "romántico" in place.tags ||
+                            "íntimo" in place.tags ||
+                            place.category in listOf("restaurante", "cafe", "bar", "teatro")
+                }
+                "familia" -> {
+                    "familiar" in place.tags ||
+                            place.category in listOf("parque", "museo", "centro_comercial")
+                }
+                "amigos" -> {
+                    place.category in listOf("bar", "restaurante", "parque", "discoteca", "zona_comercial")
+                }
+                "solo" -> true
                 else -> true
             }
 
-            budgetMatch && planTypeMatch
+            val ratingOk = place.rating >= 3.5
+
+            budgetOk && planTypeOk && ratingOk
         }
     }
 
-    // ========== HELPERS ==========
-
-    private suspend fun getUserContext(userId: String): UserContext {
-        return try {
-            val favorites = firestore.collection("favoritos")
-                .document(userId)
-                .collection("lugares")
-                .limit(20)
-                .get()
-                .await()
-
-            val categories = mutableListOf<String>()
-            val tags = mutableListOf<String>()
-
-            favorites.documents.forEach { doc ->
-                doc.getString("category")?.let { categories.add(it) }
-                (doc.get("tags") as? List<*>)?.mapNotNull { it as? String }?.let { tags.addAll(it) }
-            }
-
-            UserContext(
-                favoriteCategories = categories.distinct(),
-                frequentTags = tags.distinct(),
-                averagePriceLevel = 2.0,
-                lastVisitedPlaces = emptyList()
-            )
-        } catch (e: Exception) {
-            UserContext()
+    private fun checkMoodMatch(place: Place, mood: String): Boolean {
+        val moodTags = when (mood.lowercase()) {
+            "feliz" -> listOf("vibrante", "social", "festivo", "energético")
+            "triste" -> listOf("tranquilo", "acogedor", "reconfortante")
+            "aventurero" -> listOf("único", "aventura", "emocionante", "mirador")
+            "relajado" -> listOf("tranquilo", "natural", "pacífico", "café especial")
+            "romántico", "romantico" -> listOf("romántico", "íntimo", "elegante")
+            else -> return true
         }
+
+        return place.tags.any { tag ->
+            moodTags.any { it.contains(tag, ignoreCase = true) ||
+                    tag.contains(it, ignoreCase = true) }
+        }
+    }
+
+    // ========== SCORING PERSONALIZADO ==========
+
+    private fun calculatePersonalizedScore(
+        place: Place,
+        request: PersonalizedRecommendationRequest,
+        userContext: UserContext
+    ): Double {
+        var score = 0.0
+
+        val moodScore = calculateMoodScore(place, request.mood)
+        score += moodScore * 25
+
+        val timeScore = calculateTimeScore(place, request.timeOfDay)
+        score += timeScore * 20
+
+        val weatherScore = calculateWeatherScore(place, request.currentWeather)
+        score += weatherScore * 15
+
+        score += (place.rating / 5.0) * 15
+
+        val planScore = calculatePlanTypeScore(place, request.planType)
+        score += planScore * 10
+
+        val budgetScore = when (request.budget.lowercase()) {
+            "economico" -> if (place.priceLevel <= 2) 1.0 else 0.5
+            "moderado" -> if (place.priceLevel in 2..3) 1.0 else 0.7
+            "alto" -> if (place.priceLevel >= 3) 1.0 else 0.8
+            else -> 0.8
+        }
+        score += budgetScore * 10
+
+        val distance = calculateDistance(
+            request.userLocation.latitude, request.userLocation.longitude,
+            place.latitude, place.longitude
+        )
+        val distanceScore = when {
+            distance < 3.0 -> 1.0
+            distance < 7.0 -> 0.8
+            distance < 15.0 -> 0.6
+            else -> 0.3
+        }
+        score += distanceScore * 5
+
+        return score.coerceIn(0.0, 100.0)
+    }
+
+    private fun calculateMoodScore(place: Place, mood: String): Double {
+        val moodTags = when (mood.lowercase()) {
+            "feliz" -> listOf("vibrante", "social", "festivo", "energético", "popular")
+            "triste" -> listOf("tranquilo", "acogedor", "reconfortante", "café", "natural")
+            "aventurero" -> listOf("único", "aventura", "emocionante", "mirador", "cultural")
+            "relajado" -> listOf("tranquilo", "natural", "pacífico", "café especial", "acogedor")
+            "romántico", "romantico" -> listOf("romántico", "íntimo", "elegante", "gourmet", "premium")
+            else -> return 0.7
+        }
+
+        val exactMatches = place.tags.count { tag ->
+            moodTags.any { it.equals(tag, ignoreCase = true) }
+        }
+
+        val partialMatches = place.tags.count { tag ->
+            moodTags.any {
+                !it.equals(tag, ignoreCase = true) &&
+                        (it.contains(tag, ignoreCase = true) || tag.contains(it, ignoreCase = true))
+            }
+        }
+
+        val totalScore = (exactMatches * 1.0 + partialMatches * 0.5) / moodTags.size.coerceAtLeast(1)
+        return totalScore.coerceIn(0.0, 1.0)
+    }
+
+    private fun calculatePlanTypeScore(place: Place, planType: String): Double {
+        return when (planType.lowercase()) {
+            "pareja" -> when {
+                "romántico" in place.tags || "íntimo" in place.tags -> 1.0
+                place.category in listOf("restaurante", "cafe", "bar", "teatro") -> 0.8
+                else -> 0.5
+            }
+            "familia" -> when {
+                "familiar" in place.tags -> 1.0
+                place.category in listOf("parque", "museo", "centro_comercial") -> 0.9
+                else -> 0.5
+            }
+            "amigos" -> when {
+                place.category in listOf("bar", "discoteca", "restaurante", "zona_comercial") -> 0.95
+                "social" in place.tags || "vibrante" in place.tags -> 0.9
+                else -> 0.6
+            }
+            "solo" -> when {
+                place.category in listOf("cafe", "museo", "parque") -> 0.9
+                "tranquilo" in place.tags -> 0.85
+                else -> 0.7
+            }
+            else -> 0.7
+        }
+    }
+
+    // ========== SELECCIÓN Y HELPERS ==========
+
+    private fun selectBestRecommendation(recommendations: List<AIRecommendation>): AIRecommendation? {
+        if (recommendations.isEmpty()) return null
+
+        val sorted = recommendations.sortedByDescending { it.score }
+        val notRecent = sorted.filter { it.place.id !in recentRecommendations }
+        val available = notRecent.ifEmpty { sorted }
+        val topCandidates = available.take(5)
+
+        return when {
+            topCandidates.size == 1 -> topCandidates.first()
+            topCandidates.size > 1 -> {
+                val random = Random.nextDouble()
+                if (random < 0.7) {
+                    topCandidates.first()
+                } else {
+                    val remaining = topCandidates.drop(1)
+                    val weights = remaining.map { it.score }
+                    val totalWeight = weights.sum()
+                    var randomWeight = Random.nextDouble() * totalWeight
+
+                    for (i in remaining.indices) {
+                        randomWeight -= weights[i]
+                        if (randomWeight <= 0) return remaining[i]
+                    }
+                    remaining.lastOrNull() ?: topCandidates.first()
+                }
+            }
+            else -> null
+        }
+    }
+
+    private fun addToHistory(placeId: String) {
+        recentRecommendations.add(placeId)
+        if (recentRecommendations.size > maxHistorySize) {
+            recentRecommendations.removeAt(0)
+        }
+    }
+
+    fun clearRecommendationHistory() {
+        recentRecommendations.clear()
+        Log.d("AIRepository", "🧹 Historial limpiado")
     }
 
     private fun calculateDistance(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
@@ -585,7 +789,35 @@ class AIRepository(private val context: Context) {
         return reasons.joinToString(", ").replaceFirstChar { it.uppercase() }
     }
 
-    // ========== MÉTODOS DE GESTIÓN DE CACHÉ ==========
+    private suspend fun getUserContext(userId: String): UserContext {
+        return try {
+            val favorites = firestore.collection("favoritos")
+                .document(userId)
+                .collection("lugares")
+                .limit(20)
+                .get()
+                .await()
+
+            val categories = mutableListOf<String>()
+            val tags = mutableListOf<String>()
+
+            favorites.documents.forEach { doc ->
+                doc.getString("category")?.let { categories.add(it) }
+                (doc.get("tags") as? List<*>)?.mapNotNull { it as? String }?.let { tags.addAll(it) }
+            }
+
+            UserContext(
+                favoriteCategories = categories.distinct(),
+                frequentTags = tags.distinct(),
+                averagePriceLevel = 2.0,
+                lastVisitedPlaces = emptyList()
+            )
+        } catch (e: Exception) {
+            UserContext()
+        }
+    }
+
+    // ========== MÉTODOS DE CACHÉ ==========
 
     fun cleanExpiredCache() {
         cacheManager.cleanExpiredCache()
@@ -593,32 +825,27 @@ class AIRepository(private val context: Context) {
 
     suspend fun forceRefresh(location: UserLocation, radiusKm: Double) {
         cacheManager.clearMemoryCache()
-        clearRecommendationHistory() // 🆕 También limpiar historial
+        clearRecommendationHistory()
         searchNearbyPlaces(location, radiusKm)
     }
 
     fun clearAllCache() {
         cacheManager.clearAllCache()
-        clearRecommendationHistory() // 🆕 También limpiar historial
+        clearRecommendationHistory()
     }
 
     fun getCacheStats(): CacheManager.CacheStats {
         return cacheManager.getCacheStats()
     }
 
-    // ========== 🏆 RANKING DE LUGARES TOP ==========
+    // ========== RANKING TOP LUGARES ==========
 
-    /**
-     * Obtiene una lista de los lugares mejor valorados según calificación.
-     * Integra datos tanto de Firebase como de Google Places.
-     */
     suspend fun getTopPlaces(
         location: UserLocation,
         radiusKm: Double = 10.0,
         limit: Int = 10
     ): List<Place> {
         return try {
-            // Buscar lugares cercanos con la función ya existente
             val allPlaces = searchNearbyPlaces(location, radiusKm)
 
             if (allPlaces.isEmpty()) {
@@ -626,24 +853,17 @@ class AIRepository(private val context: Context) {
                 return emptyList()
             }
 
-            // Ordenar por calificación descendente
-            val topPlaces = allPlaces
+            allPlaces
                 .filter { it.rating > 0 }
                 .sortedByDescending { it.rating }
                 .take(limit)
 
-            Log.d("AIRepository", "🏆 Top ${topPlaces.size} lugares seleccionados")
-
-            topPlaces
         } catch (e: Exception) {
             Log.e("AIRepository", "❌ Error obteniendo ranking: ${e.message}")
             emptyList()
         }
     }
 
-    /**
-     * Convierte la lista de lugares top en un formato más amigable para la UI.
-     */
     suspend fun getTopPlaceRecommendations(
         location: UserLocation,
         radiusKm: Double = 10.0,
@@ -662,9 +882,20 @@ class AIRepository(private val context: Context) {
             )
         }
     }
+
     suspend fun getTopPlacesAI(limit: Int = 10): List<PlaceRecommendation> {
-        // ⚠️ Usa una ubicación genérica o la que tengas guardada
-        val fakeLocation = UserLocation(latitude = 4.7110, longitude = -74.0721) // Bogotá 🇨🇴
+        val fakeLocation = UserLocation(latitude = 4.7110, longitude = -74.0721)
         return getTopPlaceRecommendations(fakeLocation, radiusKm = 10.0, limit = limit)
+    }
+}
+
+fun debugRecommendations(places: List<Place>) {
+    Log.d("AIRepository", "=== DEBUG LUGARES ===")
+    val byCategory = places.groupBy { it.category }
+    byCategory.forEach { (category, list) ->
+        Log.d("AIRepository", "$category: ${list.size} lugares")
+        list.take(3).forEach { place ->
+            Log.d("AIRepository", "  - ${place.name} (${place.rating}⭐)")
+        }
     }
 }

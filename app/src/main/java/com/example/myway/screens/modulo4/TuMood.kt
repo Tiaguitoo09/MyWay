@@ -96,6 +96,12 @@ fun TuMood(navController: NavController) {
     // 🆕 Obtener detalles del lugar recomendado (CORREGIDO - IGUAL QUE RECOMIENDAME)
     LaunchedEffect(recommendation) {
         recommendation?.let { rec ->
+            Log.d("TuMood", "═══════════════════════")
+            Log.d("TuMood", "🏆 Lugar: ${rec.place.name}")
+            Log.d("TuMood", "🆔 ID: ${rec.place.id}")
+            Log.d("TuMood", "📸 PhotoURL: '${rec.place.photoUrl}'")
+            Log.d("TuMood", "📍 Categoría: ${rec.place.category}")
+            Log.d("TuMood", "═══════════════════════")
             photoBitmap = null
             placeDetails = null
             googlePlaceId = null
@@ -215,6 +221,8 @@ fun TuMood(navController: NavController) {
                     fontWeight = FontWeight.Bold,
                     fontSize = 22.sp
                 )
+
+
             }
 
             Column(
@@ -434,7 +442,6 @@ fun TuMood(navController: NavController) {
                     ) {
                         Box(modifier = Modifier.fillMaxSize()) {
                             when {
-                                // Bitmap de Google Places
                                 photoBitmap != null -> {
                                     AsyncImage(
                                         model = photoBitmap,
@@ -443,11 +450,13 @@ fun TuMood(navController: NavController) {
                                             .fillMaxSize()
                                             .clip(RoundedCornerShape(16.dp))
                                             .border(3.dp, Color.White, RoundedCornerShape(16.dp)),
-                                        contentScale = ContentScale.Crop
+                                        contentScale = ContentScale.Crop,
+                                        onLoading = { Log.d("TuMood", "⏳ Cargando bitmap") },
+                                        onSuccess = { Log.d("TuMood", "✅ Bitmap cargado") },
+                                        onError = { Log.e("TuMood", "❌ Error bitmap") }
                                     )
                                 }
-                                // URL de Firebase
-                                rec.place.photoUrl != null -> {
+                                !rec.place.photoUrl.isNullOrEmpty() -> {
                                     AsyncImage(
                                         model = rec.place.photoUrl,
                                         contentDescription = rec.place.name,
@@ -455,10 +464,14 @@ fun TuMood(navController: NavController) {
                                             .fillMaxSize()
                                             .clip(RoundedCornerShape(16.dp))
                                             .border(3.dp, Color.White, RoundedCornerShape(16.dp)),
-                                        contentScale = ContentScale.Crop
+                                        contentScale = ContentScale.Crop,
+                                        onLoading = { Log.d("TuMood", "⏳ Cargando: ${rec.place.photoUrl}") },
+                                        onSuccess = { Log.d("TuMood", "✅ Imagen cargada") },
+                                        onError = { error ->
+                                            Log.e("TuMood", "❌ Error: ${error.result.throwable.message}")
+                                        }
                                     )
                                 }
-                                // Placeholder
                                 else -> {
                                     Box(
                                         modifier = Modifier.fillMaxSize(),

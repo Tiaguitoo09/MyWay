@@ -8,33 +8,39 @@ import org.json.JSONObject
 import java.net.URL
 import java.net.URLEncoder
 
-/**
- * Servicio para buscar lugares usando Google Places Nearby Search (HTTP)
- *
- * COSTO: ~$0.032 por búsqueda (sin Text Search)
- *
- * Ventajas:
- * - Busca en radio configurable (1-50 km)
- * - Encuentra TODOS los lugares (Crepes, Juan Valdez, etc.)
- * - Info actualizada de Google
- *
- * Desventajas:
- * - Cuesta dinero por búsqueda
- * - Requiere conexión a internet
- */
 object GooglePlacesNearby {
 
     private const val BASE_URL = "https://maps.googleapis.com/maps/api/place/nearbysearch/json"
     private val apiKey = BuildConfig.MAPS_API_KEY
 
-    /**
-     * Busca lugares cercanos a una ubicación
-     *
-     * @param location Ubicación del usuario
-     * @param radiusMeters Radio de búsqueda en metros (máx: 50000 = 50km)
-     * @param types Tipos de lugares a buscar
-     * @return Lista de lugares encontrados
-     */
+    // 🔥 TIPOS PERMITIDOS - Lista blanca estricta
+    private val ALLOWED_TYPES = setOf(
+        "restaurant", "cafe", "bakery", "food",
+        "bar", "night_club",
+        "park", "tourist_attraction",
+        "museum", "art_gallery", "aquarium",
+        "shopping_mall", "store",
+        "movie_theater", "bowling_alley", "amusement_park"
+    )
+
+    // ❌ TIPOS PROHIBIDOS - Lista negra
+    private val BLOCKED_TYPES = setOf(
+        "lodging", "hotel", "motel", "hostel", "campground",
+        "car_rental", "gas_station", "parking",
+        "hospital", "pharmacy", "doctor",
+        "bank", "atm", "post_office",
+        "school", "university", "library",
+        "church", "mosque", "synagogue", "hindu_temple",
+        "cemetery", "funeral_home",
+        "airport", "train_station", "bus_station", "subway_station",
+        "car_dealer", "car_repair", "car_wash",
+        "dentist", "veterinary_care", "pet_store",
+        "laundry", "hair_care", "beauty_salon", "spa",
+        "gym", "physiotherapist",
+        "insurance_agency", "real_estate_agency", "moving_company",
+        "storage", "locksmith", "plumber", "electrician", "roofing_contractor"
+    )
+
     suspend fun searchNearby(
         location: UserLocation,
         radiusMeters: Int = 5000,
@@ -42,7 +48,6 @@ object GooglePlacesNearby {
     ): List<Place> {
         return withContext(Dispatchers.IO) {
             try {
-                // Construir URL
                 val typeParam = types.joinToString("|")
                 val url = "$BASE_URL?" +
                         "location=${location.latitude},${location.longitude}" +
@@ -52,18 +57,15 @@ object GooglePlacesNearby {
 
                 Log.d("GooglePlaces", "🔍 Buscando en radio de ${radiusMeters}m")
 
-                // Hacer petición HTTP
                 val response = URL(url).readText()
                 val json = JSONObject(response)
 
-                // Verificar estado
                 val status = json.getString("status")
                 if (status != "OK" && status != "ZERO_RESULTS") {
                     Log.e("GooglePlaces", "❌ Error: $status")
                     return@withContext emptyList()
                 }
 
-                // Parsear resultados
                 val results = json.getJSONArray("results")
                 val places = mutableListOf<Place>()
 
@@ -71,15 +73,42 @@ object GooglePlacesNearby {
                     val placeJson = results.getJSONObject(i)
 
                     try {
+                        // 🔥 FILTRADO TEMPRANO - Verificar tipos antes de parsear
+                        val typesArray = placeJson.optJSONArray("types")
+                        val placeTypes = if (typesArray != null) {
+                            (0 until typesArray.length()).map { typesArray.getString(it) }
+                        } else {
+                            emptyList()
+                        }
+
+                        // ❌ Rechazar si contiene tipos prohibidos
+                        if (placeTypes.any { it in BLOCKED_TYPES }) {
+                            Log.d("GooglePlaces", "❌ Rechazado (tipo prohibido): ${placeJson.optString("name")}")
+                            continue
+                        }
+
+                        // ✅ Solo aceptar si tiene al menos un tipo permitido
+                        if (placeTypes.none { it in ALLOWED_TYPES }) {
+                            Log.d("GooglePlaces", "❌ Rechazado (sin tipos válidos): ${placeJson.optString("name")}")
+                            continue
+                        }
+
                         val place = parsePlaceFromJson(placeJson)
+
+                        // 🔥 Validación adicional de categoría
+                        if (place.category in listOf("hotel", "hospedaje", "otro")) {
+                            Log.d("GooglePlaces", "❌ Rechazado por categoría: ${place.name} (${place.category})")
+                            continue
+                        }
+
                         places.add(place)
+
                     } catch (e: Exception) {
                         Log.e("GooglePlaces", "Error parseando lugar: ${e.message}")
                     }
                 }
 
-                Log.d("GooglePlaces", "✅ Encontrados ${places.size} lugares")
-
+                Log.d("GooglePlaces", "✅ ${places.size} lugares válidos encontrados")
                 places
 
             } catch (e: Exception) {
@@ -89,9 +118,6 @@ object GooglePlacesNearby {
         }
     }
 
-    /**
-     * Busca lugares por categoría específica
-     */
     suspend fun searchByCategory(
         location: UserLocation,
         category: String,
@@ -110,9 +136,6 @@ object GooglePlacesNearby {
         return searchNearby(location, radiusMeters, types)
     }
 
-    /**
-     * Parsea un lugar del JSON de Google
-     */
     private fun parsePlaceFromJson(json: JSONObject): Place {
         val geometry = json.getJSONObject("geometry")
         val locationObj = geometry.getJSONObject("location")
@@ -126,7 +149,6 @@ object GooglePlacesNearby {
         val rating = json.optDouble("rating", 0.0)
         val priceLevel = json.optInt("price_level", 2)
 
-        // Obtener tipos
         val typesArray = json.optJSONArray("types")
         val types = if (typesArray != null) {
             (0 until typesArray.length()).map { typesArray.getString(it) }
@@ -134,10 +156,7 @@ object GooglePlacesNearby {
             emptyList()
         }
 
-        // Inferir categoría
         val category = inferCategory(types)
-
-        // Inferir tags
         val tags = inferTags(types, rating, priceLevel)
 
         return Place(
@@ -146,7 +165,7 @@ object GooglePlacesNearby {
             address = address,
             latitude = lat,
             longitude = lng,
-            photoUrl = null, // Se obtiene después si es necesario
+            photoUrl = null,
             category = category,
             priceLevel = priceLevel,
             rating = rating,
@@ -155,25 +174,28 @@ object GooglePlacesNearby {
         )
     }
 
-    /**
-     * Inferir categoría de los tipos de Google
-     */
+    // 🔥 CATEGORIZACIÓN MEJORADA
     private fun inferCategory(types: List<String>): String {
+        // ❌ Primero rechazar tipos no deseados
+        if (types.any { it in BLOCKED_TYPES }) {
+            return "otro" // Se filtrará después
+        }
+
         return when {
+            types.any { it == "night_club" } -> "discoteca"
+            types.any { it == "bar" } -> "bar"
             types.any { it == "restaurant" || it == "food" } -> "restaurante"
             types.any { it == "cafe" || it == "bakery" } -> "cafe"
             types.any { it == "park" } -> "parque"
-            types.any { it == "museum" || it == "art_gallery" } -> "museo"
-            types.any { it == "bar" || it == "night_club" } -> "bar"
+            types.any { it == "museum" || it == "art_gallery" || it == "aquarium" } -> "museo"
             types.any { it == "shopping_mall" } -> "centro_comercial"
             types.any { it == "movie_theater" } -> "cine"
+            types.any { it == "tourist_attraction" } -> "atraccion_turistica"
+            types.any { it == "bowling_alley" || it == "amusement_park" } -> "entretenimiento"
             else -> "otro"
         }
     }
 
-    /**
-     * Inferir tags automáticamente según datos de Google
-     */
     private fun inferTags(types: List<String>, rating: Double, priceLevel: Int): List<String> {
         val tags = mutableListOf<String>()
 
@@ -198,31 +220,26 @@ object GooglePlacesNearby {
                 "cafe" -> tags.addAll(listOf("acogedor", "tranquilo"))
                 "park" -> tags.addAll(listOf("natural", "familiar", "aire libre"))
                 "museum" -> tags.addAll(listOf("cultural", "educativo"))
-                "bar", "night_club" -> tags.addAll(listOf("social", "nocturno", "vibrante"))
+                "bar" -> tags.addAll(listOf("social", "nocturno", "vibrante", "fin de semana"))
+                "night_club" -> tags.addAll(listOf("social", "nocturno", "vibrante", "fin de semana"))
                 "shopping_mall" -> tags.addAll(listOf("shopping", "entretenimiento"))
-                "romantic_place" -> tags.add("romántico")
+                "tourist_attraction" -> tags.add("turístico")
             }
         }
 
         return tags.distinct()
     }
 
-    /**
-     * Determinar idoneidad climática según categoría
-     */
     private fun getWeatherSuitability(category: String): List<String> {
         return when (category) {
             "parque" -> listOf("soleado", "nublado")
-            "museo", "cafe", "centro_comercial", "cine", "bar" -> listOf("soleado", "nublado", "lluvioso")
+            "museo", "cafe", "centro_comercial", "cine", "bar", "discoteca" ->
+                listOf("soleado", "nublado", "lluvioso")
             "restaurante" -> listOf("soleado", "nublado", "lluvioso")
             else -> listOf("soleado", "nublado", "lluvioso")
         }
     }
 
-    /**
-     * Buscar múltiples páginas de resultados (opcional)
-     * Google Places retorna máximo 20 lugares por página
-     */
     suspend fun searchNearbyWithPagination(
         location: UserLocation,
         radiusMeters: Int = 5000,
@@ -242,8 +259,23 @@ object GooglePlacesNearby {
                     val results = json.getJSONArray("results")
 
                     for (i in 0 until results.length()) {
-                        val place = parsePlaceFromJson(results.getJSONObject(i))
-                        allPlaces.add(place)
+                        val placeJson = results.getJSONObject(i)
+
+                        // Aplicar filtros
+                        val typesArray = placeJson.optJSONArray("types")
+                        val placeTypes = if (typesArray != null) {
+                            (0 until typesArray.length()).map { typesArray.getString(it) }
+                        } else {
+                            emptyList()
+                        }
+
+                        if (placeTypes.any { it in BLOCKED_TYPES }) continue
+                        if (placeTypes.none { it in ALLOWED_TYPES }) continue
+
+                        val place = parsePlaceFromJson(placeJson)
+                        if (place.category !in listOf("hotel", "hospedaje", "otro")) {
+                            allPlaces.add(place)
+                        }
                     }
 
                     pageToken = json.optString("next_page_token", null)
@@ -252,7 +284,6 @@ object GooglePlacesNearby {
                         return@repeat
                     }
 
-                    // Google requiere esperar antes de usar next_page_token
                     kotlinx.coroutines.delay(2000)
                 } else {
                     return@repeat
