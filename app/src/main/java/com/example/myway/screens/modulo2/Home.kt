@@ -511,6 +511,24 @@ fun Home(
                             modifier = Modifier.width(330.dp).height(55.dp)
                                 .clip(RoundedCornerShape(15.dp))
                         )
+                            // Imagen del robot IA posicionada en la esquina inferior izquierda
+                            Image(
+                                painter = painterResource(id = R.drawable.robot_ia),
+                                contentDescription = stringResource(R.string.robot_ia),
+                                modifier = Modifier
+                                    .size(125.dp)
+                                    .align(Alignment.BottomStart)
+                                    .offset(x = 16.dp, y = (-85.dp))
+                                    .clickable {
+                                        modoCopiloto = sharedPreferences.getBoolean("modo_copiloto", false)
+                                        
+                                        if (!isDriving || modoCopiloto) {
+                                            navController.navigate("sin_plan")
+                                        } else {
+                                            showWarningOverlay = true
+                             }
+                         }
+                      )
                     }
                 }
             }
