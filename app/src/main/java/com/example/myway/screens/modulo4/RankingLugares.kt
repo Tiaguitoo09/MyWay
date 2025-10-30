@@ -264,7 +264,7 @@ fun PlaceCard(rank: Int, place: Place, navController: NavController) {
 
                             // 🌍 Navega al mapa (Home) con los datos del lugar
                             val encodedName = Uri.encode(place.name)
-                            navController.navigate("home/${place.id}/$encodedName")
+                            navController.navigate("ruta_opciones/${place.id}/$encodedName")
                         }
                     }
                     .padding(vertical = 8.dp),
