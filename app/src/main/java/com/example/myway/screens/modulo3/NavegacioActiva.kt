@@ -3,6 +3,7 @@ package com.example.myway.screens.modulo3
 import android.Manifest
 import android.content.pm.PackageManager
 import android.location.Location
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
@@ -45,6 +46,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.net.URL
+import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.tasks.await
 
 data class NavigationStep(
     val instruction: String,
@@ -295,44 +298,103 @@ fun NavegacionActiva(
 
     LaunchedEffect(placeId, currentLocation) {
         if (placeId != null && currentLocation != null) {
-            val placeFields = listOf(Place.Field.LAT_LNG)
-            val request = FetchPlaceRequest.newInstance(placeId, placeFields)
+            // ✅ Verificar si es lugar de Firebase o Google Places
+            if (!placeId.startsWith("ChIJ") && !placeId.startsWith("Ei")) {
+                // 📦 Es un lugar de Firebase - obtener coordenadas de Firestore
+                Log.d("NavegacionActiva", "📦 Lugar de Firebase detectado: $placeId")
 
-            placesClient.fetchPlace(request)
-                .addOnSuccessListener { response ->
-                    val dest = response.place.latLng
-                    if (dest != null) {
-                        destinationLocation = dest
+                try {
+                    val firestore = com.google.firebase.firestore.FirebaseFirestore.getInstance()
+                    val doc = firestore.collection("lugares")
+                        .document(placeId)
+                        .get()
+                        .await()
 
-                        scope.launch {
-                            val mode = when (transportMode) {
-                                "walking" -> "walking"
-                                "driving" -> "driving"
-                                "motorcycle" -> "driving"
-                                else -> "driving"
-                            }
+                    if (doc.exists()) {
+                        val lat = doc.getDouble("latitude")
+                        val lng = doc.getDouble("longitude")
 
-                            val preferencias = PreferenciasManager.cargarPreferencias(context)
-                            val routeData = getNavigationRoute(currentLocation!!, dest, mode, preferencias.rutaMasRapida)
-                            routePoints = routeData.first
-                            allSteps = routeData.second
+                        if (lat != null && lng != null) {
+                            val dest = LatLng(lat, lng)
+                            destinationLocation = dest
+                            Log.d("NavegacionActiva", "✅ Coordenadas obtenidas: $lat, $lng")
 
-                            if (allSteps.isNotEmpty()) {
-                                currentStep = allSteps[0]
-                                if (allSteps.size > 1) {
-                                    nextStep = allSteps[1]
+                            scope.launch {
+                                val mode = when (transportMode) {
+                                    "walking" -> "walking"
+                                    "driving" -> "driving"
+                                    "motorcycle" -> "driving"
+                                    else -> "driving"
                                 }
-                            }
 
-                            val dist = calculateDistance(currentLocation!!, dest)
-                            distanceToDestination = formatDistance(dist)
+                                val preferencias = PreferenciasManager.cargarPreferencias(context)
+                                val routeData = getNavigationRoute(currentLocation!!, dest, mode, preferencias.rutaMasRapida)
+                                routePoints = routeData.first
+                                allSteps = routeData.second
+
+                                if (allSteps.isNotEmpty()) {
+                                    currentStep = allSteps[0]
+                                    if (allSteps.size > 1) {
+                                        nextStep = allSteps[1]
+                                    }
+                                }
+
+                                val dist = calculateDistance(currentLocation!!, dest)
+                                distanceToDestination = formatDistance(dist)
+                            }
+                        } else {
+                            distanceToDestination = "Error: sin coordenadas"
                         }
+                    } else {
+                        distanceToDestination = "Error: lugar no encontrado"
                     }
-                }
-                .addOnFailureListener {
-                    it.printStackTrace()
+                } catch (e: Exception) {
+                    Log.e("NavegacionActiva", "❌ Error: ${e.message}")
                     distanceToDestination = "Error al obtener destino"
                 }
+            } else {
+                // 🌍 Es un lugar de Google Places - usar código existente
+                Log.d("NavegacionActiva", "🌍 Lugar de Google Places detectado: $placeId")
+
+                val placeFields = listOf(Place.Field.LAT_LNG)
+                val request = FetchPlaceRequest.newInstance(placeId, placeFields)
+
+                placesClient.fetchPlace(request)
+                    .addOnSuccessListener { response ->
+                        val dest = response.place.latLng
+                        if (dest != null) {
+                            destinationLocation = dest
+
+                            scope.launch {
+                                val mode = when (transportMode) {
+                                    "walking" -> "walking"
+                                    "driving" -> "driving"
+                                    "motorcycle" -> "driving"
+                                    else -> "driving"
+                                }
+
+                                val preferencias = PreferenciasManager.cargarPreferencias(context)
+                                val routeData = getNavigationRoute(currentLocation!!, dest, mode, preferencias.rutaMasRapida)
+                                routePoints = routeData.first
+                                allSteps = routeData.second
+
+                                if (allSteps.isNotEmpty()) {
+                                    currentStep = allSteps[0]
+                                    if (allSteps.size > 1) {
+                                        nextStep = allSteps[1]
+                                    }
+                                }
+
+                                val dist = calculateDistance(currentLocation!!, dest)
+                                distanceToDestination = formatDistance(dist)
+                            }
+                        }
+                    }
+                    .addOnFailureListener {
+                        it.printStackTrace()
+                        distanceToDestination = "Error al obtener destino"
+                    }
+            }
         }
     }
 

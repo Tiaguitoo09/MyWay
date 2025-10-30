@@ -183,6 +183,7 @@ class FavoritesRepository(private val context: Context) {
     }
 
     /** Guardar lugar en favoritos **/
+    /** Guardar lugar en favoritos **/
     suspend fun saveFavorite(placeId: String, placeName: String): Result<Unit> {
         return withContext(Dispatchers.IO) {
             try {
@@ -193,75 +194,119 @@ class FavoritesRepository(private val context: Context) {
 
                 Log.d(TAG, "👤 UserId: $userId")
 
-                // Obtener datos del lugar desde Google Places
-                val placeFields = listOf(
-                    Place.Field.ID,
-                    Place.Field.NAME,
-                    Place.Field.ADDRESS,
-                    Place.Field.LAT_LNG,
-                    Place.Field.PHOTO_METADATAS
-                )
+                // ✅ DETECTAR SI ES LUGAR DE FIREBASE O GOOGLE PLACES
+                if (!placeId.startsWith("ChIJ") && !placeId.startsWith("Ei")) {
+                    // 📦 Es un lugar de Firebase - obtener datos de Firestore
+                    Log.d(TAG, "📦 Lugar de Firebase detectado: $placeId")
 
-                Log.d(TAG, "🔍 Obteniendo detalles del lugar...")
-                val request = FetchPlaceRequest.newInstance(placeId, placeFields)
-                val response = placesClient.fetchPlace(request).await()
-                val place = response.place
+                    try {
+                        val firestore = FirebaseFirestore.getInstance()
+                        val doc = firestore.collection("lugares")
+                            .document(placeId)
+                            .get()
+                            .await()
 
-                Log.d(TAG, "✅ Detalles obtenidos: ${place.name}")
-                Log.d(TAG, "📸 Cantidad de fotos: ${place.photoMetadatas?.size ?: 0}")
+                        if (doc.exists()) {
+                            val favoriteData = hashMapOf(
+                                "id" to placeId,
+                                "name" to (doc.getString("name") ?: placeName),
+                                "address" to doc.getString("address"),
+                                "photoUrl" to doc.getString("photoUrl"), // URL ya guardada en Firebase
+                                "latitude" to (doc.getDouble("latitude") ?: 0.0),
+                                "longitude" to (doc.getDouble("longitude") ?: 0.0),
+                                "timestamp" to System.currentTimeMillis()
+                            )
 
-                // Intentar descargar y subir la foto
-                var photoUrl: String? = null
+                            Log.d(TAG, "💾 Guardando lugar de Firebase en favoritos...")
+                            db.collection(COLLECTION_FAVORITOS)
+                                .document(userId)
+                                .collection("lugares")
+                                .document(placeId)
+                                .set(favoriteData)
+                                .await()
 
-                if (place.photoMetadatas?.isNotEmpty() == true) {
-                    Log.d(TAG, "🖼️ Procesando foto del lugar...")
-
-                    val bitmap = fetchPlacePhoto(place)
-
-                    if (bitmap != null) {
-                        Log.d(TAG, "🚀 Subiendo foto a Firebase Storage...")
-                        photoUrl = uploadPhotoToStorage(bitmap, userId, placeId)
-
-                        if (photoUrl != null) {
-                            Log.d(TAG, "✅ Foto guardada exitosamente en: $photoUrl")
+                            Log.d(TAG, "✅ Favorito de Firebase guardado exitosamente")
+                            return@withContext Result.success(Unit)
                         } else {
-                            Log.w(TAG, "⚠️ No se pudo subir la foto a Storage")
+                            return@withContext Result.failure(Exception("Lugar no encontrado en Firebase"))
                         }
-                    } else {
-                        Log.w(TAG, "⚠️ No se pudo descargar la foto de Places")
+                    } catch (e: Exception) {
+                        Log.e(TAG, "❌ Error al obtener lugar de Firebase: ${e.message}", e)
+                        return@withContext Result.failure(e)
                     }
                 } else {
-                    Log.w(TAG, "⚠️ Este lugar no tiene fotos disponibles")
+                    // 🌍 Es un lugar de Google Places - usar código existente
+                    Log.d(TAG, "🌍 Lugar de Google Places detectado: $placeId")
+
+                    val placeFields = listOf(
+                        Place.Field.ID,
+                        Place.Field.NAME,
+                        Place.Field.ADDRESS,
+                        Place.Field.LAT_LNG,
+                        Place.Field.PHOTO_METADATAS
+                    )
+
+                    Log.d(TAG, "🔍 Obteniendo detalles del lugar...")
+                    val request = FetchPlaceRequest.newInstance(placeId, placeFields)
+                    val response = placesClient.fetchPlace(request).await()
+                    val place = response.place
+
+                    Log.d(TAG, "✅ Detalles obtenidos: ${place.name}")
+                    Log.d(TAG, "📸 Cantidad de fotos: ${place.photoMetadatas?.size ?: 0}")
+
+                    // Intentar descargar y subir la foto
+                    var photoUrl: String? = null
+
+                    if (place.photoMetadatas?.isNotEmpty() == true) {
+                        Log.d(TAG, "🖼️ Procesando foto del lugar...")
+
+                        val bitmap = fetchPlacePhoto(place)
+
+                        if (bitmap != null) {
+                            Log.d(TAG, "🚀 Subiendo foto a Firebase Storage...")
+                            photoUrl = uploadPhotoToStorage(bitmap, userId, placeId)
+
+                            if (photoUrl != null) {
+                                Log.d(TAG, "✅ Foto guardada exitosamente en: $photoUrl")
+                            } else {
+                                Log.w(TAG, "⚠️ No se pudo subir la foto a Storage")
+                            }
+                        } else {
+                            Log.w(TAG, "⚠️ No se pudo descargar la foto de Places")
+                        }
+                    } else {
+                        Log.w(TAG, "⚠️ Este lugar no tiene fotos disponibles")
+                    }
+
+                    // Guardar en Firestore
+                    val favoriteData = hashMapOf(
+                        "id" to (place.id ?: placeId),
+                        "name" to (place.name ?: placeName),
+                        "address" to place.address,
+                        "photoUrl" to photoUrl,
+                        "latitude" to (place.latLng?.latitude ?: 0.0),
+                        "longitude" to (place.latLng?.longitude ?: 0.0),
+                        "timestamp" to System.currentTimeMillis()
+                    )
+
+                    Log.d(TAG, "💾 Guardando en Firestore...")
+                    Log.d(TAG, "📝 Datos a guardar: $favoriteData")
+
+                    db.collection(COLLECTION_FAVORITOS)
+                        .document(userId)
+                        .collection("lugares")
+                        .document(placeId)
+                        .set(favoriteData)
+                        .await()
+
+                    Log.d(TAG, "✅ Favorito guardado exitosamente en Firestore")
+
+                    if (photoUrl == null) {
+                        Log.w(TAG, "⚠️ ADVERTENCIA: Favorito guardado pero SIN FOTO")
+                    }
+
+                    Result.success(Unit)
                 }
-
-                // Guardar en Firestore
-                val favoriteData = hashMapOf(
-                    "id" to (place.id ?: placeId),
-                    "name" to (place.name ?: placeName),
-                    "address" to place.address,
-                    "photoUrl" to photoUrl,  // Puede ser null
-                    "latitude" to (place.latLng?.latitude ?: 0.0),
-                    "longitude" to (place.latLng?.longitude ?: 0.0),
-                    "timestamp" to System.currentTimeMillis()
-                )
-
-                Log.d(TAG, "💾 Guardando en Firestore...")
-                Log.d(TAG, "📝 Datos a guardar: $favoriteData")
-
-                db.collection(COLLECTION_FAVORITOS)
-                    .document(userId)
-                    .collection("lugares")
-                    .document(placeId)
-                    .set(favoriteData)
-                    .await()
-
-                Log.d(TAG, "✅ Favorito guardado exitosamente en Firestore")
-
-                if (photoUrl == null) {
-                    Log.w(TAG, "⚠️ ADVERTENCIA: Favorito guardado pero SIN FOTO")
-                }
-
-                Result.success(Unit)
             } catch (e: Exception) {
                 Log.e(TAG, "❌ Error CRÍTICO al guardar favorito: ${e.message}", e)
                 e.printStackTrace()
