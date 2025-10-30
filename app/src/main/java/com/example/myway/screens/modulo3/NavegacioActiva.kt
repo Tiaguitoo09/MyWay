@@ -312,7 +312,8 @@ fun NavegacionActiva(
                                 else -> "driving"
                             }
 
-                            val routeData = getNavigationRoute(currentLocation!!, dest, mode)
+                            val preferencias = PreferenciasManager.cargarPreferencias(context)
+                            val routeData = getNavigationRoute(currentLocation!!, dest, mode, preferencias.rutaMasRapida)
                             routePoints = routeData.first
                             allSteps = routeData.second
 
@@ -791,15 +792,23 @@ fun updateNavigationStep(
 suspend fun getNavigationRoute(
     origin: LatLng,
     destination: LatLng,
-    mode: String
+    mode: String,
+    useFastestRoute: Boolean = false
 ): Pair<List<LatLng>, List<NavigationStep>> {
     return withContext(Dispatchers.IO) {
         try {
             val apiKey = BuildConfig.MAPS_API_KEY
+
+            val trafficParams = if (useFastestRoute) {
+                "&departure_time=now&traffic_model=best_guess&alternatives=false"
+            } else {
+                ""
+            }
             val url = "https://maps.googleapis.com/maps/api/directions/json?" +
                     "origin=${origin.latitude},${origin.longitude}" +
                     "&destination=${destination.latitude},${destination.longitude}" +
                     "&mode=$mode" +
+                    trafficParams +
                     "&language=es" +
                     "&key=$apiKey"
 
