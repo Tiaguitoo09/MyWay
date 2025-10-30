@@ -864,7 +864,8 @@ class AIRepository(private val context: Context) {
         }
     }
 
-    suspend fun getTopPlaceRecommendations(
+
+        suspend fun getTopPlaceRecommendations(
         location: UserLocation,
         radiusKm: Double = 10.0,
         limit: Int = 10
@@ -873,6 +874,7 @@ class AIRepository(private val context: Context) {
 
         return topPlaces.map { place ->
             PlaceRecommendation(
+                placeId = place.id,  
                 nombre = place.name,
                 ciudad = place.address.split(",").lastOrNull()?.trim() ?: "Desconocida",
                 descripcion = "Muy recomendado por los visitantes.",
@@ -883,7 +885,8 @@ class AIRepository(private val context: Context) {
         }
     }
 
-    suspend fun getTopPlacesAI(limit: Int = 10): List<PlaceRecommendation> {
+        suspend fun getTopPlacesAI(limit: Int = 10): List<PlaceRecommendation> {
+        // Ubicación de Bogotá como default
         val fakeLocation = UserLocation(latitude = 4.7110, longitude = -74.0721)
         return getTopPlaceRecommendations(fakeLocation, radiusKm = 10.0, limit = limit)
     }

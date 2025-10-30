@@ -34,7 +34,7 @@ fun SinPlan(navController: NavController) {
     val scope = rememberCoroutineScope()
 
     // Estados para el setup
-    var showSetup by remember { mutableStateOf(true) } // Cambiar a false cuando ya hayas creado los lugares
+    var showSetup by remember { mutableStateOf(false) } // Cambiar a false cuando ya hayas creado los lugares
     var isLoading by remember { mutableStateOf(false) }
     var isDone by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }

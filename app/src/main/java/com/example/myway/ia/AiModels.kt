@@ -206,6 +206,7 @@ data class Meal(
 
 
 data class PlaceRecommendation(
+    val placeId: String,
     val nombre: String,
     val ciudad: String,
     val descripcion: String,

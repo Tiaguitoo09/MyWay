@@ -21,8 +21,7 @@ import com.example.myway.screens.CustomTitleText
 import com.example.myway.ui.theme.Azul3
 import com.example.myway.ui.theme.Blanco
 import com.example.myway.ui.theme.Nunito
-import com.example.myway.utils.ImageStorage
-import com.example.myway.utils.UsuarioTemporal
+import com.example.myway.utils.limpiarCacheUsuario  // ✅ NUEVO IMPORT
 import com.google.firebase.auth.FirebaseAuth
 
 @Composable
@@ -79,18 +78,11 @@ fun CerrarSesion(navController: NavController) {
                     color = Azul3,
                     modifier = Modifier.width(140.dp),
                     onClick = {
-                        auth.signOut() // Cierra la sesión de Firebase
-
-                        // Limpia TODOS los datos temporales
-                        UsuarioTemporal.correo = null
-                        UsuarioTemporal.nombre = null
-                        UsuarioTemporal.fechaNacimiento = null
-                        UsuarioTemporal.apellido = null
-                        UsuarioTemporal.fotoUrl = null
-                        UsuarioTemporal.fotoLocalUri = null
-
-                        // Limpia la imagen guardada en SharedPreferences
-                        ImageStorage.eliminarImagen(context)
+                        // ✅ NUEVA FORMA: Usar función centralizada
+                        limpiarCacheUsuario(context)
+                        
+                        // Cerrar sesión de Firebase
+                        auth.signOut()
 
                         Toast.makeText(
                             context,
@@ -100,7 +92,7 @@ fun CerrarSesion(navController: NavController) {
 
                         // Navegar al inicio de la app
                         navController.navigate("ingreso_usuario") {
-                            popUpTo("perfil_ajustes") { inclusive = true }
+                            popUpTo(0) { inclusive = true }  // ✅ Limpiar stack completo
                         }
                     }
                 )

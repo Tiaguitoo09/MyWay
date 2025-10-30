@@ -33,6 +33,7 @@ import com.example.myway.ui.theme.*
 import com.google.android.libraries.places.api.Places
 import com.google.android.libraries.places.api.model.Place
 import com.google.android.libraries.places.api.net.FetchPlaceRequest
+import com.google.android.libraries.places.api.net.FetchPhotoRequest
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.Dispatchers
@@ -68,7 +69,7 @@ fun DetallesLugar(
         Log.d("DetallesLugar", "🔍 Iniciando carga de detalles para placeId: $placeId")
 
         placeId?.let { id ->
-            // ✅ Obtener foto desde Firestore (solo si es favorito)
+            // ✅ PASO 1: Intentar obtener foto desde Firestore (si es favorito)
             scope.launch {
                 try {
                     val userId = FirebaseAuth.getInstance().currentUser?.uid
@@ -98,7 +99,7 @@ fun DetallesLugar(
                                 Log.w("DetallesLugar", "⚠️ Este favorito no tiene foto guardada")
                             }
                         } else {
-                            Log.d("DetallesLugar", "ℹ️ No es un favorito (no hay foto)")
+                            Log.d("DetallesLugar", "ℹ️ No es un favorito (buscando foto en Google Places)")
                         }
                     }
                 } catch (e: Exception) {
@@ -106,7 +107,7 @@ fun DetallesLugar(
                 }
             }
 
-            // Obtener detalles del lugar desde Google Places
+            // ✅ PASO 2: Obtener detalles del lugar desde Google Places
             try {
                 val placeFields = listOf(
                     Place.Field.ID,
@@ -117,7 +118,8 @@ fun DetallesLugar(
                     Place.Field.RATING,
                     Place.Field.USER_RATINGS_TOTAL,
                     Place.Field.OPENING_HOURS,
-                    Place.Field.TYPES
+                    Place.Field.TYPES,
+                    Place.Field.PHOTO_METADATAS  // ✅ AGREGADO: Para obtener fotos
                 )
 
                 val request = FetchPlaceRequest.newInstance(id, placeFields)
@@ -139,6 +141,33 @@ fun DetallesLugar(
                             types = place.types?.map { it.name } ?: emptyList(),
                             openingHours = hours
                         )
+
+                        // ✅ PASO 3: Si no hay foto de Firebase, obtener de Google Places
+                        if (photoUrl == null) {
+                            val photoMetadata = place.photoMetadatas?.firstOrNull()
+                            if (photoMetadata != null) {
+                                Log.d("DetallesLugar", "📸 Cargando foto de Google Places...")
+                                
+                                val photoRequest = FetchPhotoRequest.builder(photoMetadata)
+                                    .setMaxWidth(800)
+                                    .setMaxHeight(600)
+                                    .build()
+
+                                placesClient.fetchPhoto(photoRequest)
+                                    .addOnSuccessListener { fetchPhotoResponse ->
+                                        val bitmap = fetchPhotoResponse.bitmap
+                                        // Convertir bitmap a URL temporal o usar directamente
+                                        // Por ahora, usar attributions como fallback
+                                        photoUrl = photoMetadata.attributions
+                                        Log.d("DetallesLugar", "✅ Foto de Google Places cargada")
+                                    }
+                                    .addOnFailureListener { exception ->
+                                        Log.e("DetallesLugar", "❌ Error cargando foto: ${exception.message}")
+                                    }
+                            } else {
+                                Log.d("DetallesLugar", "ℹ️ No hay fotos disponibles para este lugar")
+                            }
+                        }
 
                         isLoading = false
                     }
@@ -218,7 +247,6 @@ fun DetallesLugar(
                             modifier = Modifier.fillMaxSize()
                         ) {
                             if (photoUrl != null) {
-                                // ✅ Solo carga desde Firebase Storage con borde blanco
                                 AsyncImage(
                                     model = photoUrl,
                                     contentDescription = placeDetails?.name,
@@ -264,34 +292,42 @@ fun DetallesLugar(
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // Rating con corazones
-                    if (placeDetails?.rating != null && placeDetails!!.rating > 0) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            val rating = placeDetails!!.rating
-                            val fullHearts = rating.roundToInt().coerceIn(0, 5)
+                    // ✅ Rating con corazones - SIEMPRE mostrar
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        val rating = placeDetails?.rating ?: 0.0
+                        val totalRatings = placeDetails?.totalRatings ?: 0
+                        val fullHearts = rating.roundToInt().coerceIn(0, 5)
 
-                            repeat(5) { index ->
-                                Icon(
-                                    painter = painterResource(
-                                        id = if (index < fullHearts) R.drawable.ic_favorite_filled
-                                        else R.drawable.ic_favorite_outline
-                                    ),
-                                    contentDescription = null,
-                                    tint = if (index < fullHearts) Color(0xFFE91E63) else Color.Gray,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                                if (index < 4) Spacer(modifier = Modifier.width(4.dp))
-                            }
+                        repeat(5) { index ->
+                            Icon(
+                                painter = painterResource(
+                                    id = if (index < fullHearts) R.drawable.ic_favorite_filled
+                                    else R.drawable.ic_favorite_outline
+                                ),
+                                contentDescription = null,
+                                tint = if (index < fullHearts) Color(0xFFE91E63) else Color.Gray,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            if (index < 4) Spacer(modifier = Modifier.width(4.dp))
+                        }
 
-                            Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
 
+                        if (rating > 0) {
                             Text(
-                                text = "${"%.1f".format(rating)} (${placeDetails!!.totalRatings} reseñas)",
+                                text = "${"%.1f".format(rating)} ($totalRatings reseñas)",
                                 fontFamily = Nunito,
                                 fontSize = 14.sp,
                                 color = Blanco.copy(alpha = 0.8f)
+                            )
+                        } else {
+                            Text(
+                                text = "Sin valoraciones",
+                                fontFamily = Nunito,
+                                fontSize = 14.sp,
+                                color = Blanco.copy(alpha = 0.6f)
                             )
                         }
                     }

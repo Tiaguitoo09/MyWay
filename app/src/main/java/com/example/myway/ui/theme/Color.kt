@@ -12,3 +12,5 @@ val PurpuraSua = Color(0xFFBC93C3)
 val Rosado = Color(0xFFFF97B8)
 val Rojo = Color(0xFFC82909)
 val Verde = Color(0xFF008f39)
+
+val Amarillo = Color(0xFFFFB800)

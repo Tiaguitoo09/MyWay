@@ -1,29 +1,9 @@
 package com.example.myway.screens.modulo2
 
 import android.content.Context
-import android.graphics.Bitmap
-import android.net.Uri
-import android.util.Log
 import android.widget.Toast
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -31,46 +11,33 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextDecoration
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.zIndex
-import androidx.core.content.FileProvider
 import androidx.navigation.NavController
-import coil.compose.AsyncImage
 import com.example.myway.R
 import com.example.myway.screens.CustomButton
 import com.example.myway.screens.CustomTitleText
-import com.example.myway.ui.theme.Azul1
 import com.example.myway.ui.theme.Azul3
-import com.example.myway.ui.theme.Azul4
 import com.example.myway.ui.theme.Blanco
 import com.example.myway.ui.theme.Nunito
-import com.example.myway.ui.theme.Rojo
-import com.example.myway.ui.theme.Verde
 import com.example.myway.utils.UsuarioTemporal
 import com.google.firebase.auth.FirebaseAuth
+import com.example.myway.utils.limpiarCacheUsuario
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
-import java.io.File
-import java.io.FileOutputStream
 
 @Composable
 fun EliminarCuenta(navController: NavController) {
     val auth = FirebaseAuth.getInstance()
     val db = FirebaseFirestore.getInstance()
     val context = LocalContext.current
+    var isDeleting by remember { mutableStateOf(false) }  // ✅ Estado de carga
 
     Box(
         modifier = Modifier.fillMaxSize()
@@ -115,63 +82,21 @@ fun EliminarCuenta(navController: NavController) {
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                //Botón Sí
+                // Botón Sí
                 CustomButton(
-                    text = stringResource(id = R.string.si),
+                    text = if (isDeleting) "Eliminando..." else stringResource(id = R.string.si),
                     color = Azul3,
                     modifier = Modifier.width(140.dp),
                     onClick = {
-                        val usuario = auth.currentUser
-                        val correoUsuario = UsuarioTemporal.correo
-
-                        if (usuario != null && correoUsuario != null) {
-                            // Eliminar documento de Firestore
-                            db.collection("usuarios")
-                                .whereEqualTo("correo", correoUsuario)
-                                .get()
-                                .addOnSuccessListener { documents ->
-                                    for (doc in documents) {
-                                        db.collection("usuarios").document(doc.id).delete()
-                                    }
-                                    // Luego eliminar de Authentication
-                                    usuario.delete()
-                                        .addOnSuccessListener {
-                                            Toast.makeText(
-                                                context,
-                                                context.getString(R.string.cuenta_eliminada),
-                                                Toast.LENGTH_SHORT
-                                            ).show()
-
-                                            // Limpia los datos temporales
-                                            UsuarioTemporal.correo = ""
-                                            UsuarioTemporal.nombre = ""
-
-                                            // Navegar al ingreso
-                                            navController.navigate("inicio") {
-                                                popUpTo("perfil_ajustes") { inclusive = true }
-                                            }
-                                        }
-                                        .addOnFailureListener { e ->
-                                            Toast.makeText(
-                                                context,
-                                                context.getString(R.string.error_eliminar_cuenta, e.message),
-                                                Toast.LENGTH_SHORT
-                                            ).show()
-                                        }
-                                }
-                                .addOnFailureListener { e ->
-                                    Toast.makeText(
-                                        context,
-                                        context.getString(R.string.error_eliminar_usuario, e.message),
-                                        Toast.LENGTH_SHORT
-                                    ).show()
-                                }
-                        } else {
-                            Toast.makeText(
-                                context,
-                                context.getString(R.string.no_info_usuario),
-                                Toast.LENGTH_SHORT
-                            ).show()
+                        if (!isDeleting) {
+                            isDeleting = true
+                            eliminarCuentaCompleta(
+                                context = context,
+                                auth = auth,
+                                db = db,
+                                navController = navController,
+                                onError = { isDeleting = false }
+                            )
                         }
                     }
                 )
@@ -190,4 +115,85 @@ fun EliminarCuenta(navController: NavController) {
     }
 }
 
+// ✅ Función mejorada para eliminar cuenta
+private fun eliminarCuentaCompleta(
+    context: Context,
+    auth: FirebaseAuth,
+    db: FirebaseFirestore,
+    navController: NavController,
+    onError: () -> Unit
+) {
+    val usuario = auth.currentUser
+    val correoUsuario = UsuarioTemporal.correo
+
+    if (usuario == null || correoUsuario == null) {
+        Toast.makeText(
+            context,
+            context.getString(R.string.no_info_usuario),
+            Toast.LENGTH_SHORT
+        ).show()
+        onError()
+        return
+    }
+
+    val userId = usuario.uid
+
+    // 1️⃣ PRIMERO: Limpiar caché
+    limpiarCacheUsuario(context)
+
+    // 2️⃣ SEGUNDO: Eliminar foto de Storage
+    FirebaseStorage.getInstance()
+        .reference
+        .child("fotos_usuarios/$userId")
+        .delete()
+        .addOnSuccessListener {
+            // Continuar aunque falle (puede no tener foto)
+        }
+
+    // 3️⃣ TERCERO: Eliminar favoritos
+    db.collection("favoritos")
+        .document(userId)
+        .delete()
+
+    // 4️⃣ CUARTO: Eliminar documento de Firestore
+    db.collection("usuarios")
+        .whereEqualTo("correo", correoUsuario)
+        .get()
+        .addOnSuccessListener { documents ->
+            for (doc in documents) {
+                db.collection("usuarios").document(doc.id).delete()
+            }
+
+            // 5️⃣ QUINTO: Eliminar de Authentication
+            usuario.delete()
+                .addOnSuccessListener {
+                    Toast.makeText(
+                        context,
+                        context.getString(R.string.cuenta_eliminada),
+                        Toast.LENGTH_SHORT
+                    ).show()
+
+                    // Navegar al inicio
+                    navController.navigate("inicio") {
+                        popUpTo(0) { inclusive = true }  // ✅ Limpiar stack completo
+                    }
+                }
+                .addOnFailureListener { e ->
+                    Toast.makeText(
+                        context,
+                        context.getString(R.string.error_eliminar_cuenta, e.message),
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    onError()
+                }
+        }
+        .addOnFailureListener { e ->
+            Toast.makeText(
+                context,
+                context.getString(R.string.error_eliminar_usuario, e.message),
+                Toast.LENGTH_SHORT
+            ).show()
+            onError()
+        }
+}
 
