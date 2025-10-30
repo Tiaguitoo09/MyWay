@@ -19,6 +19,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import com.example.myway.data.repository.RecentPlacesRepository
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
@@ -29,6 +30,7 @@ import com.example.myway.ai.Place
 import com.example.myway.ai.AIRepository
 import com.example.myway.ai.UserLocation
 import kotlinx.coroutines.launch
+import android.net.Uri
 
 @Composable
 fun RankingLugares(navController: NavController) {
@@ -142,6 +144,9 @@ fun RankingLugares(navController: NavController) {
 
 @Composable
 fun PlaceCard(rank: Int, place: Place, navController: NavController) {
+    val context = LocalContext.current  // 👈 define el contexto aquí
+    val scope = rememberCoroutineScope()
+    val recentPlacesRepository = remember { RecentPlacesRepository() }
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = Blanco),
@@ -240,16 +245,27 @@ fun PlaceCard(rank: Int, place: Place, navController: NavController) {
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // 🔹 Botón directo a mapa
+            
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(12.dp))
                     .background(Amarillo.copy(alpha = 0.15f))
                     .clickable {
-                        navController.navigate(
-                            "ruta_opciones/${place.latitude}/${place.longitude}/${place.name}"
-                        )
+                        scope.launch {
+                            // 💾 Guarda el lugar reciente igual que en Favoritos
+                            recentPlacesRepository.saveRecentPlace(
+                                placeId = place.id,
+                                placeName = place.name,
+                                placeAddress = place.address,
+                                latitude = place.latitude,
+                                longitude = place.longitude
+                            )
+
+                            // 🌍 Navega al mapa (Home) con los datos del lugar
+                            val encodedName = Uri.encode(place.name)
+                            navController.navigate("home/${place.id}/$encodedName")
+                        }
                     }
                     .padding(vertical = 8.dp),
                 contentAlignment = Alignment.Center
