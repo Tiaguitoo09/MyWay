@@ -127,52 +127,41 @@ fun Permisos(navController: NavController) {
             contentScale = ContentScale.Crop
         )
 
-        Image(
-            painter = painterResource(id = R.drawable.flecha),
-            contentDescription = stringResource(id = R.string.volver),
+        // Header con flecha y título
+        Row(
             modifier = Modifier
-                .align(Alignment.TopStart)
+                .fillMaxWidth()
                 .padding(16.dp)
-                .size(40.dp)
-                .zIndex(3f)
-                .clickable { navController.popBackStack() }
-        )
+                .zIndex(3f),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Image(
+                painter = painterResource(id = R.drawable.flecha),
+                contentDescription = stringResource(id = R.string.volver),
+                modifier = Modifier
+                    .size(40.dp)
+                    .clickable { navController.popBackStack() }
+            )
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            Text(
+                text = "Permisos",
+                color = Blanco,
+                fontSize = 28.sp,
+                fontWeight = FontWeight.Bold,
+                fontFamily = Nunito
+            )
+        }
 
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(scrollState)
-                .padding(horizontal = 24.dp, vertical = 80.dp),
+                .padding(horizontal = 24.dp)
+                .padding(top = 80.dp, bottom = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(modifier = Modifier.height(20.dp))
-
-            Box(
-                modifier = Modifier
-                    .size(80.dp)
-                    .clip(CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    painter = painterResource(id = android.R.drawable.ic_menu_info_details),
-                    contentDescription = "Permisos",
-                    tint = Blanco,
-                    modifier = Modifier.size(80.dp)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Text(
-                text = "Permisos",
-                color = Blanco,
-                fontSize = 32.sp,
-                fontWeight = FontWeight.Bold,
-                fontFamily = Nunito
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(20.dp),
@@ -236,7 +225,7 @@ fun Permisos(navController: NavController) {
                     PermisoItemMejorado(
                         icono = android.R.drawable.ic_menu_camera,
                         titulo = "Cámara",
-                        descripcion = "Para tomar fotos de perfil y escanear códigos QR",
+                        descripcion = "Para tomar fotos de perfil",
                         isEnabled = camaraPermitida,
                         esObligatorio = false,
                         onActivar = {

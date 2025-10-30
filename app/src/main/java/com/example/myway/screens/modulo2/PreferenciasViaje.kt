@@ -20,6 +20,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
@@ -28,23 +29,26 @@ import com.example.myway.R
 import com.example.myway.ui.theme.*
 
 data class PreferenciasViajeData(
-    val transportePreferido: String = "driving", // walking, driving, motorcycle, transit
-    val paradasSugeridas: Set<String> = emptySet(), // gasolinera, restaurante, tienda, baño
-    val prioridadViaje: String = "rapida" // rapida, economica, tranquila
+    val transportesSeleccionados: Set<String> = setOf("driving", "motorcycle", "walking"), // Los 3 por defecto
+    val transportePreferido: String = "driving", // El que se muestra primero
+    val paradasSugeridas: Set<String> = emptySet(),
+    val rutaMasRapida: Boolean = false // Se puede activar/desactivar
 )
 
 object PreferenciasManager {
     private const val PREFS_NAME = "preferencias_viaje"
+    private const val KEY_TRANSPORTES_SELECCIONADOS = "transportes_seleccionados"
     private const val KEY_TRANSPORTE = "transporte_preferido"
     private const val KEY_PARADAS = "paradas_sugeridas"
-    private const val KEY_PRIORIDAD = "prioridad_viaje"
+    private const val KEY_RUTA_RAPIDA = "ruta_mas_rapida"
 
     fun guardarPreferencias(context: Context, preferencias: PreferenciasViajeData) {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         prefs.edit().apply {
+            putStringSet(KEY_TRANSPORTES_SELECCIONADOS, preferencias.transportesSeleccionados)
             putString(KEY_TRANSPORTE, preferencias.transportePreferido)
             putStringSet(KEY_PARADAS, preferencias.paradasSugeridas)
-            putString(KEY_PRIORIDAD, preferencias.prioridadViaje)
+            putBoolean(KEY_RUTA_RAPIDA, preferencias.rutaMasRapida)
             apply()
         }
     }
@@ -52,9 +56,11 @@ object PreferenciasManager {
     fun cargarPreferencias(context: Context): PreferenciasViajeData {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         return PreferenciasViajeData(
+            transportesSeleccionados = prefs.getStringSet(KEY_TRANSPORTES_SELECCIONADOS, setOf("driving", "motorcycle", "walking"))
+                ?: setOf("driving", "motorcycle", "walking"),
             transportePreferido = prefs.getString(KEY_TRANSPORTE, "driving") ?: "driving",
             paradasSugeridas = prefs.getStringSet(KEY_PARADAS, emptySet()) ?: emptySet(),
-            prioridadViaje = prefs.getString(KEY_PRIORIDAD, "rapida") ?: "rapida"
+            rutaMasRapida = prefs.getBoolean(KEY_RUTA_RAPIDA, false)
         )
     }
 }
@@ -70,7 +76,7 @@ fun PreferenciasViaje(navController: NavController) {
 
     var seccionTransporteExpandida by remember { mutableStateOf(true) }
     var seccionParadasExpandida by remember { mutableStateOf(false) }
-    var seccionPrioridadExpandida by remember { mutableStateOf(false) }
+    var seccionRutaRapidaExpandida by remember { mutableStateOf(false) }
 
     // Guardar automáticamente cuando cambian las preferencias
     LaunchedEffect(preferencias) {
@@ -85,50 +91,48 @@ fun PreferenciasViaje(navController: NavController) {
             contentScale = ContentScale.Crop
         )
 
-        Image(
-            painter = painterResource(id = R.drawable.flecha),
-            contentDescription = stringResource(id = R.string.volver),
+        // Header con flecha y título
+        Row(
             modifier = Modifier
-                .align(Alignment.TopStart)
+                .fillMaxWidth()
                 .padding(16.dp)
-                .size(40.dp)
-                .zIndex(3f)
-                .clickable { navController.popBackStack() }
-        )
+                .zIndex(3f),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Image(
+                painter = painterResource(id = R.drawable.flecha),
+                contentDescription = stringResource(id = R.string.volver),
+                modifier = Modifier
+                    .size(40.dp)
+                    .clickable { navController.popBackStack() }
+            )
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            Text(
+                text = "Preferencias de Viaje",
+                color = Blanco,
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold,
+                fontFamily = Nunito
+            )
+        }
 
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(scrollState)
-                .padding(horizontal = 24.dp, vertical = 80.dp),
+                .padding(horizontal = 24.dp)
+                .padding(top = 80.dp, bottom = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(modifier = Modifier.height(20.dp))
-
-            Icon(
-                painter = painterResource(id = android.R.drawable.ic_menu_compass),
-                contentDescription = "Preferencias",
-                tint = Blanco,
-                modifier = Modifier.size(60.dp)
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
             Text(
-                text = "Preferencias de Viaje",
+                text = "Selecciona tus medios de transporte y MyWay los mostrará en tus rutas",
                 color = Blanco,
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Bold,
-                fontFamily = Nunito
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Text(
-                text = "Configura tus preferencias para que MyWay personalice tus rutas",
-                color = Blanco.copy(alpha = 0.9f),
-                fontSize = 14.sp,
+                fontSize = 16.sp,
                 fontFamily = Nunito,
+                textAlign = TextAlign.Center,
+                lineHeight = 22.sp,
                 modifier = Modifier.padding(horizontal = 16.dp)
             )
 
@@ -136,52 +140,152 @@ fun PreferenciasViaje(navController: NavController) {
 
             // SECCIÓN 1: Medio de transporte preferido
             SeccionExpandible(
-                titulo = "Medio de transporte preferido",
+                titulo = "Medios de transporte",
                 expandida = seccionTransporteExpandida,
                 onToggle = { seccionTransporteExpandida = !seccionTransporteExpandida }
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    OpcionCheckbox(
-                        icono = R.drawable.ic_walk,
-                        texto = "Bicicleta",
-                        seleccionado = preferencias.transportePreferido == "bicycling",
-                        onClick = {
-                            preferencias = preferencias.copy(transportePreferido = "bicycling")
-                        }
+                    Text(
+                        text = "Selecciona los transportes que usas (mínimo 1):",
+                        color = Blanco.copy(alpha = 0.8f),
+                        fontSize = 13.sp,
+                        fontFamily = Nunito,
+                        modifier = Modifier.padding(bottom = 12.dp)
                     )
 
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    OpcionCheckbox(
+                    OpcionCheckboxMultiple(
                         icono = R.drawable.ic_car,
                         texto = "Carro",
-                        seleccionado = preferencias.transportePreferido == "driving",
+                        seleccionado = preferencias.transportesSeleccionados.contains("driving"),
                         onClick = {
-                            preferencias = preferencias.copy(transportePreferido = "driving")
+                            val nuevosTransportes = preferencias.transportesSeleccionados.toMutableSet()
+                            if (nuevosTransportes.contains("driving")) {
+                                // Solo permitir deseleccionar si hay al menos otro seleccionado
+                                if (nuevosTransportes.size > 1) {
+                                    nuevosTransportes.remove("driving")
+                                    // Si era el preferido, cambiar al primero disponible
+                                    val nuevoPreferido = if (preferencias.transportePreferido == "driving") {
+                                        nuevosTransportes.first()
+                                    } else {
+                                        preferencias.transportePreferido
+                                    }
+                                    preferencias = preferencias.copy(
+                                        transportesSeleccionados = nuevosTransportes,
+                                        transportePreferido = nuevoPreferido
+                                    )
+                                }
+                            } else {
+                                nuevosTransportes.add("driving")
+                                preferencias = preferencias.copy(transportesSeleccionados = nuevosTransportes)
+                            }
                         }
                     )
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    OpcionCheckbox(
+                    OpcionCheckboxMultiple(
                         icono = R.drawable.ic_motorcycle,
                         texto = "Moto",
-                        seleccionado = preferencias.transportePreferido == "motorcycle",
+                        seleccionado = preferencias.transportesSeleccionados.contains("motorcycle"),
                         onClick = {
-                            preferencias = preferencias.copy(transportePreferido = "motorcycle")
+                            val nuevosTransportes = preferencias.transportesSeleccionados.toMutableSet()
+                            if (nuevosTransportes.contains("motorcycle")) {
+                                if (nuevosTransportes.size > 1) {
+                                    nuevosTransportes.remove("motorcycle")
+                                    val nuevoPreferido = if (preferencias.transportePreferido == "motorcycle") {
+                                        nuevosTransportes.first()
+                                    } else {
+                                        preferencias.transportePreferido
+                                    }
+                                    preferencias = preferencias.copy(
+                                        transportesSeleccionados = nuevosTransportes,
+                                        transportePreferido = nuevoPreferido
+                                    )
+                                }
+                            } else {
+                                nuevosTransportes.add("motorcycle")
+                                preferencias = preferencias.copy(transportesSeleccionados = nuevosTransportes)
+                            }
                         }
                     )
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    OpcionCheckbox(
-                        icono = android.R.drawable.ic_dialog_map,
-                        texto = "Transporte público",
-                        seleccionado = preferencias.transportePreferido == "transit",
+                    OpcionCheckboxMultiple(
+                        icono = R.drawable.ic_walk,
+                        texto = "Caminando",
+                        seleccionado = preferencias.transportesSeleccionados.contains("walking"),
                         onClick = {
-                            preferencias = preferencias.copy(transportePreferido = "transit")
+                            val nuevosTransportes = preferencias.transportesSeleccionados.toMutableSet()
+                            if (nuevosTransportes.contains("walking")) {
+                                if (nuevosTransportes.size > 1) {
+                                    nuevosTransportes.remove("walking")
+                                    val nuevoPreferido = if (preferencias.transportePreferido == "walking") {
+                                        nuevosTransportes.first()
+                                    } else {
+                                        preferencias.transportePreferido
+                                    }
+                                    preferencias = preferencias.copy(
+                                        transportesSeleccionados = nuevosTransportes,
+                                        transportePreferido = nuevoPreferido
+                                    )
+                                }
+                            } else {
+                                nuevosTransportes.add("walking")
+                                preferencias = preferencias.copy(transportesSeleccionados = nuevosTransportes)
+                            }
                         }
                     )
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    Divider(color = Blanco.copy(alpha = 0.3f), thickness = 1.dp)
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    Text(
+                        text = "Transporte preferido (se selecciona por defecto):",
+                        color = Blanco.copy(alpha = 0.8f),
+                        fontSize = 13.sp,
+                        fontFamily = Nunito,
+                        modifier = Modifier.padding(bottom = 12.dp)
+                    )
+
+                    // Solo mostrar opciones que estén seleccionadas
+                    if (preferencias.transportesSeleccionados.contains("driving")) {
+                        OpcionCheckbox(
+                            icono = R.drawable.ic_car,
+                            texto = "Carro ⭐",
+                            seleccionado = preferencias.transportePreferido == "driving",
+                            onClick = {
+                                preferencias = preferencias.copy(transportePreferido = "driving")
+                            }
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                    }
+
+                    if (preferencias.transportesSeleccionados.contains("motorcycle")) {
+                        OpcionCheckbox(
+                            icono = R.drawable.ic_motorcycle,
+                            texto = "Moto ⭐",
+                            seleccionado = preferencias.transportePreferido == "motorcycle",
+                            onClick = {
+                                preferencias = preferencias.copy(transportePreferido = "motorcycle")
+                            }
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                    }
+
+                    if (preferencias.transportesSeleccionados.contains("walking")) {
+                        OpcionCheckbox(
+                            icono = R.drawable.ic_walk,
+                            texto = "Caminando ⭐",
+                            seleccionado = preferencias.transportePreferido == "walking",
+                            onClick = {
+                                preferencias = preferencias.copy(transportePreferido = "walking")
+                            }
+                        )
+                    }
                 }
             }
 
@@ -242,23 +346,6 @@ fun PreferenciasViaje(navController: NavController) {
                             preferencias = preferencias.copy(paradasSugeridas = nuevasParadas)
                         }
                     )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    OpcionCheckboxMultiple(
-                        icono = android.R.drawable.ic_menu_view,
-                        texto = "Baño",
-                        seleccionado = preferencias.paradasSugeridas.contains("baño"),
-                        onClick = {
-                            val nuevasParadas = preferencias.paradasSugeridas.toMutableSet()
-                            if (nuevasParadas.contains("baño")) {
-                                nuevasParadas.remove("baño")
-                            } else {
-                                nuevasParadas.add("baño")
-                            }
-                            preferencias = preferencias.copy(paradasSugeridas = nuevasParadas)
-                        }
-                    )
                 }
             }
 
@@ -267,27 +354,16 @@ fun PreferenciasViaje(navController: NavController) {
             // SECCIÓN 3: Prioridad de Viaje
             SeccionExpandible(
                 titulo = "Prioridad de Viaje",
-                expandida = seccionPrioridadExpandida,
-                onToggle = { seccionPrioridadExpandida = !seccionPrioridadExpandida }
+                expandida = seccionRutaRapidaExpandida,
+                onToggle = { seccionRutaRapidaExpandida = !seccionRutaRapidaExpandida }
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    OpcionCheckbox(
+                    OpcionCheckboxMultiple(
                         icono = android.R.drawable.ic_media_ff,
                         texto = "Ruta más rápida",
-                        seleccionado = preferencias.prioridadViaje == "rapida",
+                        seleccionado = preferencias.rutaMasRapida,
                         onClick = {
-                            preferencias = preferencias.copy(prioridadViaje = "rapida")
-                        }
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    OpcionCheckbox(
-                        icono = android.R.drawable.star_on,
-                        texto = "Ruta con tranquilidad / segura",
-                        seleccionado = preferencias.prioridadViaje == "tranquila",
-                        onClick = {
-                            preferencias = preferencias.copy(prioridadViaje = "tranquila")
+                            preferencias = preferencias.copy(rutaMasRapida = !preferencias.rutaMasRapida)
                         }
                     )
                 }
@@ -326,7 +402,7 @@ fun PreferenciasViaje(navController: NavController) {
                     Spacer(modifier = Modifier.height(8.dp))
 
                     Text(
-                        text = "Tus preferencias se aplicarán automáticamente en todas tus rutas",
+                        text = "Solo verás ${preferencias.transportesSeleccionados.size} opción(es) de transporte en tus rutas",
                         color = Blanco.copy(alpha = 0.9f),
                         fontSize = 13.sp,
                         fontFamily = Nunito
@@ -418,13 +494,12 @@ fun OpcionCheckbox(
                 .padding(14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Checkbox(
-                checked = seleccionado,
-                onCheckedChange = { onClick() },
-                colors = CheckboxDefaults.colors(
-                    checkedColor = Verde,
-                    uncheckedColor = Blanco.copy(alpha = 0.5f),
-                    checkmarkColor = Blanco
+            RadioButton(
+                selected = seleccionado,
+                onClick = { onClick() },
+                colors = RadioButtonDefaults.colors(
+                    selectedColor = Verde,
+                    unselectedColor = Blanco.copy(alpha = 0.5f)
                 )
             )
 

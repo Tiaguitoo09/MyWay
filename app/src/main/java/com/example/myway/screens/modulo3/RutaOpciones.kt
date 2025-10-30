@@ -59,15 +59,21 @@ fun RutaOpciones(
     var currentLocation by remember { mutableStateOf(LatLng(4.7110, -74.0721)) }
     var destinationLocation by remember { mutableStateOf<LatLng?>(null) }
 
-    // USAR TRANSPORTE PREFERIDO POR DEFECTO
-    var selectedMode by remember { mutableStateOf(preferencias.transportePreferido) }
+    // USAR TRANSPORTE PREFERIDO POR DEFECTO (solo si está en los seleccionados)
+    var selectedMode by remember {
+        mutableStateOf(
+            if (preferencias.transportesSeleccionados.contains(preferencias.transportePreferido)) {
+                preferencias.transportePreferido
+            } else {
+                preferencias.transportesSeleccionados.firstOrNull() ?: "driving"
+            }
+        )
+    }
     var isLoading by remember { mutableStateOf(true) }
 
     var walkingRoute by remember { mutableStateOf<RouteInfo?>(null) }
     var drivingRoute by remember { mutableStateOf<RouteInfo?>(null) }
     var motorcycleRoute by remember { mutableStateOf<RouteInfo?>(null) }
-    var bicyclingRoute by remember { mutableStateOf<RouteInfo?>(null) }
-    var transitRoute by remember { mutableStateOf<RouteInfo?>(null) }
 
     val cameraPositionState = rememberCameraPositionState {
         position = CameraPosition.fromLatLngZoom(currentLocation, 12f)
@@ -108,12 +114,16 @@ fun RutaOpciones(
                     destinationLocation = response.place.latLng
                     scope.launch {
                         destinationLocation?.let { dest ->
-                            // Cargar todas las opciones de transporte
-                            walkingRoute = getRouteInfo(currentLocation, dest, "walking")
-                            drivingRoute = getRouteInfo(currentLocation, dest, "driving")
-                            motorcycleRoute = getRouteInfo(currentLocation, dest, "driving")
-                            bicyclingRoute = getRouteInfo(currentLocation, dest, "bicycling")
-                            transitRoute = getRouteInfo(currentLocation, dest, "transit")
+                            // Cargar SOLO las opciones seleccionadas en preferencias
+                            if (preferencias.transportesSeleccionados.contains("walking")) {
+                                walkingRoute = getRouteInfo(currentLocation, dest, "walking")
+                            }
+                            if (preferencias.transportesSeleccionados.contains("driving")) {
+                                drivingRoute = getRouteInfo(currentLocation, dest, "driving")
+                            }
+                            if (preferencias.transportesSeleccionados.contains("motorcycle")) {
+                                motorcycleRoute = getRouteInfo(currentLocation, dest, "driving")
+                            }
                             isLoading = false
                         }
                     }
@@ -157,8 +167,6 @@ fun RutaOpciones(
                 "walking" -> walkingRoute
                 "driving" -> drivingRoute
                 "motorcycle" -> motorcycleRoute
-                "bicycling" -> bicyclingRoute
-                "transit" -> transitRoute
                 else -> drivingRoute
             }
 
@@ -170,8 +178,6 @@ fun RutaOpciones(
                             "walking" -> Color(0xFF34A853) // Verde
                             "driving" -> Color(0xFF4285F4) // Azul
                             "motorcycle" -> Color(0xFFEA4335) // Rojo
-                            "bicycling" -> Color(0xFFFBBC04) // Amarillo
-                            "transit" -> Color(0xFF9C27B0) // Morado
                             else -> Color(0xFF4285F4)
                         },
                         width = 10f
@@ -344,68 +350,56 @@ fun RutaOpciones(
                             CircularProgressIndicator(color = Azul4)
                         }
                     } else {
-                        // Caminando
-                        TransportOption(
-                            icon = R.drawable.ic_walk,
-                            title = stringResource(R.string.caminando),
-                            duration = walkingRoute?.duration ?: "N/A",
-                            distance = walkingRoute?.distance ?: "N/A",
-                            isSelected = selectedMode == "walking",
-                            isPreferred = preferencias.transportePreferido == "walking",
-                            onClick = { selectedMode = "walking" }
-                        )
+                        // SOLO MOSTRAR OPCIONES SELECCIONADAS EN PREFERENCIAS
+                        var isFirst = true
 
-                        Spacer(modifier = Modifier.height(12.dp))
+                        // Caminando
+                        if (preferencias.transportesSeleccionados.contains("walking")) {
+                            if (!isFirst) Spacer(modifier = Modifier.height(12.dp))
+                            isFirst = false
+
+                            TransportOption(
+                                icon = R.drawable.ic_walk,
+                                title = stringResource(R.string.caminando),
+                                duration = walkingRoute?.duration ?: "N/A",
+                                distance = walkingRoute?.distance ?: "N/A",
+                                isSelected = selectedMode == "walking",
+                                isPreferred = preferencias.transportePreferido == "walking",
+                                onClick = { selectedMode = "walking" }
+                            )
+                        }
 
                         // Carro
-                        TransportOption(
-                            icon = R.drawable.ic_car,
-                            title = stringResource(R.string.en_carro),
-                            duration = drivingRoute?.duration ?: "N/A",
-                            distance = drivingRoute?.distance ?: "N/A",
-                            isSelected = selectedMode == "driving",
-                            isPreferred = preferencias.transportePreferido == "driving",
-                            onClick = { selectedMode = "driving" }
-                        )
+                        if (preferencias.transportesSeleccionados.contains("driving")) {
+                            if (!isFirst) Spacer(modifier = Modifier.height(12.dp))
+                            isFirst = false
 
-                        Spacer(modifier = Modifier.height(12.dp))
+                            TransportOption(
+                                icon = R.drawable.ic_car,
+                                title = stringResource(R.string.en_carro),
+                                duration = drivingRoute?.duration ?: "N/A",
+                                distance = drivingRoute?.distance ?: "N/A",
+                                isSelected = selectedMode == "driving",
+                                isPreferred = preferencias.transportePreferido == "driving",
+                                onClick = { selectedMode = "driving" }
+                            )
+                        }
 
                         // Moto
-                        TransportOption(
-                            icon = R.drawable.ic_motorcycle,
-                            title = stringResource(R.string.en_moto),
-                            duration = motorcycleRoute?.duration ?: "N/A",
-                            distance = motorcycleRoute?.distance ?: "N/A",
-                            isSelected = selectedMode == "motorcycle",
-                            isPreferred = preferencias.transportePreferido == "motorcycle",
-                            onClick = { selectedMode = "motorcycle" }
-                        )
+                        if (preferencias.transportesSeleccionados.contains("motorcycle")) {
+                            if (!isFirst) Spacer(modifier = Modifier.height(12.dp))
+                            isFirst = false
 
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        // Bicicleta
-                        TransportOption(
-                            icon = R.drawable.ic_walk, // Usar el mismo ícono o crear uno nuevo
-                            title = "En bicicleta",
-                            duration = bicyclingRoute?.duration ?: "N/A",
-                            distance = bicyclingRoute?.distance ?: "N/A",
-                            isSelected = selectedMode == "bicycling",
-                            isPreferred = preferencias.transportePreferido == "bicycling",
-                            onClick = { selectedMode = "bicycling" }
-                        )
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        // Transporte público
-                        TransportOption(
-                            icon = android.R.drawable.ic_dialog_map,
-                            title = "Transporte público",
-                            duration = transitRoute?.duration ?: "N/A",
-                            distance = transitRoute?.distance ?: "N/A",
-                            isSelected = selectedMode == "transit",
-                            isPreferred = preferencias.transportePreferido == "transit",
-                            onClick = { selectedMode = "transit" }
-                        )
+                            TransportOption(
+                                icon = R.drawable.ic_motorcycle,
+                                title = stringResource(R.string.en_moto),
+                                duration = motorcycleRoute?.duration ?: "N/A",
+                                distance = motorcycleRoute?.distance ?: "N/A",
+                                isSelected = selectedMode == "motorcycle",
+                                isPreferred = preferencias.transportePreferido == "motorcycle",
+                                onClick = { selectedMode = "motorcycle" }
+                            )
+                        }
 
                         Spacer(modifier = Modifier.height(24.dp))
 
