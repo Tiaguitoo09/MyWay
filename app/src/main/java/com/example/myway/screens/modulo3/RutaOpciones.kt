@@ -1,5 +1,6 @@
 package com.example.myway.screens.modulo3
 
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -34,6 +35,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.net.URL
+import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.tasks.await
 
 data class RouteInfo(
     val distance: String,
@@ -105,40 +108,87 @@ fun RutaOpciones(
             e.printStackTrace()
         }
 
-        // ✅ Obtener destino solo si placeId existe y no es "null"
+        // ✅ NUEVO: Intentar obtener coordenadas desde Firebase primero
         if (!placeId.isNullOrEmpty() && placeId != "null") {
-            val placeFields = listOf(Place.Field.LAT_LNG, Place.Field.NAME)
-            val request = FetchPlaceRequest.newInstance(placeId, placeFields)
-            placesClient.fetchPlace(request)
-                .addOnSuccessListener { response ->
-                    destinationLocation = response.place.latLng
-                    scope.launch {
-                        destinationLocation?.let { dest ->
-                            // Cargar SOLO las opciones seleccionadas en preferencias
-                            if (preferencias.transportesSeleccionados.contains("walking")) {
-                                walkingRoute = getRouteInfo(currentLocation, dest, "walking")
+            // Verificar si es un lugar de Firebase
+            if (!placeId.startsWith("ChIJ") && !placeId.startsWith("Ei")) {
+                Log.d("RutaOpciones", "📦 Lugar de Firebase detectado: $placeId")
+
+                try {
+                    val firestore = FirebaseFirestore.getInstance()
+                    val doc = firestore.collection("lugares")
+                        .document(placeId)
+                        .get()
+                        .await()
+
+                    if (doc.exists()) {
+                        val lat = doc.getDouble("latitude")
+                        val lng = doc.getDouble("longitude")
+
+                        if (lat != null && lng != null) {
+                            destinationLocation = LatLng(lat, lng)
+                            Log.d("RutaOpciones", "✅ Coordenadas obtenidas: $lat, $lng")
+
+                            scope.launch {
+                                // Cargar rutas con las coordenadas
+                                if (preferencias.transportesSeleccionados.contains("walking")) {
+                                    walkingRoute = getRouteInfo(currentLocation, destinationLocation!!, "walking")
+                                }
+                                if (preferencias.transportesSeleccionados.contains("driving")) {
+                                    drivingRoute = getRouteInfo(currentLocation, destinationLocation!!, "driving")
+                                }
+                                if (preferencias.transportesSeleccionados.contains("motorcycle")) {
+                                    motorcycleRoute = getRouteInfo(currentLocation, destinationLocation!!, "driving")
+                                }
+                                isLoading = false
                             }
-                            if (preferencias.transportesSeleccionados.contains("driving")) {
-                                drivingRoute = getRouteInfo(currentLocation, dest, "driving")
-                            }
-                            if (preferencias.transportesSeleccionados.contains("motorcycle")) {
-                                motorcycleRoute = getRouteInfo(currentLocation, dest, "driving")
-                            }
+                        } else {
+                            Log.e("RutaOpciones", "❌ No se encontraron coordenadas")
                             isLoading = false
                         }
+                    } else {
+                        Log.e("RutaOpciones", "❌ Documento no existe")
+                        isLoading = false
                     }
-                }
-                .addOnFailureListener {
-                    it.printStackTrace()
+                } catch (e: Exception) {
+                    Log.e("RutaOpciones", "❌ Error: ${e.message}")
                     isLoading = false
-                    Toast.makeText(
-                        context,
-                        context.getString(R.string.error_cargar_lugar),
-                        Toast.LENGTH_SHORT
-                    ).show()
                 }
+            } else {
+                // Es un lugar de Google Places - usar código existente
+                Log.d("RutaOpciones", "🌍 Lugar de Google Places detectado: $placeId")
+
+                val placeFields = listOf(Place.Field.LAT_LNG, Place.Field.NAME)
+                val request = FetchPlaceRequest.newInstance(placeId, placeFields)
+                placesClient.fetchPlace(request)
+                    .addOnSuccessListener { response ->
+                        destinationLocation = response.place.latLng
+                        scope.launch {
+                            destinationLocation?.let { dest ->
+                                if (preferencias.transportesSeleccionados.contains("walking")) {
+                                    walkingRoute = getRouteInfo(currentLocation, dest, "walking")
+                                }
+                                if (preferencias.transportesSeleccionados.contains("driving")) {
+                                    drivingRoute = getRouteInfo(currentLocation, dest, "driving")
+                                }
+                                if (preferencias.transportesSeleccionados.contains("motorcycle")) {
+                                    motorcycleRoute = getRouteInfo(currentLocation, dest, "driving")
+                                }
+                                isLoading = false
+                            }
+                        }
+                    }
+                    .addOnFailureListener {
+                        it.printStackTrace()
+                        isLoading = false
+                        Toast.makeText(
+                            context,
+                            context.getString(R.string.error_cargar_lugar),
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+            }
         } else {
-            // Si no hay placeId válido
             isLoading = false
             Toast.makeText(
                 context,
