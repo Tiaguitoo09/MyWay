@@ -23,6 +23,7 @@ import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
 import com.example.myway.BuildConfig
 import com.example.myway.R
+import com.example.myway.screens.modulo2.PreferenciasManager
 import com.example.myway.ui.theme.*
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
@@ -36,6 +37,7 @@ import com.google.android.gms.maps.model.LatLng
 import com.google.android.libraries.places.api.Places
 import com.google.android.libraries.places.api.model.Place
 import com.google.android.libraries.places.api.net.FetchPlaceRequest
+import com.google.android.libraries.places.api.net.PlacesClient
 import com.google.maps.android.PolyUtil
 import com.google.maps.android.compose.*
 import kotlinx.coroutines.Dispatchers
@@ -49,6 +51,13 @@ data class NavigationStep(
     val distance: String,
     val duration: String,
     val maneuver: String?
+)
+
+data class NearbyPlace(
+    val placeId: String,
+    val name: String,
+    val latLng: LatLng,
+    val type: String = "" // NUEVO: Para identificar el tipo
 )
 
 @Composable
@@ -76,10 +85,12 @@ fun NavegacionActiva(
     var routePoints by remember { mutableStateOf<List<LatLng>>(emptyList()) }
     var currentStep by remember { mutableStateOf<NavigationStep?>(null) }
     var nextStep by remember { mutableStateOf<NavigationStep?>(null) }
-    var distanceToDestination by remember { mutableStateOf(context.getString(R.string.obteniendo_ubicacion)) }
+    var distanceToDestination by remember { mutableStateOf("Obteniendo ubicación...") }
     var timeToDestination by remember { mutableStateOf("") }
     var currentStepIndex by remember { mutableIntStateOf(0) }
     var allSteps by remember { mutableStateOf<List<NavigationStep>>(emptyList()) }
+    var paradasEnRuta by remember { mutableStateOf<List<NearbyPlace>>(emptyList()) }
+    var mostrarParadas by remember { mutableStateOf(true) }
 
     var lastUpdateTime by remember { mutableLongStateOf(0L) }
     var lastKnownLocation by remember { mutableStateOf<LatLng?>(null) }
@@ -108,7 +119,7 @@ fun NavegacionActiva(
                     val currentTime = System.currentTimeMillis()
 
                     if (location.accuracy > 50f) return
-                    if (currentTime - lastUpdateTime < 2000 && isInitialLocationSet) return
+                    if (currentTime - lastUpdateTime < 1000 && isInitialLocationSet) return
 
                     val newLocation = LatLng(location.latitude, location.longitude)
 
@@ -301,44 +312,72 @@ fun NavegacionActiva(
                                 else -> "driving"
                             }
 
-                            val origin = currentLocation
-                            if (origin != null) {
-                                // ✅ Intentar obtener del caché primero
-                                val cachedRoute = RouteCache.get(context, origin, dest, mode)
+                            val routeData = getNavigationRoute(currentLocation!!, dest, mode)
+                            routePoints = routeData.first
+                            allSteps = routeData.second
 
-                                val routeData = if (cachedRoute != null) {
-                                    // Usar caché (GRATIS)
-                                    cachedRoute
-                                } else {
-                                    // Llamar a API y guardar en caché
-                                    android.util.Log.d("RouteCache", "⚠️ Llamando a API ($0.005)")
-                                    val apiRoute = getNavigationRoute(origin, dest, mode)
-                                    if (apiRoute.first.isNotEmpty()) {
-                                        RouteCache.put(context, origin, dest, mode, apiRoute.first, apiRoute.second)
-                                    }
-                                    apiRoute
+                            if (allSteps.isNotEmpty()) {
+                                currentStep = allSteps[0]
+                                if (allSteps.size > 1) {
+                                    nextStep = allSteps[1]
                                 }
-
-                                routePoints = routeData.first
-                                allSteps = routeData.second
-
-                                if (allSteps.isNotEmpty()) {
-                                    currentStep = allSteps[0]
-                                    if (allSteps.size > 1) {
-                                        nextStep = allSteps[1]
-                                    }
-                                }
-
-                                val dist = calculateDistance(origin, dest)
-                                distanceToDestination = formatDistance(dist)
                             }
+
+                            val dist = calculateDistance(currentLocation!!, dest)
+                            distanceToDestination = formatDistance(dist)
                         }
                     }
                 }
                 .addOnFailureListener {
                     it.printStackTrace()
-                    distanceToDestination = context.getString(R.string.error_obtener_destino)
+                    distanceToDestination = "Error al obtener destino"
                 }
+        }
+    }
+
+    // Cargar paradas sugeridas a lo largo de la ruta
+    LaunchedEffect(routePoints, destinationLocation) {
+        if (routePoints.isNotEmpty()) {
+            scope.launch {
+                val preferencias = PreferenciasManager.cargarPreferencias(context)
+                val todasLasParadas = mutableListOf<NearbyPlace>()
+
+                if (preferencias.paradasSugeridas.isNotEmpty()) {
+                    val puntosIntermediarios = listOf(
+                        routePoints[routePoints.size / 5],
+                        routePoints[routePoints.size * 2 / 5],
+                        routePoints[routePoints.size * 3 / 5],
+                        routePoints[routePoints.size * 4 / 5]
+                    )
+
+                    puntosIntermediarios.forEach { punto ->
+                        if (preferencias.paradasSugeridas.contains("gasolinera")) {
+                            val gasolineras = fetchNearbyPlacesInRoute(
+                                placesClient, punto, "gas_station", 500, "gasolinera"
+                            )
+                            todasLasParadas.addAll(gasolineras)
+                        }
+
+                        if (preferencias.paradasSugeridas.contains("restaurante")) {
+                            val restaurantes = fetchNearbyPlacesInRoute(
+                                placesClient, punto, "restaurant", 500, "restaurante"
+                            )
+                            todasLasParadas.addAll(restaurantes)
+                        }
+
+                        if (preferencias.paradasSugeridas.contains("tienda")) {
+                            val tiendas = fetchNearbyPlacesInRoute(
+                                placesClient, punto, "convenience_store", 500, "tienda"
+                            )
+                            todasLasParadas.addAll(tiendas)
+                        }
+                    }
+
+                    paradasEnRuta = todasLasParadas
+                        .distinctBy { "${it.latLng.latitude}-${it.latLng.longitude}" }
+                        .take(15)
+                }
+            }
         }
     }
 
@@ -347,8 +386,6 @@ fun NavegacionActiva(
             fusedLocationClient.removeLocationUpdates(locationCallback)
         }
     }
-
-// Continuación de NavegacionActiva.kt
 
     Box(modifier = Modifier.fillMaxSize()) {
         val location = currentLocation
@@ -359,7 +396,9 @@ fun NavegacionActiva(
                 routePoints = routePoints,
                 placeName = placeName,
                 cameraPositionState = cameraPositionState,
-                currentBearing = currentBearing
+                currentBearing = currentBearing,
+                paradasEnRuta = paradasEnRuta,
+                mostrarParadas = mostrarParadas
             )
         } else {
             Box(
@@ -372,7 +411,7 @@ fun NavegacionActiva(
                 ) {
                     CircularProgressIndicator(color = Azul4)
                     Text(
-                        text = stringResource(R.string.obteniendo_ubicacion),
+                        text = "Obteniendo tu ubicación...",
                         color = Azul4,
                         fontFamily = Nunito,
                         fontSize = 16.sp
@@ -400,7 +439,7 @@ fun NavegacionActiva(
                     ) {
                         Icon(
                             painter = painterResource(id = android.R.drawable.ic_menu_close_clear_cancel),
-                            contentDescription = stringResource(R.string.cerrar),
+                            contentDescription = "Cerrar",
                             tint = Blanco,
                             modifier = Modifier
                                 .size(28.dp)
@@ -483,7 +522,7 @@ fun NavegacionActiva(
                             )
 
                             Text(
-                                text = "${stringResource(R.string.luego)} ${step.instruction}",
+                                text = "Luego: ${step.instruction}",
                                 color = Blanco.copy(alpha = 0.7f),
                                 fontFamily = Nunito,
                                 fontSize = 13.sp,
@@ -494,6 +533,40 @@ fun NavegacionActiva(
                 }
             }
 
+            // Botón toggle paradas
+            if (paradasEnRuta.isNotEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(end = 24.dp, bottom = 100.dp),
+                    contentAlignment = Alignment.CenterEnd
+                ) {
+                    Surface(
+                        modifier = Modifier
+                            .size(56.dp)
+                            .clickable {
+                                mostrarParadas = !mostrarParadas
+                            },
+                        shape = CircleShape,
+                        color = if (mostrarParadas) Verde else Blanco,
+                        shadowElevation = 4.dp
+                    ) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                painter = painterResource(id = android.R.drawable.ic_menu_view),
+                                contentDescription = if (mostrarParadas) "Ocultar paradas" else "Mostrar paradas",
+                                tint = if (mostrarParadas) Blanco else Azul4,
+                                modifier = Modifier.size(28.dp)
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Botón centrar ubicación
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -536,7 +609,7 @@ fun NavegacionActiva(
                     ) {
                         Icon(
                             painter = painterResource(id = android.R.drawable.ic_menu_mylocation),
-                            contentDescription = stringResource(R.string.centrar_ubicacion),
+                            contentDescription = "Centrar en mi ubicación",
                             tint = if (followUserLocation) Azul4 else Azul4.copy(alpha = 0.6f),
                             modifier = Modifier.size(30.dp)
                         )
@@ -554,9 +627,10 @@ fun EnhancedNavigationMap(
     routePoints: List<LatLng>,
     placeName: String?,
     cameraPositionState: CameraPositionState,
-    currentBearing: Float
+    currentBearing: Float,
+    paradasEnRuta: List<NearbyPlace> = emptyList(),
+    mostrarParadas: Boolean = true
 ) {
-    val context = LocalContext.current
     val currentMarkerState = rememberMarkerState(position = currentLocation)
 
     LaunchedEffect(currentLocation) {
@@ -617,9 +691,72 @@ fun EnhancedNavigationMap(
         destinationLocation?.let {
             Marker(
                 state = MarkerState(position = it),
-                title = placeName ?: context.getString(R.string.destino),
+                title = placeName ?: "Destino",
                 icon = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED)
             )
+        }
+
+        if (mostrarParadas) {
+            paradasEnRuta.forEach { parada ->
+                val markerColor = when (parada.type) {
+                    "gasolinera" -> BitmapDescriptorFactory.HUE_YELLOW // Amarillo
+                    "restaurante" -> BitmapDescriptorFactory.HUE_ORANGE // Naranja
+                    "tienda" -> BitmapDescriptorFactory.HUE_VIOLET // Violeta
+                    else -> BitmapDescriptorFactory.HUE_ORANGE
+                }
+
+                Marker(
+                    state = MarkerState(position = parada.latLng),
+                    title = parada.name,
+                    snippet = when (parada.type) {
+                        "gasolinera" -> "⛽ Gasolinera"
+                        "restaurante" -> "🍔 Restaurante"
+                        "tienda" -> "🏪 Tienda"
+                        else -> "Parada sugerida"
+                    },
+                    icon = BitmapDescriptorFactory.defaultMarker(markerColor)
+                )
+            }
+        }
+    }
+}
+
+suspend fun fetchNearbyPlacesInRoute(
+    placesClient: PlacesClient,
+    location: LatLng,
+    type: String,
+    radius: Int = 500,
+    placeType: String = "" // NUEVO parámetro
+): List<NearbyPlace> {
+    return withContext(Dispatchers.IO) {
+        try {
+            val apiKey = BuildConfig.MAPS_API_KEY
+            val url = "https://maps.googleapis.com/maps/api/place/nearbysearch/json?" +
+                    "location=${location.latitude},${location.longitude}" +
+                    "&radius=$radius" +
+                    "&type=$type" +
+                    "&key=$apiKey"
+
+            val response = URL(url).readText()
+            val json = JSONObject(response)
+            val results = json.getJSONArray("results")
+
+            (0 until results.length().coerceAtMost(3)).mapNotNull { i ->
+                val obj = results.getJSONObject(i)
+                val placeId = obj.optString("place_id")
+                val name = obj.optString("name")
+                val geometry = obj.optJSONObject("geometry")
+                val loc = geometry?.optJSONObject("location")
+                val lat = loc?.optDouble("lat")
+                val lng = loc?.optDouble("lng")
+
+                if (placeId.isNotEmpty() && lat != null && lng != null) {
+                    NearbyPlace(placeId, name, LatLng(lat, lng), placeType)
+                } else null
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            emptyList()
         }
     }
 }
@@ -642,17 +779,12 @@ fun updateNavigationStep(
         }
     }
 
-    if (closestIndex > 0 && closestIndex < routePoints.size - 1) {
-        val stepDistance = PolyUtil.isLocationOnPath(
-            currentLocation,
-            routePoints.subList(0, closestIndex),
-            true,
-            20.0
-        )
+    val progressPercentage = closestIndex.toFloat() / routePoints.size
+    val stepSize = 1f / steps.size
+    val estimatedStepIndex = (progressPercentage / stepSize).toInt().coerceIn(0, steps.size - 1)
 
-        if (stepDistance && currentIndex < steps.size - 1) {
-            onStepChanged(currentIndex + 1)
-        }
+    if (estimatedStepIndex > currentIndex) {
+        onStepChanged(estimatedStepIndex)
     }
 }
 
@@ -664,38 +796,53 @@ suspend fun getNavigationRoute(
     return withContext(Dispatchers.IO) {
         try {
             val apiKey = BuildConfig.MAPS_API_KEY
-            val url =
-                "https://maps.googleapis.com/maps/api/directions/json?origin=${origin.latitude},${origin.longitude}&destination=${destination.latitude},${destination.longitude}&mode=$mode&key=$apiKey"
+            val url = "https://maps.googleapis.com/maps/api/directions/json?" +
+                    "origin=${origin.latitude},${origin.longitude}" +
+                    "&destination=${destination.latitude},${destination.longitude}" +
+                    "&mode=$mode" +
+                    "&language=es" +
+                    "&key=$apiKey"
 
             val response = URL(url).readText()
-            val jsonResponse = JSONObject(response)
-            val routes = jsonResponse.getJSONArray("routes")
+            val json = JSONObject(response)
 
+            val routes = json.getJSONArray("routes")
             if (routes.length() == 0) return@withContext Pair(emptyList(), emptyList())
 
             val route = routes.getJSONObject(0)
             val legs = route.getJSONArray("legs")
-            val steps = legs.getJSONObject(0).getJSONArray("steps")
+            val leg = legs.getJSONObject(0)
 
-            val allPoints = mutableListOf<LatLng>()
+            val polylineStr = route.getJSONObject("overview_polyline").getString("points")
+            val points = PolyUtil.decode(polylineStr)
+
+            val steps = leg.getJSONArray("steps")
             val navigationSteps = mutableListOf<NavigationStep>()
 
             for (i in 0 until steps.length()) {
                 val step = steps.getJSONObject(i)
-                val polyline = step.getJSONObject("polyline").getString("points")
-                val decodedPoints = PolyUtil.decode(polyline)
-                allPoints.addAll(decodedPoints)
-
-                val instruction = step.getString("html_instructions")
+                var instruction = step.getString("html_instructions")
                     .replace("<[^>]*>".toRegex(), "")
+                    .replace("&nbsp;", " ")
+                    .trim()
+
+                instruction = translateInstruction(instruction)
+
                 val distance = step.getJSONObject("distance").getString("text")
                 val duration = step.getJSONObject("duration").getString("text")
-                val maneuver = step.optString("maneuver", null)
+                val maneuver = step.optString("maneuver", "")
 
-                navigationSteps.add(NavigationStep(instruction, distance, duration, maneuver))
+                navigationSteps.add(
+                    NavigationStep(
+                        instruction = instruction,
+                        distance = distance,
+                        duration = duration,
+                        maneuver = maneuver
+                    )
+                )
             }
 
-            Pair(allPoints, navigationSteps)
+            Pair(points, navigationSteps)
         } catch (e: Exception) {
             e.printStackTrace()
             Pair(emptyList(), emptyList())
@@ -703,52 +850,71 @@ suspend fun getNavigationRoute(
     }
 }
 
-fun calculateDistance(start: LatLng, end: LatLng): Float {
-    val result = FloatArray(1)
+fun translateInstruction(instruction: String): String {
+    return instruction
+        .replace("Turn left", "Gira a la izquierda")
+        .replace("Turn right", "Gira a la derecha")
+        .replace("turn left", "gira a la izquierda")
+        .replace("turn right", "gira a la derecha")
+        .replace("Keep left", "Mantente a la izquierda")
+        .replace("Keep right", "Mantente a la derecha")
+        .replace("Continue", "Continúa")
+        .replace("Head", "Dirígete")
+        .replace("toward", "hacia")
+        .replace("onto", "en")
+        .replace("Merge", "Incorpórate")
+        .replace("Take the ramp", "Toma la rampa")
+        .replace("Exit", "Sal")
+        .replace("roundabout", "rotonda")
+        .replace("at the", "en la")
+        .replace("slight left", "ligeramente a la izquierda")
+        .replace("slight right", "ligeramente a la derecha")
+        .replace("sharp left", "cerrada a la izquierda")
+        .replace("sharp right", "cerrada a la derecha")
+        .replace("U-turn", "vuelta en U")
+        .replace("destination", "destino")
+        .replace("on the left", "a la izquierda")
+        .replace("on the right", "a la derecha")
+}
+
+fun calculateDistance(from: LatLng, to: LatLng): Float {
+    val results = FloatArray(1)
     Location.distanceBetween(
-        start.latitude, start.longitude,
-        end.latitude, end.longitude,
-        result
+        from.latitude, from.longitude,
+        to.latitude, to.longitude,
+        results
     )
-    return result[0]
+    return results[0]
+}
+
+fun calculateBearing(from: LatLng, to: LatLng): Float {
+    val results = FloatArray(2)
+    Location.distanceBetween(
+        from.latitude, from.longitude,
+        to.latitude, to.longitude,
+        results
+    )
+    return if (results.size > 1) results[1] else 0f
 }
 
 fun formatDistance(distance: Float): String {
-    return if (distance < 1000) {
-        "${distance.toInt()} m"
-    } else {
-        "%.2f km".format(distance / 1000)
+    return when {
+        distance < 1000 -> "${distance.toInt()} m"
+        else -> String.format("%.1f km", distance / 1000)
     }
-}
-
-fun calculateBearing(start: LatLng, end: LatLng): Float {
-    val startLat = Math.toRadians(start.latitude)
-    val startLng = Math.toRadians(start.longitude)
-    val endLat = Math.toRadians(end.latitude)
-    val endLng = Math.toRadians(end.longitude)
-
-    val dLng = endLng - startLng
-
-    val y = Math.sin(dLng) * Math.cos(endLat)
-    val x = Math.cos(startLat) * Math.sin(endLat) -
-            Math.sin(startLat) * Math.cos(endLat) * Math.cos(dLng)
-
-    var bearing = Math.toDegrees(Math.atan2(y, x))
-    bearing = (bearing + 360) % 360
-
-    return bearing.toFloat()
 }
 
 fun getManeuverIcon(maneuver: String?): Int {
     return when (maneuver) {
-        "turn-left" -> android.R.drawable.ic_media_previous
-        "turn-right" -> android.R.drawable.ic_media_next
-        "straight" -> android.R.drawable.arrow_up_float
-        "uturn-left" -> android.R.drawable.ic_menu_revert
-        "uturn-right" -> android.R.drawable.ic_menu_revert
-        "merge" -> android.R.drawable.ic_menu_share
-        "roundabout-left" -> android.R.drawable.ic_menu_rotate
-        "roundabout-right" -> android.R.drawable.ic_menu_rotate
-        else -> android.R.drawable.arrow_up_float
+        "turn-left" -> android.R.drawable.ic_media_rew
+        "turn-right" -> android.R.drawable.ic_media_ff
+        "turn-sharp-left" -> android.R.drawable.ic_media_rew
+        "turn-sharp-right" -> android.R.drawable.ic_media_ff
+        "uturn-left", "uturn-right" -> android.R.drawable.ic_menu_revert
+        "straight" -> android.R.drawable.ic_menu_upload
+        "ramp-left", "ramp-right" -> android.R.drawable.ic_menu_directions
+        "fork-left", "fork-right" -> android.R.drawable.ic_menu_directions
+        "roundabout-left", "roundabout-right" -> android.R.drawable.ic_menu_rotate
+        else -> android.R.drawable.ic_menu_upload
     }
 }
