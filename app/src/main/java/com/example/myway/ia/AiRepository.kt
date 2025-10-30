@@ -904,7 +904,7 @@ class AIRepository(private val context: Context) {
     suspend fun getPlaceDetails(placeId: String): Place? {
         return try {
             // URL del endpoint de detalles de Google Places
-            val apiKey = "TU_API_KEY_AQUI" // reemplázala por tu API Key real
+            val apiKey = "MAPS_API_KEY" // reemplázala por tu API Key real
             val url =
                 "https://maps.googleapis.com/maps/api/place/details/json?place_id=$placeId&fields=name,formatted_address,rating,geometry,photos,types&key=$apiKey"
 
@@ -966,7 +966,7 @@ class AIRepository(private val context: Context) {
 
     // 🔧 Función auxiliar para construir la URL de la foto
     private fun buildPhotoUrl(photoReference: String): String {
-        val apiKey = "TU_API_KEY_AQUI" // usa la misma key que arriba
+        val apiKey = "MAPS_API_KEY" // usa la misma key que arriba
         return "https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photo_reference=$photoReference&key=$apiKey"
     }
 

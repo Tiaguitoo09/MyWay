@@ -26,7 +26,8 @@ data class Place(
     val priceLevel: Int,
     val rating: Double,
     val tags: List<String>,
-    val weatherSuitable: List<String>
+    val weatherSuitable: List<String>,
+    val phoneNumber: String? = null     // <-- NUEVO campo (nullable)
 ) {
     companion object {
         fun fromMap(map: Map<String, Any?>): Place {
@@ -41,13 +42,14 @@ data class Place(
                 priceLevel = (map["priceLevel"] as? Number)?.toInt() ?: 0,
                 rating = (map["rating"] as? Number)?.toDouble() ?: 0.0,
                 tags = (map["tags"] as? List<*>)?.filterIsInstance<String>() ?: emptyList(),
-                weatherSuitable = (map["weatherSuitable"] as? List<*>)?.filterIsInstance<String>() ?: emptyList()
+                weatherSuitable = (map["weatherSuitable"] as? List<*>)?.filterIsInstance<String>() ?: emptyList(),
+                phoneNumber = map["phoneNumber"] as? String ?: map["phone"] as? String // aceptar ambos nombres
             )
         }
     }
 }
 
-// 👇 Esta parte va fuera de la clase
+// fuera de la clase
 fun Place.toMap(): Map<String, Any?> {
     return mapOf(
         "id" to id,
@@ -60,9 +62,11 @@ fun Place.toMap(): Map<String, Any?> {
         "priceLevel" to priceLevel,
         "rating" to rating,
         "tags" to tags,
-        "weatherSuitable" to weatherSuitable
+        "weatherSuitable" to weatherSuitable,
+        "phoneNumber" to phoneNumber
     )
 }
+
 
 
 
