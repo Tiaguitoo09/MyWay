@@ -115,14 +115,30 @@ fun RutaOpciones(
                     scope.launch {
                         destinationLocation?.let { dest ->
                             // Cargar SOLO las opciones seleccionadas en preferencias
+                            // ✅ NUEVO: Pasar preferencias.rutaMasRapida
                             if (preferencias.transportesSeleccionados.contains("walking")) {
-                                walkingRoute = getRouteInfo(currentLocation, dest, "walking")
+                                walkingRoute = getRouteInfo(
+                                    currentLocation,
+                                    dest,
+                                    "walking",
+                                    preferencias.rutaMasRapida
+                                )
                             }
                             if (preferencias.transportesSeleccionados.contains("driving")) {
-                                drivingRoute = getRouteInfo(currentLocation, dest, "driving")
+                                drivingRoute = getRouteInfo(
+                                    currentLocation,
+                                    dest,
+                                    "driving",
+                                    preferencias.rutaMasRapida
+                                )
                             }
                             if (preferencias.transportesSeleccionados.contains("motorcycle")) {
-                                motorcycleRoute = getRouteInfo(currentLocation, dest, "driving")
+                                motorcycleRoute = getRouteInfo(
+                                    currentLocation,
+                                    dest,
+                                    "driving",
+                                    preferencias.rutaMasRapida
+                                )
                             }
                             isLoading = false
                         }
@@ -241,6 +257,27 @@ fun RutaOpciones(
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold
                         )
+                    }
+
+                    // ✅ NUEVO: Mostrar indicador de ruta rápida
+                    if (preferencias.rutaMasRapida) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                painter = painterResource(id = android.R.drawable.ic_media_ff),
+                                contentDescription = "Ruta rápida",
+                                tint = Amarillo,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "⚡ Ruta más rápida activada",
+                                color = Amarillo,
+                                fontFamily = Nunito,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
                 }
             }
@@ -518,18 +555,29 @@ fun TransportOption(
     }
 }
 
+// ✅ FUNCIÓN ACTUALIZADA CON PARÁMETRO useFastestRoute
 suspend fun getRouteInfo(
     origin: LatLng,
     destination: LatLng,
-    mode: String
+    mode: String,
+    useFastestRoute: Boolean = false
 ): RouteInfo? {
     return withContext(Dispatchers.IO) {
         try {
             val apiKey = BuildConfig.MAPS_API_KEY
+
+            // ✅ Agregar parámetros de tráfico si la ruta rápida está activada
+            val trafficParams = if (useFastestRoute) {
+                "&departure_time=now&traffic_model=best_guess"
+            } else {
+                ""
+            }
+
             val url = "https://maps.googleapis.com/maps/api/directions/json?" +
                     "origin=${origin.latitude},${origin.longitude}" +
                     "&destination=${destination.latitude},${destination.longitude}" +
                     "&mode=$mode" +
+                    trafficParams +
                     "&key=$apiKey"
 
             val response = URL(url).readText()
