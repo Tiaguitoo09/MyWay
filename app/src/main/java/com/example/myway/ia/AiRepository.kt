@@ -853,16 +853,25 @@ class AIRepository(private val context: Context) {
                 return emptyList()
             }
 
-            allPlaces
+            // 🔹 Tomamos los mejores por calificación
+            val topBasicPlaces = allPlaces
                 .filter { it.rating > 0 }
                 .sortedByDescending { it.rating }
                 .take(limit)
+
+            // 🔹 Por cada lugar, pedimos sus detalles completos
+            topBasicPlaces.mapNotNull { place ->
+                val details = getPlaceDetails(place.id)
+                details ?: place  // si no hay detalles, usa los básicos
+            }
 
         } catch (e: Exception) {
             Log.e("AIRepository", "❌ Error obteniendo ranking: ${e.message}")
             emptyList()
         }
     }
+
+
 
 
         suspend fun getTopPlaceRecommendations(
@@ -890,6 +899,79 @@ class AIRepository(private val context: Context) {
         val fakeLocation = UserLocation(latitude = 4.7110, longitude = -74.0721)
         return getTopPlaceRecommendations(fakeLocation, radiusKm = 10.0, limit = limit)
     }
+
+    // ========== DETALLES DE UN LUGAR ESPECÍFICO ==========
+    suspend fun getPlaceDetails(placeId: String): Place? {
+        return try {
+            // URL del endpoint de detalles de Google Places
+            val apiKey = "TU_API_KEY_AQUI" // reemplázala por tu API Key real
+            val url =
+                "https://maps.googleapis.com/maps/api/place/details/json?place_id=$placeId&fields=name,formatted_address,rating,geometry,photos,types&key=$apiKey"
+
+            // Conexión HTTP manual (sin Retrofit)
+            val connection = java.net.URL(url).openConnection() as java.net.HttpURLConnection
+            connection.requestMethod = "GET"
+
+            val response = connection.inputStream.bufferedReader().use { it.readText() }
+
+            // Parsear respuesta JSON
+            val json = org.json.JSONObject(response)
+            val result = json.optJSONObject("result") ?: return null
+
+            // Extraer datos básicos
+            val name = result.optString("name", "Sin nombre")
+            val address = result.optString("formatted_address", "Sin dirección")
+            val rating = result.optDouble("rating", 0.0)
+
+            // Coordenadas
+            val geometry = result.optJSONObject("geometry")
+            val location = geometry?.optJSONObject("location")
+            val lat = location?.optDouble("lat", 0.0) ?: 0.0
+            val lng = location?.optDouble("lng", 0.0) ?: 0.0
+
+            // Categoría (types[0])
+            val typesArray = result.optJSONArray("types")
+            val category = if (typesArray != null && typesArray.length() > 0)
+                typesArray.getString(0)
+            else "Sin categoría"
+
+            // Foto (photo_reference → URL)
+            val photosArray = result.optJSONArray("photos")
+            val photoUrl = if (photosArray != null && photosArray.length() > 0) {
+                val photoReference =
+                    photosArray.getJSONObject(0).optString("photo_reference")
+                buildPhotoUrl(photoReference)
+            } else null
+
+            // Crear objeto Place
+            Place(
+                id = placeId,
+                name = name,
+                address = address,
+                latitude = lat,
+                longitude = lng,
+                photoUrl = photoUrl,
+                category = category,
+                priceLevel = 0,
+                rating = rating,
+                tags = emptyList(),
+                weatherSuitable = emptyList()
+            )
+
+        } catch (e: Exception) {
+            android.util.Log.e("AIRepository", "❌ Error al obtener detalles del lugar: ${e.message}")
+            null
+        }
+    }
+
+    // 🔧 Función auxiliar para construir la URL de la foto
+    private fun buildPhotoUrl(photoReference: String): String {
+        val apiKey = "TU_API_KEY_AQUI" // usa la misma key que arriba
+        return "https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photo_reference=$photoReference&key=$apiKey"
+    }
+
+
+
 }
 
 fun debugRecommendations(places: List<Place>) {
