@@ -211,9 +211,10 @@ class FavoritesRepository(private val context: Context) {
                                 "id" to placeId,
                                 "name" to (doc.getString("name") ?: placeName),
                                 "address" to doc.getString("address"),
-                                "photoUrl" to doc.getString("photoUrl"), // URL ya guardada en Firebase
+                                "photoUrl" to doc.getString("photoUrl"),
                                 "latitude" to (doc.getDouble("latitude") ?: 0.0),
                                 "longitude" to (doc.getDouble("longitude") ?: 0.0),
+                                "rating" to (doc.getDouble("rating") ?: 0.0), // ← AGREGAR ESTA LÍNEA
                                 "timestamp" to System.currentTimeMillis()
                             )
 
