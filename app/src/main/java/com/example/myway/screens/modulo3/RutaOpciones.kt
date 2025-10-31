@@ -54,7 +54,7 @@ fun RutaOpciones(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    // ✅ CARGAR PREFERENCIAS DE FORMA ASÍNCRONA
+    // ✅ Estado inicial de preferencias
     var preferencias by remember {
         mutableStateOf(
             PreferenciasViajeData(
@@ -73,7 +73,17 @@ fun RutaOpciones(
     var currentLocation by remember { mutableStateOf(LatLng(4.7110, -74.0721)) }
     var destinationLocation by remember { mutableStateOf<LatLng?>(null) }
 
-    var selectedMode by remember { mutableStateOf("driving") }
+    // ✅ Transporte seleccionado inicialmente según preferencias
+    var selectedMode by remember {
+        mutableStateOf(
+            if (preferencias.transportesSeleccionados.contains(preferencias.transportePreferido)) {
+                preferencias.transportePreferido
+            } else {
+                preferencias.transportesSeleccionados.firstOrNull() ?: "driving"
+            }
+        )
+    }
+
     var isLoading by remember { mutableStateOf(true) }
 
     var walkingRoute by remember { mutableStateOf<RouteInfo?>(null) }
@@ -91,12 +101,11 @@ fun RutaOpciones(
         Places.createClient(context)
     }
 
-    // ✅ CARGAR PREFERENCIAS AL INICIO
+    // ✅ Cargar preferencias al iniciar
     LaunchedEffect(Unit) {
         preferencias = PreferenciasManager.cargarPreferencias(context)
         preferenciasLoaded = true
 
-        // Actualizar selectedMode después de cargar preferencias
         selectedMode = if (preferencias.transportesSeleccionados.contains(preferencias.transportePreferido)) {
             preferencias.transportePreferido
         } else {
@@ -106,14 +115,14 @@ fun RutaOpciones(
         Log.d("RutaOpciones", "✅ Preferencias cargadas: $preferencias")
     }
 
-    // ✅ Verificar si es favorito
+    // ✅ Verificar si el destino ya es favorito
     LaunchedEffect(placeId) {
         if (!placeId.isNullOrEmpty() && placeId != "null") {
             isFavorite = repository.isFavorite(placeId)
         }
     }
 
-    // ✅ CARGAR UBICACIÓN Y RUTAS DESPUÉS DE CARGAR PREFERENCIAS
+    // ✅ Cargar ubicación y rutas cuando las preferencias estén listas
     LaunchedEffect(preferenciasLoaded) {
         if (!preferenciasLoaded) return@LaunchedEffect
 
@@ -128,18 +137,12 @@ fun RutaOpciones(
             e.printStackTrace()
         }
 
-        // ✅ LÓGICA UNIFICADA: Firebase o Google Places
         if (!placeId.isNullOrEmpty() && placeId != "null") {
-            // Verificar si es un lugar de Firebase
             if (!placeId.startsWith("ChIJ") && !placeId.startsWith("Ei")) {
-                Log.d("RutaOpciones", "📦 Lugar de Firebase detectado: $placeId")
-
+                // 📦 Lugar desde Firebase
                 try {
                     val firestore = FirebaseFirestore.getInstance()
-                    val doc = firestore.collection("lugares")
-                        .document(placeId)
-                        .get()
-                        .await()
+                    val doc = firestore.collection("lugares").document(placeId).get().await()
 
                     if (doc.exists()) {
                         val lat = doc.getDouble("latitude")
@@ -147,33 +150,17 @@ fun RutaOpciones(
 
                         if (lat != null && lng != null) {
                             destinationLocation = LatLng(lat, lng)
-                            Log.d("RutaOpciones", "✅ Coordenadas obtenidas: $lat, $lng")
+                            Log.d("RutaOpciones", "✅ Coordenadas Firebase: $lat, $lng")
 
                             scope.launch {
-                                // Cargar rutas según preferencias
                                 if (preferencias.transportesSeleccionados.contains("walking")) {
-                                    walkingRoute = getRouteInfo(
-                                        currentLocation,
-                                        destinationLocation!!,
-                                        "walking",
-                                        preferencias.rutaMasRapida
-                                    )
+                                    walkingRoute = getRouteInfo(currentLocation, destinationLocation!!, "walking", preferencias.rutaMasRapida)
                                 }
                                 if (preferencias.transportesSeleccionados.contains("driving")) {
-                                    drivingRoute = getRouteInfo(
-                                        currentLocation,
-                                        destinationLocation!!,
-                                        "driving",
-                                        preferencias.rutaMasRapida
-                                    )
+                                    drivingRoute = getRouteInfo(currentLocation, destinationLocation!!, "driving", preferencias.rutaMasRapida)
                                 }
                                 if (preferencias.transportesSeleccionados.contains("motorcycle")) {
-                                    motorcycleRoute = getRouteInfo(
-                                        currentLocation,
-                                        destinationLocation!!,
-                                        "driving",
-                                        preferencias.rutaMasRapida
-                                    )
+                                    motorcycleRoute = getRouteInfo(currentLocation, destinationLocation!!, "driving", preferencias.rutaMasRapida)
                                 }
                                 isLoading = false
                             }
@@ -190,9 +177,7 @@ fun RutaOpciones(
                     isLoading = false
                 }
             } else {
-                // Es un lugar de Google Places
-                Log.d("RutaOpciones", "🌍 Lugar de Google Places detectado: $placeId")
-
+                // 🌍 Lugar desde Google Places
                 val placeFields = listOf(Place.Field.LAT_LNG, Place.Field.NAME)
                 val request = FetchPlaceRequest.newInstance(placeId, placeFields)
                 placesClient.fetchPlace(request)
@@ -201,28 +186,13 @@ fun RutaOpciones(
                         scope.launch {
                             destinationLocation?.let { dest ->
                                 if (preferencias.transportesSeleccionados.contains("walking")) {
-                                    walkingRoute = getRouteInfo(
-                                        currentLocation,
-                                        dest,
-                                        "walking",
-                                        preferencias.rutaMasRapida
-                                    )
+                                    walkingRoute = getRouteInfo(currentLocation, dest, "walking", preferencias.rutaMasRapida)
                                 }
                                 if (preferencias.transportesSeleccionados.contains("driving")) {
-                                    drivingRoute = getRouteInfo(
-                                        currentLocation,
-                                        dest,
-                                        "driving",
-                                        preferencias.rutaMasRapida
-                                    )
+                                    drivingRoute = getRouteInfo(currentLocation, dest, "driving", preferencias.rutaMasRapida)
                                 }
                                 if (preferencias.transportesSeleccionados.contains("motorcycle")) {
-                                    motorcycleRoute = getRouteInfo(
-                                        currentLocation,
-                                        dest,
-                                        "driving",
-                                        preferencias.rutaMasRapida
-                                    )
+                                    motorcycleRoute = getRouteInfo(currentLocation, dest, "driving", preferencias.rutaMasRapida)
                                 }
                                 isLoading = false
                             }
@@ -331,7 +301,6 @@ fun RutaOpciones(
                         fontSize = 16.sp
                     )
 
-                    // ✅ Mostrar transporte preferido
                     if (selectedMode == preferencias.transportePreferido) {
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
@@ -343,7 +312,6 @@ fun RutaOpciones(
                         )
                     }
 
-                    // ✅ Mostrar indicador de ruta rápida
                     if (preferencias.rutaMasRapida) {
                         Spacer(modifier = Modifier.height(4.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -383,7 +351,6 @@ fun RutaOpciones(
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    // ✅ Solo mostrar favoritos si hay placeId válido
                     if (!placeId.isNullOrEmpty() && placeId != "null") {
                         Button(
                             onClick = {
@@ -422,8 +389,7 @@ fun RutaOpciones(
                                 .fillMaxWidth()
                                 .height(48.dp),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = if (isFavorite)
-                                    Azul4 else Azul4.copy(alpha = 0.2f)
+                                containerColor = if (isFavorite) Azul4 else Azul4.copy(alpha = 0.2f)
                             ),
                             shape = RoundedCornerShape(12.dp)
                         ) {
@@ -433,18 +399,14 @@ fun RutaOpciones(
                             ) {
                                 Icon(
                                     painter = painterResource(
-                                        id = if (isFavorite)
-                                            R.drawable.ic_favorite_filled
-                                        else
-                                            R.drawable.ic_favorite_outline
+                                        id = if (isFavorite) R.drawable.ic_favorite_filled
+                                        else R.drawable.ic_favorite_outline
                                     ),
                                     contentDescription = stringResource(R.string.favoritos),
                                     tint = if (isFavorite) Blanco else Azul4,
                                     modifier = Modifier.size(24.dp)
                                 )
-
                                 Spacer(modifier = Modifier.width(8.dp))
-
                                 Text(
                                     text = if (isFavorite)
                                         stringResource(R.string.guardado_en_favoritos)
@@ -471,14 +433,11 @@ fun RutaOpciones(
                             CircularProgressIndicator(color = Azul4)
                         }
                     } else {
-                        // ✅ SOLO MOSTRAR OPCIONES SELECCIONADAS EN PREFERENCIAS
                         var isFirst = true
 
-                        // Caminando
                         if (preferencias.transportesSeleccionados.contains("walking")) {
                             if (!isFirst) Spacer(modifier = Modifier.height(12.dp))
                             isFirst = false
-
                             TransportOption(
                                 icon = R.drawable.ic_walk,
                                 title = stringResource(R.string.caminando),
@@ -490,11 +449,9 @@ fun RutaOpciones(
                             )
                         }
 
-                        // Carro
                         if (preferencias.transportesSeleccionados.contains("driving")) {
                             if (!isFirst) Spacer(modifier = Modifier.height(12.dp))
                             isFirst = false
-
                             TransportOption(
                                 icon = R.drawable.ic_car,
                                 title = stringResource(R.string.en_carro),
@@ -506,11 +463,9 @@ fun RutaOpciones(
                             )
                         }
 
-                        // Moto
                         if (preferencias.transportesSeleccionados.contains("motorcycle")) {
                             if (!isFirst) Spacer(modifier = Modifier.height(12.dp))
                             isFirst = false
-
                             TransportOption(
                                 icon = R.drawable.ic_motorcycle,
                                 title = stringResource(R.string.en_moto),
@@ -611,10 +566,7 @@ fun TransportOption(
 
                         if (isPreferred && !isSelected) {
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = "⭐",
-                                fontSize = 14.sp
-                            )
+                            Text(text = "⭐", fontSize = 14.sp)
                         }
                     }
 
@@ -649,19 +601,18 @@ suspend fun getRouteInfo(
         try {
             val apiKey = BuildConfig.MAPS_API_KEY
 
-            // ✅ Agregar parámetros de tráfico si está activada la ruta rápida
             val trafficParams = if (useFastestRoute) {
                 "&departure_time=now&traffic_model=best_guess"
             } else {
                 ""
             }
 
-            val url = "https://maps.googleapis.com/maps/api/directions/json?" +
-                    "origin=${origin.latitude},${origin.longitude}" +
-                    "&destination=${destination.latitude},${destination.longitude}" +
-                    "&mode=$mode" +
-                    trafficParams +
-                    "&key=$apiKey"
+            val url =
+                "https://maps.googleapis.com/maps/api/directions/json?" +
+                        "origin=${origin.latitude},${origin.longitude}" +
+                        "&destination=${destination.latitude},${destination.longitude}" +
+                        "&mode=$mode$trafficParams" +
+                        "&key=$apiKey"
 
             Log.d("RutaOpciones", "🌐 URL de ruta: $url")
 
@@ -680,7 +631,6 @@ suspend fun getRouteInfo(
             RouteInfo(distance, duration, points)
         } catch (e: Exception) {
             Log.e("RutaOpciones", "❌ Error en getRouteInfo: ${e.message}")
-            e.printStackTrace()
             null
         }
     }

@@ -69,115 +69,175 @@ fun DetallesLugar(
         Log.d("DetallesLugar", "🔍 Iniciando carga de detalles para placeId: $placeId")
 
         placeId?.let { id ->
-            // ✅ PASO 1: Intentar obtener foto desde Firestore (si es favorito)
-            scope.launch {
+            // ✅ DETECTAR SI ES LUGAR DE FIREBASE O GOOGLE PLACES
+            if (!id.startsWith("ChIJ") && !id.startsWith("Ei")) {
+                // 📦 Es un lugar de Firebase
+                Log.d("DetallesLugar", "📦 Lugar de Firebase detectado: $id")
+
                 try {
+                    val firestore = FirebaseFirestore.getInstance()
+
+                    // Primero buscar en favoritos del usuario
                     val userId = FirebaseAuth.getInstance().currentUser?.uid
-                    Log.d("DetallesLugar", "👤 UserId actual: $userId")
+                    var doc: com.google.firebase.firestore.DocumentSnapshot? = null
 
                     if (userId != null) {
-                        val docRef = FirebaseFirestore.getInstance()
-                            .collection("favoritos")
-                            .document(userId)
-                            .collection("lugares")
-                            .document(id)
-
-                        Log.d("DetallesLugar", "📂 Buscando foto en Firestore...")
-
-                        val doc = withContext(Dispatchers.IO) {
-                            docRef.get().await()
+                        val favDoc = withContext(Dispatchers.IO) {
+                            firestore.collection("favoritos")
+                                .document(userId)
+                                .collection("lugares")
+                                .document(id)
+                                .get()
+                                .await()
                         }
 
-                        if (doc.exists()) {
-                            val storedUrl = doc.getString("photoUrl")
-                            Log.d("DetallesLugar", "📄 Documento encontrado")
-
-                            if (storedUrl != null && storedUrl.isNotEmpty()) {
-                                photoUrl = storedUrl
-                                Log.d("DetallesLugar", "✅ Foto cargada desde Firebase Storage")
-                            } else {
-                                Log.w("DetallesLugar", "⚠️ Este favorito no tiene foto guardada")
-                            }
-                        } else {
-                            Log.d("DetallesLugar", "ℹ️ No es un favorito (buscando foto en Google Places)")
+                        if (favDoc.exists()) {
+                            doc = favDoc
+                            Log.d("DetallesLugar", "✅ Encontrado en favoritos")
                         }
                     }
-                } catch (e: Exception) {
-                    Log.e("DetallesLugar", "❌ Error obteniendo foto: ${e.message}", e)
-                }
-            }
 
-            // ✅ PASO 2: Obtener detalles del lugar desde Google Places
-            try {
-                val placeFields = listOf(
-                    Place.Field.ID,
-                    Place.Field.NAME,
-                    Place.Field.ADDRESS,
-                    Place.Field.PHONE_NUMBER,
-                    Place.Field.WEBSITE_URI,
-                    Place.Field.RATING,
-                    Place.Field.USER_RATINGS_TOTAL,
-                    Place.Field.OPENING_HOURS,
-                    Place.Field.TYPES,
-                    Place.Field.PHOTO_METADATAS  // ✅ AGREGADO: Para obtener fotos
-                )
+                    // Si no está en favoritos, buscar en la colección de lugares
+                    if (doc == null || !doc.exists()) {
+                        doc = withContext(Dispatchers.IO) {
+                            firestore.collection("lugares")
+                                .document(id)
+                                .get()
+                                .await()
+                        }
+                        Log.d("DetallesLugar", "✅ Encontrado en colección de lugares")
+                    }
 
-                val request = FetchPlaceRequest.newInstance(id, placeFields)
-                placesClient.fetchPlace(request)
-                    .addOnSuccessListener { response ->
-                        val place = response.place
-                        Log.d("DetallesLugar", "✅ Detalles de Google Places obtenidos")
-
-                        val hours = place.openingHours?.weekdayText ?: emptyList()
+                    if (doc?.exists() == true) {
+                        // Obtener datos del documento
+                        val name = doc.getString("name") ?: placeName ?: ""
+                        val address = doc.getString("address") ?: context.getString(R.string.no_disponible)
+                        val rating = doc.getDouble("rating") ?: 0.0
+                        photoUrl = doc.getString("photoUrl")
 
                         placeDetails = PlaceDetails(
-                            name = place.name ?: placeName ?: "",
-                            address = place.address ?: context.getString(R.string.no_disponible),
-                            phone = place.phoneNumber ?: context.getString(R.string.no_disponible),
-                            website = place.websiteUri?.toString() ?: context.getString(R.string.no_disponible),
-                            rating = place.rating ?: 0.0,
-                            totalRatings = place.userRatingsTotal ?: 0,
-                            isOpen = place.isOpen,
-                            types = place.types?.map { it.name } ?: emptyList(),
-                            openingHours = hours
+                            name = name,
+                            address = address,
+                            phone = context.getString(R.string.no_disponible),
+                            website = context.getString(R.string.no_disponible),
+                            rating = rating,
+                            totalRatings = 0,
+                            isOpen = null,
+                            types = emptyList(),
+                            openingHours = emptyList()
                         )
 
-                        // ✅ PASO 3: Si no hay foto de Firebase, obtener de Google Places
-                        if (photoUrl == null) {
-                            val photoMetadata = place.photoMetadatas?.firstOrNull()
-                            if (photoMetadata != null) {
-                                Log.d("DetallesLugar", "📸 Cargando foto de Google Places...")
-                                
-                                val photoRequest = FetchPhotoRequest.builder(photoMetadata)
-                                    .setMaxWidth(800)
-                                    .setMaxHeight(600)
-                                    .build()
+                        Log.d("DetallesLugar", "✅ Detalles de Firebase cargados")
+                        isLoading = false
+                    } else {
+                        Log.e("DetallesLugar", "❌ Documento no existe")
+                        isLoading = false
+                    }
+                } catch (e: Exception) {
+                    Log.e("DetallesLugar", "❌ Error: ${e.message}", e)
+                    isLoading = false
+                }
+            } else {
+                // 🌍 Es un lugar de Google Places - usar código existente
+                Log.d("DetallesLugar", "🌍 Lugar de Google Places detectado: $id")
 
-                                placesClient.fetchPhoto(photoRequest)
-                                    .addOnSuccessListener { fetchPhotoResponse ->
-                                        val bitmap = fetchPhotoResponse.bitmap
-                                        // Convertir bitmap a URL temporal o usar directamente
-                                        // Por ahora, usar attributions como fallback
-                                        photoUrl = photoMetadata.attributions
-                                        Log.d("DetallesLugar", "✅ Foto de Google Places cargada")
-                                    }
-                                    .addOnFailureListener { exception ->
-                                        Log.e("DetallesLugar", "❌ Error cargando foto: ${exception.message}")
-                                    }
-                            } else {
-                                Log.d("DetallesLugar", "ℹ️ No hay fotos disponibles para este lugar")
+                // PASO 1: Intentar obtener foto desde favoritos
+                scope.launch {
+                    try {
+                        val userId = FirebaseAuth.getInstance().currentUser?.uid
+
+                        if (userId != null) {
+                            val docRef = FirebaseFirestore.getInstance()
+                                .collection("favoritos")
+                                .document(userId)
+                                .collection("lugares")
+                                .document(id)
+
+                            val doc = withContext(Dispatchers.IO) {
+                                docRef.get().await()
+                            }
+
+                            if (doc.exists()) {
+                                val storedUrl = doc.getString("photoUrl")
+                                if (storedUrl != null && storedUrl.isNotEmpty()) {
+                                    photoUrl = storedUrl
+                                    Log.d("DetallesLugar", "✅ Foto cargada desde Firebase Storage")
+                                }
                             }
                         }
+                    } catch (e: Exception) {
+                        Log.e("DetallesLugar", "❌ Error obteniendo foto: ${e.message}", e)
+                    }
+                }
 
-                        isLoading = false
-                    }
-                    .addOnFailureListener { exception ->
-                        Log.e("DetallesLugar", "❌ Error obteniendo detalles: ${exception.message}")
-                        isLoading = false
-                    }
-            } catch (e: Exception) {
-                Log.e("DetallesLugar", "❌ Error general: ${e.message}", e)
-                isLoading = false
+                // PASO 2: Obtener detalles de Google Places
+                try {
+                    val placeFields = listOf(
+                        Place.Field.ID,
+                        Place.Field.NAME,
+                        Place.Field.ADDRESS,
+                        Place.Field.PHONE_NUMBER,
+                        Place.Field.WEBSITE_URI,
+                        Place.Field.RATING,
+                        Place.Field.USER_RATINGS_TOTAL,
+                        Place.Field.OPENING_HOURS,
+                        Place.Field.TYPES,
+                        Place.Field.PHOTO_METADATAS
+                    )
+
+                    val request = FetchPlaceRequest.newInstance(id, placeFields)
+                    placesClient.fetchPlace(request)
+                        .addOnSuccessListener { response ->
+                            val place = response.place
+                            Log.d("DetallesLugar", "✅ Detalles de Google Places obtenidos")
+
+                            val hours = place.openingHours?.weekdayText ?: emptyList()
+
+                            placeDetails = PlaceDetails(
+                                name = place.name ?: placeName ?: "",
+                                address = place.address ?: context.getString(R.string.no_disponible),
+                                phone = place.phoneNumber ?: context.getString(R.string.no_disponible),
+                                website = place.websiteUri?.toString() ?: context.getString(R.string.no_disponible),
+                                rating = place.rating ?: 0.0,
+                                totalRatings = place.userRatingsTotal ?: 0,
+                                isOpen = place.isOpen,
+                                types = place.types?.map { it.name } ?: emptyList(),
+                                openingHours = hours
+                            )
+
+                            // PASO 3: Si no hay foto de favoritos, obtener de Google Places
+                            if (photoUrl == null) {
+                                val photoMetadata = place.photoMetadatas?.firstOrNull()
+                                if (photoMetadata != null) {
+                                    Log.d("DetallesLugar", "📸 Cargando foto de Google Places...")
+
+                                    val photoRequest = FetchPhotoRequest.builder(photoMetadata)
+                                        .setMaxWidth(800)
+                                        .setMaxHeight(600)
+                                        .build()
+
+                                    placesClient.fetchPhoto(photoRequest)
+                                        .addOnSuccessListener { fetchPhotoResponse ->
+                                            val bitmap = fetchPhotoResponse.bitmap
+                                            photoUrl = photoMetadata.attributions
+                                            Log.d("DetallesLugar", "✅ Foto de Google Places cargada")
+                                        }
+                                        .addOnFailureListener { exception ->
+                                            Log.e("DetallesLugar", "❌ Error cargando foto: ${exception.message}")
+                                        }
+                                }
+                            }
+
+                            isLoading = false
+                        }
+                        .addOnFailureListener { exception ->
+                            Log.e("DetallesLugar", "❌ Error obteniendo detalles: ${exception.message}")
+                            isLoading = false
+                        }
+                } catch (e: Exception) {
+                    Log.e("DetallesLugar", "❌ Error general: ${e.message}", e)
+                    isLoading = false
+                }
             }
         }
     }
@@ -298,6 +358,7 @@ fun DetallesLugar(
                     ) {
                         val rating = placeDetails?.rating ?: 0.0
                         val totalRatings = placeDetails?.totalRatings ?: 0
+                        Log.d("DetallesLugar", "⭐⭐⭐ Rating en UI: $rating, placeDetails: $placeDetails")
                         val fullHearts = rating.roundToInt().coerceIn(0, 5)
 
                         repeat(5) { index ->
@@ -317,7 +378,11 @@ fun DetallesLugar(
 
                         if (rating > 0) {
                             Text(
-                                text = "${"%.1f".format(rating)} ($totalRatings reseñas)",
+                                text = if (totalRatings > 0) {
+                                    "${"%.1f".format(rating)} ($totalRatings reseñas)"
+                                } else {
+                                    "${"%.1f".format(rating)} ⭐" // Solo mostrar el rating sin reseñas
+                                },
                                 fontFamily = Nunito,
                                 fontSize = 14.sp,
                                 color = Blanco.copy(alpha = 0.8f)
