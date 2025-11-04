@@ -2,20 +2,11 @@ package com.example.myway.screens.modulo5
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
@@ -34,7 +25,7 @@ import com.example.myway.ui.theme.Nunito
 fun ViajesGuardados(navController: NavController) {
 
     Box(modifier = Modifier.fillMaxSize()) {
-        // Fondo
+        // 🔹 Fondo
         Image(
             painter = painterResource(id = R.drawable.fondo2),
             contentDescription = stringResource(R.string.fondo_app),
@@ -42,11 +33,15 @@ fun ViajesGuardados(navController: NavController) {
             contentScale = ContentScale.Crop
         )
 
+        // 🔹 Contenido principal
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp, vertical = 16.dp)
         ) {
+
+            // 🔹 Encabezado superior
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -63,7 +58,7 @@ fun ViajesGuardados(navController: NavController) {
                         .clickable { navController.popBackStack() }
                 )
 
-                // Título
+                // Título principal
                 Text(
                     text = stringResource(R.string.viajes_guardados),
                     color = Blanco,
@@ -81,19 +76,35 @@ fun ViajesGuardados(navController: NavController) {
                         .size(40.dp)
                         .clickable { navController.navigate("perfil_ajustes") }
                 )
-
-                Text(
-                    text = stringResource(R.string.planes_hechos),
-                    color = Blanco,
-                    fontFamily = Nunito,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 23.sp,
-                    textAlign = TextAlign.Start,
-                    modifier = Modifier
-                        .padding(bottom = 8.dp)
-                        .fillMaxWidth()
-                )
             }
+
+            Spacer(modifier = Modifier.height(50.dp))
+
+            // 🔹 Subtítulo o descripción
+            Text(
+                text = stringResource(R.string.planes_hechos),
+                color = Blanco,
+                fontFamily = Nunito,
+                fontWeight = FontWeight.Bold,
+                fontSize = 23.sp,
+                textAlign = TextAlign.Start,
+                modifier = Modifier
+                    .padding(bottom = 16.dp)
+                    .fillMaxWidth()
+            )
+
+            // 🔹 Espacio para el contenido futuro
+            Text(
+                text = "Aquí aparecerán tus viajes guardados 🧳",
+                color = Blanco.copy(alpha = 0.8f),
+                fontFamily = Nunito,
+                fontWeight = FontWeight.Normal,
+                fontSize = 18.sp,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 40.dp)
+            )
         }
     }
 }

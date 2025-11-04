@@ -36,9 +36,8 @@ import com.example.myway.ui.theme.Rojo
 @Composable
 fun EliminarPlan(navController: NavController) {
 
-
     Box(modifier = Modifier.fillMaxSize()) {
-        // Fondo
+        // 🔹 Fondo
         Image(
             painter = painterResource(id = R.drawable.fondo2),
             contentDescription = stringResource(R.string.fondo_app),
@@ -46,15 +45,18 @@ fun EliminarPlan(navController: NavController) {
             contentScale = ContentScale.Crop
         )
 
+        // 🔹 Contenido principal
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp, vertical = 16.dp)
         ) {
+            // 🔹 Encabezado
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 8.dp, bottom = 8.dp),
+                    .padding(top = 8.dp, bottom = 16.dp),
                 contentAlignment = Alignment.Center
             ) {
                 // Flecha atrás
@@ -75,22 +77,31 @@ fun EliminarPlan(navController: NavController) {
                     fontWeight = FontWeight.Bold,
                     fontSize = 22.sp
                 )
-
-
-                Spacer(modifier = Modifier.height(15.dp))
-
-                // Botón eliminar
-                CustomButton(
-                    alignCenter = false,
-                    text = stringResource(R.string.eliminar),
-                    color = Rojo,
-                    textColor = Blanco,
-                    fontWeight = FontWeight.Normal,
-                    //icon = painterResource(id = R.drawable.ic_search),
-                    modifier = Modifier.fillMaxWidth(),
-                    onClick = { navController.navigate("eliminar_plan2") }
-                )
             }
+
+            Spacer(modifier = Modifier.height(60.dp))
+
+            // 🔹 Mensaje informativo
+            Text(
+                text = "Selecciona el plan que deseas eliminar o confirma tu acción.",
+                color = Blanco,
+                fontFamily = Nunito,
+                fontWeight = FontWeight.Normal,
+                fontSize = 18.sp,
+                modifier = Modifier.padding(bottom = 24.dp)
+            )
+
+            // 🔹 Botón eliminar
+            CustomButton(
+                alignCenter = false,
+                text = stringResource(R.string.eliminar),
+                color = Rojo,
+                textColor = Blanco,
+                fontWeight = FontWeight.Bold,
+                // icon = painterResource(id = R.drawable.ic_search),
+                modifier = Modifier.fillMaxWidth(),
+                onClick = { navController.navigate("eliminar_plan2") }
+            )
         }
     }
 }

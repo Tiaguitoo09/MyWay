@@ -51,12 +51,14 @@ fun PlanesViaje(navController: NavController) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp, vertical = 16.dp)
         ) {
+            // 🔹 Encabezado superior
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 8.dp, bottom = 8.dp),
+                    .padding(top = 8.dp, bottom = 16.dp),
                 contentAlignment = Alignment.Center
             ) {
                 // Flecha atrás
@@ -87,46 +89,48 @@ fun PlanesViaje(navController: NavController) {
                         .size(40.dp)
                         .clickable { navController.navigate("perfil_ajustes") }
                 )
-
-                // Textos descriptivos
-                Text(
-                    text = stringResource(R.string.planes_hacer),
-                    color = Blanco,
-                    fontFamily = Nunito,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 23.sp,
-                    textAlign = TextAlign.Start,
-                    modifier = Modifier
-                        .padding(bottom = 8.dp)
-                        .fillMaxWidth()
-                )
-
-                // Botón crear plan
-                CustomButton(
-                    alignCenter = false,
-                    text = stringResource(R.string.plan_nuevo),
-                    color = Verde,
-                    textColor = Blanco,
-                    fontWeight = FontWeight.Normal,
-                    icon = painterResource(id = R.drawable.ic_search),
-                    modifier = Modifier.fillMaxWidth(),
-                    onClick = { navController.navigate("crear_plan") }
-                )
-
-                Spacer(modifier = Modifier.height(15.dp))
-
-                // Botón eliminar
-                CustomButton(
-                    alignCenter = false,
-                    text = stringResource(R.string.eliminar),
-                    color = Rojo,
-                    textColor = Blanco,
-                    fontWeight = FontWeight.Normal,
-                    icon = painterResource(id = R.drawable.ic_search),
-                    modifier = Modifier.fillMaxWidth(),
-                    onClick = { navController.navigate("eliminar_plan") }
-                )
             }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // 🔹 Texto descriptivo
+            Text(
+                text = stringResource(R.string.planes_hacer),
+                color = Blanco,
+                fontFamily = Nunito,
+                fontWeight = FontWeight.Bold,
+                fontSize = 23.sp,
+                textAlign = TextAlign.Start,
+                modifier = Modifier
+                    .padding(bottom = 16.dp)
+                    .fillMaxWidth()
+            )
+
+            // 🔹 Botón crear plan
+            CustomButton(
+                alignCenter = false,
+                text = stringResource(R.string.plan_nuevo),
+                color = Verde,
+                textColor = Blanco,
+                fontWeight = FontWeight.Normal,
+                icon = painterResource(id = R.drawable.ic_search),
+                modifier = Modifier.fillMaxWidth(),
+                onClick = { navController.navigate("crear_plan") }
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // 🔹 Botón eliminar
+            CustomButton(
+                alignCenter = false,
+                text = stringResource(R.string.eliminar),
+                color = Rojo,
+                textColor = Blanco,
+                fontWeight = FontWeight.Normal,
+                icon = painterResource(id = R.drawable.ic_search),
+                modifier = Modifier.fillMaxWidth(),
+                onClick = { navController.navigate("eliminar_plan") }
+            )
         }
     }
 }
