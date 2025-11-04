@@ -265,6 +265,24 @@
     <string name="tendencias">Tedencias locales según lo que la gente está explorando y lo que más te gusta.</string>
     <string name="robot_ia">Robot_ia</string>
 
+    <!-- Planes Viaje -->
+    <string name="planes_viaje">Planes de Viaje</string>
+    <string name="planes_hacer">Algunos de tus planes de viaje:</string>
+    <string name="plan_nuevo">Plan Nuevo</string>
+    <string name="eliminar">Eliminar</string>
+
+    <!-- Viajes Guardados -->
+    <string name="planes_hechos">Algunos planes que ya hiciste:</string>
+
+    <!-- Crear Plan -->
+    <string name="crear_plan">Crear Plan Nuevo</string>
+
+
+    <!-- Eliminar Plan -->
+    <string name="eliminar_plan">Eliminar Plan</string>
+    <string name="seguro_eliminar_plan">¿Seguro/a que quieres\neliminar el plan?</string>
+
+
     <!-- Mensajes de Toast -->
     <string name="toast_cuenta_creada">Cuenta creada con éxito</string>
     <string name="toast_error_login_google">Error al iniciar sesión</string>

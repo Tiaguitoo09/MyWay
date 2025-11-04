@@ -143,7 +143,7 @@ fun Guardados(navController: NavController) {
                     fontWeight = FontWeight.Normal,
                     icon = painterResource(id = R.drawable.icono_planes),
                     modifier = Modifier.fillMaxWidth(),
-                    onClick = { /* acción */ }
+                    onClick = { navController.navigate("planes_de_viaje") }
                 )
 
                 // Viajes guardados
@@ -154,7 +154,7 @@ fun Guardados(navController: NavController) {
                     fontWeight = FontWeight.Normal,
                     icon = painterResource(id = R.drawable.icono_viajes),
                     modifier = Modifier.fillMaxWidth(),
-                    onClick = { /* acción */ }
+                    onClick = { navController.navigate("viajes_guardados") }
                 )
             }
 

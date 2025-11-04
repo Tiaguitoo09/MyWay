@@ -18,6 +18,10 @@ import com.example.myway.screens.modulo4.Recomiendame
 import com.example.myway.screens.modulo4.SinPlan
 import com.example.myway.screens.modulo4.TuMood
 import com.example.myway.screens.modulo4.RankingLugares
+import com.example.myway.screens.modulo5.CrearPlan
+import com.example.myway.screens.modulo5.EliminarPlan
+import com.example.myway.screens.modulo5.PlanesViaje
+import com.example.myway.screens.modulo5.ViajesGuardados
 import com.google.firebase.auth.FirebaseAuth
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 
@@ -199,5 +203,26 @@ fun MyWayAppNavigation(
         composable("ranking_lugares") {
             RankingLugares(navController = navController)
         }
+
+        composable("planes_de_viaje") {
+            PlanesViaje(navController = navController)
+        }
+
+        composable("viajes_guardados") {
+            ViajesGuardados(navController = navController)
+        }
+
+        composable("crear_plan") {
+            CrearPlan(navController = navController)
+        }
+
+        composable("eliminar_plan") {
+            EliminarPlan(navController = navController)
+        }
+
+        composable("eliminar_plan2") {
+            EliminarPlan2(navController = navController)
+        }
+
     }
 }
