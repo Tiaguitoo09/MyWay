@@ -360,13 +360,13 @@ fun CrearPlan(navController: NavController) {
                                     val fechaFin = fechasList.last()
                                     val destinoNombre = destinos.first().nombre
 
-                                    // ✅ Codificar valores para evitar errores en la ruta
+
                                     val encodedTitulo = Uri.encode(titulo)
                                     val encodedDestino = Uri.encode(destinoNombre)
                                     val encodedInicio = Uri.encode(fechaInicio)
                                     val encodedFin = Uri.encode(fechaFin)
 
-                                    // ✅ Navegación segura
+
                                     navController.navigate(
                                         "itinerario/$encodedTitulo/$encodedDestino/$encodedInicio/$encodedFin"
                                     )

@@ -200,9 +200,9 @@ fun FavoriteItemCard(
             verticalAlignment = Alignment.CenterVertically
         ) {
             if (favorite.photoUrl != null) {
-                // ✅ CAMBIO: Ahora carga desde URL de Firebase Storage
+
                 AsyncImage(
-                    model = favorite.photoUrl, // URL directa de Firebase
+                    model = favorite.photoUrl,
                     contentDescription = favorite.name,
                     modifier = Modifier
                         .size(64.dp)

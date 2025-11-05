@@ -194,14 +194,13 @@ fun CambioContrasena(navController: NavController) {
                         if (user != null && correo != null) {
                             val credential = EmailAuthProvider.getCredential(correo, actual)
 
-                            // Verificar contraseña actual
+
                             user.reauthenticate(credential)
                                 .addOnSuccessListener {
-                                    // Contraseña actual correcta, actualizar
+
                                     user.updatePassword(nueva)
                                         .addOnSuccessListener {
-                                            // ✅ NO actualices la contraseña en Firestore
-                                            // Firebase Auth ya la maneja de forma segura
+
 
                                             Toast.makeText(
                                                 context,

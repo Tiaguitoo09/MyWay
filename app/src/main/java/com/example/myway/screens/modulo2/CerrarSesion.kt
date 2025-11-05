@@ -78,7 +78,7 @@ fun CerrarSesion(navController: NavController) {
                     color = Azul3,
                     modifier = Modifier.width(140.dp),
                     onClick = {
-                        // ✅ NUEVA FORMA: Usar función centralizada
+
                         limpiarCacheUsuario(context)
                         
                         // Cerrar sesión de Firebase
@@ -92,7 +92,7 @@ fun CerrarSesion(navController: NavController) {
 
                         // Navegar al inicio de la app
                         navController.navigate("ingreso_usuario") {
-                            popUpTo(0) { inclusive = true }  // ✅ Limpiar stack completo
+                            popUpTo(0) { inclusive = true }
                         }
                     }
                 )

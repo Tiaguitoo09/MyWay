@@ -60,7 +60,7 @@ data class NearbyPlace(
     val placeId: String,
     val name: String,
     val latLng: LatLng,
-    val type: String = "" // NUEVO: Para identificar el tipo
+    val type: String = ""
 )
 
 @Composable
@@ -298,9 +298,9 @@ fun NavegacionActiva(
 
     LaunchedEffect(placeId, currentLocation) {
         if (placeId != null && currentLocation != null) {
-            // ✅ Verificar si es lugar de Firebase o Google Places
+
             if (!placeId.startsWith("ChIJ") && !placeId.startsWith("Ei")) {
-                // 📦 Es un lugar de Firebase - obtener coordenadas de Firestore
+
                 Log.d("NavegacionActiva", "📦 Lugar de Firebase detectado: $placeId")
 
                 try {
@@ -353,7 +353,7 @@ fun NavegacionActiva(
                     distanceToDestination = "Error al obtener destino"
                 }
             } else {
-                // 🌍 Es un lugar de Google Places - usar código existente
+
                 Log.d("NavegacionActiva", "🌍 Lugar de Google Places detectado: $placeId")
 
                 val placeFields = listOf(Place.Field.LAT_LNG)
@@ -789,7 +789,7 @@ suspend fun fetchNearbyPlacesInRoute(
     location: LatLng,
     type: String,
     radius: Int = 500,
-    placeType: String = "" // NUEVO parámetro
+    placeType: String = ""
 ): List<NearbyPlace> {
     return withContext(Dispatchers.IO) {
         try {

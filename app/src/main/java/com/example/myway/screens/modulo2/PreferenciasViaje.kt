@@ -69,7 +69,6 @@ object PreferenciasManager {
                 "fechaActualizacion" to com.google.firebase.Timestamp.now()
             )
 
-            // ✅ Guardar en colección "preferencias_viaje" con el userId como ID del documento
             db.collection("preferencias_viaje")
                 .document(userId)
                 .set(prefsMap)
@@ -83,7 +82,7 @@ object PreferenciasManager {
         }
     }
 
-    // ✅ CARGAR DESDE COLECCIÓN SEPARADA "preferencias_viaje"
+
     suspend fun cargarPreferenciasFirebase(): PreferenciasViajeData? {
         return try {
             val auth = FirebaseAuth.getInstance()
@@ -95,7 +94,7 @@ object PreferenciasManager {
                 return null
             }
 
-            // ✅ Leer de colección "preferencias_viaje"
+
             val doc = db.collection("preferencias_viaje")
                 .document(userId)
                 .get()
@@ -151,7 +150,7 @@ object PreferenciasManager {
         )
     }
 
-    // ✅ NUEVA: Función unificada que intenta Firebase primero, luego local
+
     suspend fun cargarPreferencias(context: Context): PreferenciasViajeData {
         val firebasePrefs = cargarPreferenciasFirebase()
         return if (firebasePrefs != null) {
@@ -185,7 +184,7 @@ fun PreferenciasViaje(navController: NavController) {
         cargando = false
     }
 
-    // ⏱️ Guardar automáticamente con delay de 500ms
+
     LaunchedEffect(preferencias) {
         if (preferencias != null && !cargando) {
             guardando = true
@@ -196,10 +195,7 @@ fun PreferenciasViaje(navController: NavController) {
             PreferenciasManager.guardarPreferenciasLocal(context, preferencias!!)
             guardando = false
 
-            // ✅ Mostrar confirmación visual (opcional, descomenta si quieres)
-            // if (exitoso) {
-            //     Toast.makeText(context, "✓ Guardado en la nube", Toast.LENGTH_SHORT).show()
-            // }
+
         }
     }
 

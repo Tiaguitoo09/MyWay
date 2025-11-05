@@ -78,7 +78,7 @@ fun IngresoUsuario(
                                 nombre = user?.displayName ?: "Usuario"
                                 apellido = null
                                 fechaNacimiento = null
-                                fotoUrl = user?.photoUrl?.toString() // 🟢 Guardamos la URL de la foto de perfil
+                                fotoUrl = user?.photoUrl?.toString()
                                 fotoLocalUri = null
                             }
 
@@ -218,7 +218,7 @@ fun IngresoUsuario(
                     modifier = Modifier.width(140.dp),
                     onClick = {
                         if (email.value.isNotEmpty() && password.value.isNotEmpty()) {
-                            // ✅ NUEVO: Login con FirebaseAuth
+
                             auth.signInWithEmailAndPassword(email.value, password.value)
                                 .addOnSuccessListener {
                                     val userId = auth.currentUser?.uid

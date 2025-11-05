@@ -328,7 +328,7 @@ fun ModoCopiloto(navController: NavController) {
                                     .putBoolean("modo_copiloto", modoCopilotoActivado)
                                     .apply()
 
-                                // ✅ Forzar actualización inmediata del DrivingDetector
+
                                 DrivingDetector.checkCopilotMode()
 
                                 // Cerrar diálogo

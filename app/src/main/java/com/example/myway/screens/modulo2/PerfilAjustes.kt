@@ -73,7 +73,7 @@ fun PerfilAjustes(navController: NavController) {
             Log.d("PerfilAjustes", "📦 Nombre cargado desde caché: $cachedNombre")
         }
 
-        // ✅ SEGUNDO: Actualizar desde Firestore
+
         userAuth?.let { u ->
             isLoading = true
             val db = FirebaseFirestore.getInstance()
@@ -89,13 +89,13 @@ fun PerfilAjustes(navController: NavController) {
                         Log.d("PerfilAjustes", "   - Nombre: $nombre")
                         Log.d("PerfilAjustes", "   - Foto URL: $foto")
 
-                        // Actualizar en memoria
+
                         UsuarioTemporal.nombre = nombre
                         UsuarioTemporal.fotoUrl = foto
                         nombreUsuario = nombre
                         fotoPerfilUrl = foto
 
-                        // ✅ Guardar en SharedPreferences
+
                         sharedPrefs.edit().apply {
                             putString("cached_foto_perfil", foto)
                             putString("cached_nombre", nombre)
@@ -117,13 +117,13 @@ fun PerfilAjustes(navController: NavController) {
         }
     }
 
-    // 🔄 Cargar datos al iniciar
+
     LaunchedEffect(Unit) {
         Log.d("PerfilAjustes", "📱 LaunchedEffect - Carga inicial")
         cargarDatosUsuario()
     }
 
-    // 🔄 Recargar cuando vuelves de Permisos
+
     val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
         val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
@@ -141,7 +141,7 @@ fun PerfilAjustes(navController: NavController) {
         }
     }
 
-    // 📷 Galería
+
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
@@ -168,7 +168,7 @@ fun PerfilAjustes(navController: NavController) {
         }
     }
 
-    // 📸 Cámara
+
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicturePreview()
     ) { bitmap ->
@@ -223,7 +223,7 @@ fun PerfilAjustes(navController: NavController) {
         ) {
             Spacer(modifier = Modifier.height(60.dp))
 
-            // Foto de perfil
+
             Box(
                 modifier = Modifier
                     .size(150.dp)
@@ -463,7 +463,7 @@ fun subirFotoAFirebase(
                     val fotoUrl = url.toString()
                     UsuarioTemporal.fotoUrl = fotoUrl
 
-                    // ✅ Guardar en SharedPreferences inmediatamente
+
                     val sharedPrefs = context.getSharedPreferences("MyWayPrefs", Context.MODE_PRIVATE)
                     sharedPrefs.edit().putString("cached_foto_perfil", fotoUrl).apply()
                     Log.d("Firebase", "💾 Foto guardada en caché: $fotoUrl")

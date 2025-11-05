@@ -81,11 +81,11 @@ fun Recomiendame(navController: NavController) {
                 fusedLocationClient.lastLocation.addOnSuccessListener { location ->
                     location?.let {
                         currentLocation = UserLocation(it.latitude, it.longitude)
-                        Log.d("Recomiendame", "📍 Ubicación obtenida: ${it.latitude}, ${it.longitude}")
+                        Log.d("Recomiendame", "Ubicación obtenida: ${it.latitude}, ${it.longitude}")
                     }
                 }
             } catch (e: SecurityException) {
-                Log.e("Recomiendame", "❌ Error de permisos: ${e.message}")
+                Log.e("Recomiendame", "Error de permisos: ${e.message}")
             }
         }
     }
@@ -96,19 +96,19 @@ fun Recomiendame(navController: NavController) {
     LaunchedEffect(recommendation) {
         recommendation?.let { rec ->
             Log.d("Recomiendame", "═══════════════════════")
-            Log.d("Recomiendame", "🏆 Lugar: ${rec.place.name}")
-            Log.d("Recomiendame", "🆔 ID: ${rec.place.id}")
-            Log.d("Recomiendame", "📸 PhotoURL: '${rec.place.photoUrl}'")
-            Log.d("Recomiendame", "📍 Categoría: ${rec.place.category}")
+            Log.d("Recomiendame", "Lugar: ${rec.place.name}")
+            Log.d("Recomiendame", "ID: ${rec.place.id}")
+            Log.d("Recomiendame", "PhotoURL: '${rec.place.photoUrl}'")
+            Log.d("Recomiendame", "Categoría: ${rec.place.category}")
             Log.d("Recomiendame", "═══════════════════════")
 
             photoBitmap = null
             placeDetails = null
 
             try {
-                // ✅ Detectar si es Google Place o Firebase Place
+
                 if (rec.place.id.startsWith("ChIJ") || rec.place.id.startsWith("Ei")) {
-                    Log.d("Recomiendame", "🌍 Lugar de Google Places: ${rec.place.id}")
+                    Log.d("Recomiendame", "Lugar de Google Places: ${rec.place.id}")
 
                     val placeFields = listOf(
                         Place.Field.ID,
@@ -149,11 +149,11 @@ fun Recomiendame(navController: NavController) {
                             }
                         }
                         .addOnFailureListener { exception ->
-                            Log.e("Recomiendame", "❌ Error: ${exception.message}")
+                            Log.e("Recomiendame", "Error: ${exception.message}")
                         }
                 } else {
                     // ✅ Es un lugar de Firebase - usar datos básicos
-                    Log.d("Recomiendame", "📦 Lugar de Firebase: ${rec.place.name}")
+                    Log.d("Recomiendame", "Lugar de Firebase: ${rec.place.name}")
                     placeDetails = RecommendedPlaceDetails(
                         name = rec.place.name,
                         address = rec.place.address,
@@ -166,7 +166,7 @@ fun Recomiendame(navController: NavController) {
                     // La foto se cargará de rec.place.photoUrl directamente
                 }
             } catch (e: Exception) {
-                Log.e("Recomiendame", "❌ Error: ${e.message}")
+                Log.e("Recomiendame", "Error: ${e.message}")
                 placeDetails = RecommendedPlaceDetails(
                     name = rec.place.name,
                     address = rec.place.address,
@@ -230,7 +230,7 @@ fun Recomiendame(navController: NavController) {
                     Spacer(modifier = Modifier.height(32.dp))
 
                     Text(
-                        text = "🎯 Recomendación Inteligente",
+                        text = "Recomendación Inteligente",
                         color = Blanco,
                         fontFamily = Nunito,
                         fontWeight = FontWeight.Bold,
@@ -283,10 +283,10 @@ fun Recomiendame(navController: NavController) {
                                         val result = repository.getQuickRecommendation(request)
                                         result.onSuccess {
                                             recommendation = it
-                                            Log.d("Recomiendame", "✅ Recomendación: ${it.place.name}")
+                                            Log.d("Recomiendame", "Recomendación: ${it.place.name}")
                                         }.onFailure {
                                             errorMessage = it.message
-                                            Log.e("Recomiendame", "❌ Error: ${it.message}")
+                                            Log.e("Recomiendame", "Error: ${it.message}")
                                         }
                                         isLoading = false
                                     }
@@ -344,13 +344,13 @@ fun Recomiendame(navController: NavController) {
                                             .clip(RoundedCornerShape(16.dp))
                                             .border(3.dp, Color.White, RoundedCornerShape(16.dp)),
                                         contentScale = ContentScale.Crop,
-                                        onLoading = { Log.d("Recomiendame", "⏳ Cargando bitmap") },
-                                        onSuccess = { Log.d("Recomiendame", "✅ Bitmap cargado") },
-                                        onError = { Log.e("Recomiendame", "❌ Error bitmap") }
+                                        onLoading = { Log.d("Recomiendame", "Cargando bitmap") },
+                                        onSuccess = { Log.d("Recomiendame", "Bitmap cargado") },
+                                        onError = { Log.e("Recomiendame", "Error bitmap") }
                                     )
                                 }
                                 !rec.place.photoUrl.isNullOrEmpty() -> {
-                                    // ✅ Foto de Firebase/Unsplash (URL)
+
                                     AsyncImage(
                                         model = coil.request.ImageRequest.Builder(LocalContext.current)
                                             .data(rec.place.photoUrl)
@@ -364,19 +364,19 @@ fun Recomiendame(navController: NavController) {
                                             .border(3.dp, Color.White, RoundedCornerShape(16.dp)),
                                         contentScale = ContentScale.Crop,
                                         onLoading = {
-                                            Log.d("Recomiendame", "⏳ Cargando: ${rec.place.photoUrl}")
+                                            Log.d("Recomiendame", "Cargando: ${rec.place.photoUrl}")
                                         },
                                         onSuccess = {
-                                            Log.d("Recomiendame", "✅ Imagen cargada: ${rec.place.photoUrl}")
+                                            Log.d("Recomiendame", "Imagen cargada: ${rec.place.photoUrl}")
                                         },
                                         onError = { error ->
-                                            Log.e("Recomiendame", "❌ Error: ${error.result.throwable.message}")
-                                            Log.e("Recomiendame", "❌ URL: ${rec.place.photoUrl}")
+                                            Log.e("Recomiendame", "Error: ${error.result.throwable.message}")
+                                            Log.e("Recomiendame", "URL: ${rec.place.photoUrl}")
                                         }
                                     )
                                 }
                                 else -> {
-                                    // ❌ Sin imagen - Placeholder
+
                                     Box(
                                         modifier = Modifier.fillMaxSize(),
                                         contentAlignment = Alignment.Center

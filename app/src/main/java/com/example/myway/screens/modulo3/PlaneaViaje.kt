@@ -369,7 +369,7 @@ fun PlaneaViaje(navController: NavController) {
     }
 }
 
-// 🔹 Función búsqueda
+//Función búsqueda
 private fun searchPlaces(
     placesClient: PlacesClient,
     query: String,

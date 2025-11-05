@@ -69,9 +69,9 @@ fun DetallesLugar(
         Log.d("DetallesLugar", "🔍 Iniciando carga de detalles para placeId: $placeId")
 
         placeId?.let { id ->
-            // ✅ DETECTAR SI ES LUGAR DE FIREBASE O GOOGLE PLACES
+
             if (!id.startsWith("ChIJ") && !id.startsWith("Ei")) {
-                // 📦 Es un lugar de Firebase
+
                 Log.d("DetallesLugar", "📦 Lugar de Firebase detectado: $id")
 
                 try {
@@ -138,10 +138,10 @@ fun DetallesLugar(
                     isLoading = false
                 }
             } else {
-                // 🌍 Es un lugar de Google Places - usar código existente
+
                 Log.d("DetallesLugar", "🌍 Lugar de Google Places detectado: $id")
 
-                // PASO 1: Intentar obtener foto desde favoritos
+                //Intentar obtener foto desde favoritos
                 scope.launch {
                     try {
                         val userId = FirebaseAuth.getInstance().currentUser?.uid
@@ -170,7 +170,7 @@ fun DetallesLugar(
                     }
                 }
 
-                // PASO 2: Obtener detalles de Google Places
+                //Obtener detalles de Google Places
                 try {
                     val placeFields = listOf(
                         Place.Field.ID,
@@ -205,7 +205,7 @@ fun DetallesLugar(
                                 openingHours = hours
                             )
 
-                            // PASO 3: Si no hay foto de favoritos, obtener de Google Places
+                            //Si no hay foto de favoritos, obtener de Google Places
                             if (photoUrl == null) {
                                 val photoMetadata = place.photoMetadatas?.firstOrNull()
                                 if (photoMetadata != null) {
@@ -352,7 +352,7 @@ fun DetallesLugar(
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // ✅ Rating con corazones - SIEMPRE mostrar
+
                     Row(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -381,7 +381,7 @@ fun DetallesLugar(
                                 text = if (totalRatings > 0) {
                                     "${"%.1f".format(rating)} ($totalRatings reseñas)"
                                 } else {
-                                    "${"%.1f".format(rating)} ⭐" // Solo mostrar el rating sin reseñas
+                                    "${"%.1f".format(rating)} ⭐"
                                 },
                                 fontFamily = Nunito,
                                 fontSize = 14.sp,

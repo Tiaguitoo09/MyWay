@@ -57,8 +57,8 @@ fun CustomButton(
     fontSize: TextUnit = 16.sp,
     fontWeight: FontWeight = FontWeight.Normal,
     onClick: () -> Unit,
-    icon: Painter? = null, // ← ícono opcional
-    alignCenter: Boolean = true // 👈 nuevo parámetro
+    icon: Painter? = null, //
+    alignCenter: Boolean = true
 ) {
     Box(
         modifier = modifier
@@ -68,14 +68,14 @@ fun CustomButton(
             .clip(RoundedCornerShape(12.dp))
             .background(color)
             .clickable { onClick() },
-        contentAlignment = if (alignCenter) Alignment.Center else Alignment.CenterStart // 👈 cambia según la opción
+        contentAlignment = if (alignCenter) Alignment.Center else Alignment.CenterStart //
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = if (alignCenter) Arrangement.Center else Arrangement.Start // 👈 cambia según la opción
+            horizontalArrangement = if (alignCenter) Arrangement.Center else Arrangement.Start //
         ) {
             if (icon != null) {
                 Image(
@@ -97,9 +97,6 @@ fun CustomButton(
         }
     }
 }
-
-
-
 
 
 // ------------------- Campo de texto reutilizable -------------------

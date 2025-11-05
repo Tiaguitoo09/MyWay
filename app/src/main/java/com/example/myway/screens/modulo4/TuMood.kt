@@ -97,10 +97,10 @@ fun TuMood(navController: NavController) {
     LaunchedEffect(recommendation) {
         recommendation?.let { rec ->
             Log.d("TuMood", "═══════════════════════")
-            Log.d("TuMood", "🏆 Lugar: ${rec.place.name}")
-            Log.d("TuMood", "🆔 ID: ${rec.place.id}")
-            Log.d("TuMood", "📸 PhotoURL: '${rec.place.photoUrl}'")
-            Log.d("TuMood", "📍 Categoría: ${rec.place.category}")
+            Log.d("TuMood", "Lugar: ${rec.place.name}")
+            Log.d("TuMood", "ID: ${rec.place.id}")
+            Log.d("TuMood", "PhotoURL: '${rec.place.photoUrl}'")
+            Log.d("TuMood", "Categoría: ${rec.place.category}")
             Log.d("TuMood", "═══════════════════════")
             photoBitmap = null
             placeDetails = null
@@ -151,11 +151,11 @@ fun TuMood(navController: NavController) {
                             }
                         }
                         .addOnFailureListener { exception ->
-                            Log.e("TuMood", "❌ Error: ${exception.message}")
+                            Log.e("TuMood", "Error: ${exception.message}")
                         }
                 } else {
                     // Es un lugar de Firebase - usar datos básicos
-                    Log.d("TuMood", "📦 Lugar de Firebase: ${rec.place.name}")
+                    Log.d("TuMood", "Lugar de Firebase: ${rec.place.name}")
                     placeDetails = RecommendedPlaceDetails(
                         name = rec.place.name,
                         address = rec.place.address,
@@ -168,7 +168,7 @@ fun TuMood(navController: NavController) {
                     // La foto se cargará de rec.place.photoUrl directamente
                 }
             } catch (e: Exception) {
-                Log.e("TuMood", "❌ Error: ${e.message}")
+                Log.e("TuMood", "Error: ${e.message}")
                 placeDetails = RecommendedPlaceDetails(
                     name = rec.place.name,
                     address = rec.place.address,
@@ -451,9 +451,9 @@ fun TuMood(navController: NavController) {
                                             .clip(RoundedCornerShape(16.dp))
                                             .border(3.dp, Color.White, RoundedCornerShape(16.dp)),
                                         contentScale = ContentScale.Crop,
-                                        onLoading = { Log.d("TuMood", "⏳ Cargando bitmap") },
-                                        onSuccess = { Log.d("TuMood", "✅ Bitmap cargado") },
-                                        onError = { Log.e("TuMood", "❌ Error bitmap") }
+                                        onLoading = { Log.d("TuMood", "Cargando bitmap") },
+                                        onSuccess = { Log.d("TuMood", "Bitmap cargado") },
+                                        onError = { Log.e("TuMood", "Error bitmap") }
                                     )
                                 }
                                 !rec.place.photoUrl.isNullOrEmpty() -> {
@@ -465,8 +465,8 @@ fun TuMood(navController: NavController) {
                                             .clip(RoundedCornerShape(16.dp))
                                             .border(3.dp, Color.White, RoundedCornerShape(16.dp)),
                                         contentScale = ContentScale.Crop,
-                                        onLoading = { Log.d("TuMood", "⏳ Cargando: ${rec.place.photoUrl}") },
-                                        onSuccess = { Log.d("TuMood", "✅ Imagen cargada") },
+                                        onLoading = { Log.d("TuMood", "Cargando: ${rec.place.photoUrl}") },
+                                        onSuccess = { Log.d("TuMood", "Imagen cargada") },
                                         onError = { error ->
                                             Log.e("TuMood", "❌ Error: ${error.result.throwable.message}")
                                         }
@@ -658,13 +658,13 @@ fun TuMood(navController: NavController) {
                         color = Azul3,
                         modifier = Modifier.fillMaxWidth(),
                         onClick = {
-                            // 🆕 Usar googlePlaceId si está disponible, sino usar coordenadas
+
                             if (googlePlaceId != null) {
                                 navController.navigate(
                                     "ruta_opciones/$googlePlaceId/${rec.place.name}"
                                 )
                             } else {
-                                // Usar coordenadas para lugares de Firebase
+
                                 val coordsString = "${rec.place.latitude},${rec.place.longitude}"
                                 navController.navigate(
                                     "ruta_opciones/$coordsString/${rec.place.name}"

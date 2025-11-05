@@ -35,7 +35,7 @@ fun InicioPantalla(navController: NavController) {
             contentScale = ContentScale.Crop
         )
 
-        // Hacemos que la columna sea desplazable
+
         Column(
             modifier = Modifier
                 .align(Alignment.Center)

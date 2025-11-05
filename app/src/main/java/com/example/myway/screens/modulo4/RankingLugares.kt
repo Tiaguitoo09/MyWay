@@ -104,7 +104,7 @@ fun RankingLugares(navController: NavController) {
                 }
             }
 
-            // 🔹 Contenido principal
+            //Contenido principal
             when {
                 isLoading -> {
                     CircularProgressIndicator(
@@ -144,7 +144,7 @@ fun RankingLugares(navController: NavController) {
 
 @Composable
 fun PlaceCard(rank: Int, place: Place, navController: NavController) {
-    val context = LocalContext.current  // 👈 define el contexto aquí
+    val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val recentPlacesRepository = remember { RecentPlacesRepository() }
     Card(
@@ -253,7 +253,7 @@ fun PlaceCard(rank: Int, place: Place, navController: NavController) {
                     .background(Amarillo.copy(alpha = 0.15f))
                     .clickable {
                         scope.launch {
-                            // 💾 Guarda el lugar reciente igual que en Favoritos
+
                             recentPlacesRepository.saveRecentPlace(
                                 placeId = place.id,
                                 placeName = place.name,
@@ -262,7 +262,7 @@ fun PlaceCard(rank: Int, place: Place, navController: NavController) {
                                 longitude = place.longitude
                             )
 
-                            // 🌍 Navega al mapa (Home) con los datos del lugar
+
                             val encodedName = Uri.encode(place.name)
                             navController.navigate("ruta_opciones/${place.id}/$encodedName")
                         }

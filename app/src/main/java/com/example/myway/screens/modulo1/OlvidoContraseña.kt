@@ -113,7 +113,7 @@ fun OlvidoContraseña(
                         .height(55.dp),
                     onClick = {
                         if (correo.isNotEmpty()) {
-                            // ✅ Enviar correo de recuperación con FirebaseAuth
+
                             auth.sendPasswordResetEmail(correo)
                                 .addOnSuccessListener {
                                     Toast.makeText(

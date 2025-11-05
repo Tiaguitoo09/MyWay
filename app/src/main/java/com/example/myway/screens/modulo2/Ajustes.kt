@@ -34,13 +34,12 @@ import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.tasks.await
 
-/* -------------------------------------------- */
+
 data class OpcionAjuste(
     val tituloResId: Int,
     val ruta: String
 )
 
-/* -------------------------------------------- */
 class AjustesController(
     private val context: android.content.Context,
     private val navController: NavController
@@ -58,7 +57,6 @@ class AjustesController(
     }
 }
 
-/* -------------------------------------------- */
 @Composable
 fun Ajustes(navController: NavController) {
     val context = LocalContext.current
@@ -162,7 +160,7 @@ fun Cargando(navController: NavController) {
                         ""
                     UsuarioTemporal.correo = correo ?: ""
 
-                    // 🔥 CARGA LA FOTO DE GOOGLE O DE FIRESTORE
+
                     try {
                         val doc = db.collection("usuarios").document(userId).get().await()
                         if (doc.exists()) {
@@ -170,19 +168,19 @@ fun Cargando(navController: NavController) {
                             UsuarioTemporal.fotoUrl = fotoFirestore
                                 ?: usuarioActual.photoUrl?.toString()
 
-                            Log.d("Cargando", "✅ Foto de Google/Firestore: ${UsuarioTemporal.fotoUrl}")
+                            Log.d("Cargando", "Foto de Google/Firestore: ${UsuarioTemporal.fotoUrl}")
                         } else {
                             UsuarioTemporal.fotoUrl = usuarioActual.photoUrl?.toString()
-                            Log.d("Cargando", "✅ Foto de Google: ${UsuarioTemporal.fotoUrl}")
+                            Log.d("Cargando", "Foto de Google: ${UsuarioTemporal.fotoUrl}")
                         }
                     } catch (e: Exception) {
                         UsuarioTemporal.fotoUrl = usuarioActual.photoUrl?.toString()
-                        Log.e("Cargando", "❌ Error al cargar foto: ${e.message}")
+                        Log.e("Cargando", "Error al cargar foto: ${e.message}")
                     }
 
                 } else if (correo != null) {
-                    // 🔵 Login con correo Firebase (CORREGIDO CON AWAIT)
-                    Log.d("Cargando", "📧 Buscando usuario por correo: $correo")
+
+                    Log.d("Cargando", "Buscando usuario por correo: $correo")
 
                     val querySnapshot = db.collection("usuarios")
                         .whereEqualTo("correo", correo)
@@ -198,20 +196,20 @@ fun Cargando(navController: NavController) {
                         UsuarioTemporal.correo = correo
                         UsuarioTemporal.fotoUrl = doc.getString("fotoPerfil")
 
-                        Log.d("Cargando", "✅ Usuario cargado: ${UsuarioTemporal.nombre}")
-                        Log.d("Cargando", "✅ Foto URL: ${UsuarioTemporal.fotoUrl}")
+                        Log.d("Cargando", "Usuario cargado: ${UsuarioTemporal.nombre}")
+                        Log.d("Cargando", "Foto URL: ${UsuarioTemporal.fotoUrl}")
                     } else {
-                        Log.e("Cargando", "❌ No se encontró usuario con correo: $correo")
+                        Log.e("Cargando", "No se encontró usuario con correo: $correo")
                     }
                 }
             } else if (!correoTemporal.isNullOrEmpty()) {
-                // 🟣 Login manual (sin FirebaseAuth) - CORREGIDO CON AWAIT
-                Log.d("Cargando", "📧 Buscando usuario manual por correo: $correoTemporal")
+
+                Log.d("Cargando", "Buscando usuario manual por correo: $correoTemporal")
 
                 val querySnapshot = db.collection("usuarios")
                     .whereEqualTo("correo", correoTemporal)
                     .get()
-                    .await() // ✅ ESPERA A QUE TERMINE
+                    .await() //
 
                 if (!querySnapshot.isEmpty) {
                     val doc = querySnapshot.documents[0]
@@ -221,21 +219,21 @@ fun Cargando(navController: NavController) {
                     UsuarioTemporal.fechaNacimiento = doc.getString("fechaNacimiento") ?: ""
                     UsuarioTemporal.fotoUrl = doc.getString("fotoPerfil")
 
-                    Log.d("Cargando", "✅ Usuario manual cargado: ${UsuarioTemporal.nombre}")
-                    Log.d("Cargando", "✅ Foto URL: ${UsuarioTemporal.fotoUrl}")
+                    Log.d("Cargando", "Usuario manual cargado: ${UsuarioTemporal.nombre}")
+                    Log.d("Cargando", "Foto URL: ${UsuarioTemporal.fotoUrl}")
                 } else {
-                    Log.e("Cargando", "❌ No se encontró usuario con correo: $correoTemporal")
+                    Log.e("Cargando", "No se encontró usuario con correo: $correoTemporal")
                 }
             }
         } catch (e: Exception) {
-            Log.e("Cargando", "❌ Error general: ${e.message}")
+            Log.e("Cargando", "Error general: ${e.message}")
         }
 
         // Espera antes de navegar
         delay(2000)
 
-        Log.d("Cargando", "🚀 Navegando a home...")
-        Log.d("Cargando", "📸 Foto final en UsuarioTemporal: ${UsuarioTemporal.fotoUrl}")
+        Log.d("Cargando", "Navegando a home...")
+        Log.d("Cargando", "Foto final en UsuarioTemporal: ${UsuarioTemporal.fotoUrl}")
 
         navController.navigate("home") {
             popUpTo(0)

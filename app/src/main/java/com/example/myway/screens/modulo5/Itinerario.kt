@@ -110,13 +110,13 @@ fun Itinerario(
                             // Simula proceso de creación
                             delay(2000)
 
-                            // ✅ Generar itinerario primero
+
                             val itinerarioGenerado = generarItinerario(destino)
 
-                            // ✅ Guardar plan CON itinerario
+
                             guardarPlanConItinerario(
                                 titulo, destino, fechaInicio, fechaFin,
-                                itinerarioGenerado, // ✅ Pasar el itinerario aquí
+                                itinerarioGenerado,
                                 onSuccess = {
                                     itinerario = itinerarioGenerado
                                     isCreating = false
@@ -170,7 +170,7 @@ fun Itinerario(
     }
 }
 
-// 🔹 Guarda el plan CON ITINERARIO en Firestore
+//Guarda el plan CON ITINERARIO en Firestore
 fun guardarPlanConItinerario(
     titulo: String,
     destino: String,
@@ -207,7 +207,7 @@ fun guardarPlanConItinerario(
         .addOnFailureListener { onError(it.message ?: "Error desconocido") }
 }
 
-// 🔹 Calcula duración en días
+// Calcula duración en días
 fun calcularDias(inicio: String, fin: String): Int {
     return try {
         val format = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
@@ -221,7 +221,7 @@ fun calcularDias(inicio: String, fin: String): Int {
     }
 }
 
-// 🔹 Generador simulado de itinerario con IA
+// Generador simulado de itinerario con IA
 fun generarItinerario(destino: String): List<String> {
     return listOf(
         "Explorar los lugares emblemáticos de $destino.",

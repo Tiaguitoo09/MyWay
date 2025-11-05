@@ -47,10 +47,10 @@ object RouteCache {
             val currentTime = System.currentTimeMillis()
             if (currentTime - cached.timestamp > CACHE_EXPIRY_MS) {
                 prefs.edit().remove(key).apply()
-                android.util.Log.d("RouteCache", "❌ Caché expirado")
+                android.util.Log.d("RouteCache", "Caché expirado")
                 null
             } else {
-                android.util.Log.d("RouteCache", "✅ Caché encontrado (GRATIS)")
+                android.util.Log.d("RouteCache", "Caché encontrado (GRATIS)")
                 val points = cached.points.map { it.toLatLng() }
                 Pair(points, cached.steps)
             }
@@ -76,11 +76,11 @@ object RouteCache {
 
         val json = gson.toJson(cached)
         getPrefs(context).edit().putString(key, json).apply()
-        android.util.Log.d("RouteCache", "💾 Ruta guardada en caché")
+        android.util.Log.d("RouteCache", "Ruta guardada en caché")
     }
 
     fun clearAll(context: Context) {
         getPrefs(context).edit().clear().apply()
-        android.util.Log.d("RouteCache", "🗑️ Caché eliminado")
+        android.util.Log.d("RouteCache", "Caché eliminado")
     }
 }

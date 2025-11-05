@@ -54,7 +54,7 @@ fun RutaOpciones(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    // ✅ Estado inicial de preferencias
+    // Estado inicial de preferencias
     var preferencias by remember {
         mutableStateOf(
             PreferenciasViajeData(
@@ -73,7 +73,7 @@ fun RutaOpciones(
     var currentLocation by remember { mutableStateOf(LatLng(4.7110, -74.0721)) }
     var destinationLocation by remember { mutableStateOf<LatLng?>(null) }
 
-    // ✅ Transporte seleccionado inicialmente según preferencias
+    // Transporte seleccionado inicialmente según preferencias
     var selectedMode by remember {
         mutableStateOf(
             if (preferencias.transportesSeleccionados.contains(preferencias.transportePreferido)) {
@@ -101,7 +101,7 @@ fun RutaOpciones(
         Places.createClient(context)
     }
 
-    // ✅ Cargar preferencias al iniciar
+    // Cargar preferencias al iniciar
     LaunchedEffect(Unit) {
         preferencias = PreferenciasManager.cargarPreferencias(context)
         preferenciasLoaded = true
@@ -112,17 +112,17 @@ fun RutaOpciones(
             preferencias.transportesSeleccionados.firstOrNull() ?: "driving"
         }
 
-        Log.d("RutaOpciones", "✅ Preferencias cargadas: $preferencias")
+        Log.d("RutaOpciones", "Preferencias cargadas: $preferencias")
     }
 
-    // ✅ Verificar si el destino ya es favorito
+    //Verificar si el destino ya es favorito
     LaunchedEffect(placeId) {
         if (!placeId.isNullOrEmpty() && placeId != "null") {
             isFavorite = repository.isFavorite(placeId)
         }
     }
 
-    // ✅ Cargar ubicación y rutas cuando las preferencias estén listas
+    //Cargar ubicación y rutas cuando las preferencias estén listas
     LaunchedEffect(preferenciasLoaded) {
         if (!preferenciasLoaded) return@LaunchedEffect
 
@@ -139,7 +139,7 @@ fun RutaOpciones(
 
         if (!placeId.isNullOrEmpty() && placeId != "null") {
             if (!placeId.startsWith("ChIJ") && !placeId.startsWith("Ei")) {
-                // 📦 Lugar desde Firebase
+
                 try {
                     val firestore = FirebaseFirestore.getInstance()
                     val doc = firestore.collection("lugares").document(placeId).get().await()
@@ -150,7 +150,7 @@ fun RutaOpciones(
 
                         if (lat != null && lng != null) {
                             destinationLocation = LatLng(lat, lng)
-                            Log.d("RutaOpciones", "✅ Coordenadas Firebase: $lat, $lng")
+                            Log.d("RutaOpciones", "Coordenadas Firebase: $lat, $lng")
 
                             scope.launch {
                                 if (preferencias.transportesSeleccionados.contains("walking")) {
@@ -165,15 +165,15 @@ fun RutaOpciones(
                                 isLoading = false
                             }
                         } else {
-                            Log.e("RutaOpciones", "❌ No se encontraron coordenadas")
+                            Log.e("RutaOpciones", "No se encontraron coordenadas")
                             isLoading = false
                         }
                     } else {
-                        Log.e("RutaOpciones", "❌ Documento no existe")
+                        Log.e("RutaOpciones", "Documento no existe")
                         isLoading = false
                     }
                 } catch (e: Exception) {
-                    Log.e("RutaOpciones", "❌ Error: ${e.message}")
+                    Log.e("RutaOpciones", "Error: ${e.message}")
                     isLoading = false
                 }
             } else {
@@ -614,7 +614,7 @@ suspend fun getRouteInfo(
                         "&mode=$mode$trafficParams" +
                         "&key=$apiKey"
 
-            Log.d("RutaOpciones", "🌐 URL de ruta: $url")
+            Log.d("RutaOpciones", "URL de ruta: $url")
 
             val response = URL(url).readText()
 
@@ -630,7 +630,7 @@ suspend fun getRouteInfo(
 
             RouteInfo(distance, duration, points)
         } catch (e: Exception) {
-            Log.e("RutaOpciones", "❌ Error en getRouteInfo: ${e.message}")
+            Log.e("RutaOpciones", "Error en getRouteInfo: ${e.message}")
             null
         }
     }

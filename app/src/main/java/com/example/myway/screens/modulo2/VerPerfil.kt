@@ -30,7 +30,7 @@ fun VerPerfil(navController: NavController) {
     val context = LocalContext.current
     var fotoPerfilUrl by remember { mutableStateOf(UsuarioTemporal.fotoUrl) }
 
-    // ✅ Cargar desde SharedPreferences al iniciar
+
     LaunchedEffect(Unit) {
         val sharedPrefs = context.getSharedPreferences("MyWayPrefs", android.content.Context.MODE_PRIVATE)
         val cachedFoto = sharedPrefs.getString("cached_foto_perfil", null)

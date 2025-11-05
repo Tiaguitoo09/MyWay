@@ -37,7 +37,7 @@ fun EliminarCuenta(navController: NavController) {
     val auth = FirebaseAuth.getInstance()
     val db = FirebaseFirestore.getInstance()
     val context = LocalContext.current
-    var isDeleting by remember { mutableStateOf(false) }  // ✅ Estado de carga
+    var isDeleting by remember { mutableStateOf(false) }
 
     Box(
         modifier = Modifier.fillMaxSize()
@@ -115,7 +115,7 @@ fun EliminarCuenta(navController: NavController) {
     }
 }
 
-// ✅ Función mejorada para eliminar cuenta
+
 private fun eliminarCuentaCompleta(
     context: Context,
     auth: FirebaseAuth,
@@ -138,10 +138,10 @@ private fun eliminarCuentaCompleta(
 
     val userId = usuario.uid
 
-    // 1️⃣ PRIMERO: Limpiar caché
+
     limpiarCacheUsuario(context)
 
-    // 2️⃣ SEGUNDO: Eliminar foto de Storage
+
     FirebaseStorage.getInstance()
         .reference
         .child("fotos_usuarios/$userId")
@@ -150,12 +150,12 @@ private fun eliminarCuentaCompleta(
             // Continuar aunque falle (puede no tener foto)
         }
 
-    // 3️⃣ TERCERO: Eliminar favoritos
+
     db.collection("favoritos")
         .document(userId)
         .delete()
 
-    // 4️⃣ CUARTO: Eliminar documento de Firestore
+
     db.collection("usuarios")
         .whereEqualTo("correo", correoUsuario)
         .get()
@@ -164,7 +164,7 @@ private fun eliminarCuentaCompleta(
                 db.collection("usuarios").document(doc.id).delete()
             }
 
-            // 5️⃣ QUINTO: Eliminar de Authentication
+
             usuario.delete()
                 .addOnSuccessListener {
                     Toast.makeText(
@@ -175,7 +175,7 @@ private fun eliminarCuentaCompleta(
 
                     // Navegar al inicio
                     navController.navigate("inicio") {
-                        popUpTo(0) { inclusive = true }  // ✅ Limpiar stack completo
+                        popUpTo(0) { inclusive = true }
                     }
                 }
                 .addOnFailureListener { e ->

@@ -190,7 +190,7 @@ fun ViajesGuardados(navController: NavController) {
                             TarjetaPlanViaje(
                                 plan = plan,
                                 onClick = {
-                                    // ✅ CAMBIO AQUÍ: Navegar usando el ID del plan
+
                                     navController.navigate("ver_plan/${plan.id}")
                                 }
                             )

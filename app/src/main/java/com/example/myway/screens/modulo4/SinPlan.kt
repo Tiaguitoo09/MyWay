@@ -34,7 +34,7 @@ fun SinPlan(navController: NavController) {
     val scope = rememberCoroutineScope()
 
     // Estados para el setup
-    var showSetup by remember { mutableStateOf(false) } // Cambiar a false cuando ya hayas creado los lugares
+    var showSetup by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
     var isDone by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
@@ -81,7 +81,7 @@ fun SinPlan(navController: NavController) {
                 )
             }
 
-            // ⚙️ CARD DE SETUP (Solo visible si showSetup = true)
+
             if (showSetup) {
                 Card(
                     modifier = Modifier
@@ -141,7 +141,7 @@ fun SinPlan(navController: NavController) {
                                 )
                                 Spacer(modifier = Modifier.height(12.dp))
                                 Text(
-                                    text = "✅ ¡Listo! 20 lugares creados",
+                                    text = "20 lugares creados",
                                     fontFamily = Nunito,
                                     fontSize = 16.sp,
                                     fontWeight = FontWeight.Bold,
@@ -169,7 +169,7 @@ fun SinPlan(navController: NavController) {
                                 )
                                 Spacer(modifier = Modifier.height(12.dp))
                                 Text(
-                                    text = "❌ Error: $errorMessage",
+                                    text = "Error: $errorMessage",
                                     fontFamily = Nunito,
                                     fontSize = 14.sp,
                                     color = Color.Red,
@@ -238,7 +238,7 @@ fun SinPlan(navController: NavController) {
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
                                     Text(
-                                        text = "🚀 Crear Lugares",
+                                        text = "Crear Lugares",
                                         fontFamily = Nunito,
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 16.sp,

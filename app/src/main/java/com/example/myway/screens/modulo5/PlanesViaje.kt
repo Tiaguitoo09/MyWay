@@ -54,7 +54,7 @@ fun PlanesViaje(navController: NavController) {
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp, vertical = 16.dp)
         ) {
-            // 🔹 Encabezado superior
+            // Encabezado superior
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -93,7 +93,7 @@ fun PlanesViaje(navController: NavController) {
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // 🔹 Texto descriptivo
+            //  descriptivo
             Text(
                 text = stringResource(R.string.planes_hacer),
                 color = Blanco,
@@ -106,7 +106,7 @@ fun PlanesViaje(navController: NavController) {
                     .fillMaxWidth()
             )
 
-            // 🔹 Botón crear plan
+            // crear plan
             CustomButton(
                 alignCenter = false,
                 text = stringResource(R.string.plan_nuevo),
@@ -120,7 +120,7 @@ fun PlanesViaje(navController: NavController) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 🔹 Botón eliminar
+            //eliminar
             CustomButton(
                 alignCenter = false,
                 text = stringResource(R.string.eliminar),
