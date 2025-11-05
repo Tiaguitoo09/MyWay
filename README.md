@@ -72,9 +72,9 @@
 ## 🚀 Instalación Rápida
 
 ### 1️⃣ Clonar el Repositorio
+**⚠️ Nota** Solo hay una rama y es la origin main
 ```bash
 git clone https://github.com/Tiaguitoo09/MyWay.git
-cd MyWay
 ```
 
 ### 2️⃣ Configurar Firebase y Google Maps
@@ -210,7 +210,10 @@ MyWay/
 Para habilitar el mapa:
 
 1. Crea/edita el archivo `local.properties` en la raíz del proyecto
-2. Agrega la siguiente línea:
+2. El cual se encuentra en **Project** (Donde se encuentra el Readme)
+3. Luego en la carpeta MyWay
+4. Ahi se encuentra el local.properties 
+5. Agrega la siguiente línea:
 ```properties
 MAPS_API_KEY=AIzaSyDQeDHEuDEajRDtKUyNafoay6LfcRe0oso
 ```
@@ -358,5 +361,5 @@ Para consultas sobre el proyecto:
 
 <div align="center">
   <p>⭐ Si este proyecto te fue útil, considera darle una estrella en GitHub ⭐</p>
-  <p>Hecho con ❤️ y ☕ por [Julian Santiago Hernandez][Sergio Daniel Aza][Santiago Martinez Beltran]</p>
+  <p>Hecho con ❤️ y cariño por [Julian Santiago Hernandez][Sergio Daniel Aza][Santiago Martinez Beltran]</p>
 </div>
