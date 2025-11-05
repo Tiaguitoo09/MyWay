@@ -89,6 +89,120 @@ El proyecto incluye el archivo `google-services.json` preconfigurado para el paq
 
 **Nota para el evaluador:** Tiene acceso colaborador al proyecto Firebase enviado previamente por correo institucional.
 
+#### ⚠️ *PASO CRÍTICO: Configurar SHA-1 para Autenticación*
+
+---
+
+##### *¿Por qué es necesario?*
+
+Firebase Authentication requiere la *huella digital SHA-1* de tu certificado de depuración para validar que la aplicación es legítima.  
+Sin este paso, la app se instalará pero **NO podrá iniciar sesión ni registrar usuarios**.
+
+---
+
+##### *Paso 1: Obtener tu SHA-1*
+
+Abre una terminal en Android Studio (pestaña inferior) y ejecuta:
+
+> ⚠️ *Nota:* Recuerda estar en la ruta principal del proyecto **MyWay** para poder ejecutar este comando correctamente.
+
+**En Windows:**
+```bash
+.\gradlew signingReport
+```
+
+**En macOS/Linux:**
+```bash
+cd android
+./gradlew signingReport
+```
+---
+
+##### **Paso 2: Copiar el SHA-1**
+
+Busca en la salida del comando la línea que dice:
+```
+SHA1: A1:B2:C3:D4:E5:F6:G7:H8:I9:J0:K1:L2:M3:N4:O5:P6:Q7:R8:S9:T0
+```
+##### **Paso 2.1: Copiar el SHA-256**
+Busca en la salida del comando la línea que dice:
+```
+SHA-256: A1:B2:C3:D4:E5:F6:G7:H8:I9:J0:K1:L2:M3:N4:O5:P6:Q7:R8:S9:T0
+```
+💡 **Importante:** Debes copiar una por una las huellas (SHA-1 y SHA-256).
+
+**Copia todo el valor después de `SHA1:`**
+
+> 💡 **Importante:** Cada computadora tiene su propio SHA-1 y SHA-256.
+Debes usar los de **TU** computadora.
+
+---
+
+##### **Paso 3: Acceder a Firebase Console**
+
+1. Ve a: [https://console.firebase.google.com/](https://console.firebase.google.com/)
+2. Inicia sesión con tu cuenta de Google
+3. Selecciona el proyecto **"MyWay"**
+
+---
+
+##### **Paso 4: Ir a Configuración del Proyecto**
+
+1. Haz clic en el ícono de **engranaje ⚙️** (esquina superior izquierda)
+2. Selecciona **"Configuración del proyecto"**
+
+---
+
+##### **Paso 5: Seleccionar la App Android**
+
+1. Scroll hacia abajo hasta la sección **"Tus apps"**
+2. Haz clic en la aplicación Android (**com.example.myway**)
+
+---
+
+##### **Paso 6: Agregar tu SHA-1 y SHA-2561**
+
+1. En la sección **Huellas digitales de certificados SHA**.
+2. Haz clic en **Agregar huella digital**.
+3. Pega el **SHA-1** que copiaste en el Paso 2 y guarda.
+4. Repite el proceso con el **SHA-256**.
+5. Haz clic en **Guardar**.
+
+---
+
+##### **Paso 7: Descargar google-services.json Actualizado**
+
+Después de agregar las huellas, Firebase genera un nuevo archivo de configuración:
+
+1. En la misma página, haz clic en el botón **"google-services.json"** (ícono de descarga)
+2. Guarda el archivo
+
+---
+
+##### **Paso 8: Reemplazar el Archivo en el Proyecto**
+
+1. Busca el archivo `google-services.json` que acabas de descargar (carpeta Descargas)
+2. Copia el archivo
+3. Ve a la carpeta del proyecto: `MyWay/app/`
+4. **Reemplaza** el archivo existente con el nuevo
+```
+MyWay/
+└── app/
+    ├── build.gradle.kts
+    └── google-services.json  ← Reemplazar este archivo
+```
+
+---
+
+##### **Paso 9: Sincronizar Proyecto**
+
+1. En Android Studio, haz clic en **"File"** → **"Sync Project with Gradle Files"**
+2. Espera a que termine la sincronización
+
+---
+
+✅ **¡Configuración Completa!** Ahora Firebase puede autenticar tu aplicación.
+
 #### 🔑 Configurar Google Maps API Key
 
 **Por seguridad, la API Key no está en el repositorio público.**
