@@ -1,5 +1,6 @@
 package com.example.myway.utils
 
+import android.net.Uri
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -22,6 +23,7 @@ import com.example.myway.screens.modulo5.CrearPlan
 import com.example.myway.screens.modulo5.EliminarPlan
 import com.example.myway.screens.modulo5.PlanesViaje
 import com.example.myway.screens.modulo5.ViajesGuardados
+import com.example.myway.screens.modulo5.Itinerario
 import com.google.firebase.auth.FirebaseAuth
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 
@@ -216,13 +218,6 @@ fun MyWayAppNavigation(
             CrearPlan(navController)
         }
 
-        /*composable(
-            route = "ver_plan/{planId}",
-            arguments = listOf(navArgument("planId") { type = NavType.StringType })
-        ) { backStackEntry ->
-            VerPlan(navController, backStackEntry.arguments?.getString("planId"))
-        }*/
-
         composable("eliminar_plan") {
             EliminarPlan(navController = navController)
         }
@@ -231,5 +226,29 @@ fun MyWayAppNavigation(
             EliminarPlan2(navController = navController)
         }
 
+
+        composable(
+            route = "itinerario/{titulo}/{destino}/{fechaInicio}/{fechaFin}",
+            arguments = listOf(
+                navArgument("titulo") { type = NavType.StringType },
+                navArgument("destino") { type = NavType.StringType },
+                navArgument("fechaInicio") { type = NavType.StringType },
+                navArgument("fechaFin") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            // ✅ Decodificar los valores que vienen codificados en la ruta
+            val titulo = Uri.decode(backStackEntry.arguments?.getString("titulo") ?: "")
+            val destino = Uri.decode(backStackEntry.arguments?.getString("destino") ?: "")
+            val fechaInicio = Uri.decode(backStackEntry.arguments?.getString("fechaInicio") ?: "")
+            val fechaFin = Uri.decode(backStackEntry.arguments?.getString("fechaFin") ?: "")
+
+            Itinerario(
+                navController = navController,
+                titulo = titulo,
+                destino = destino,
+                fechaInicio = fechaInicio,
+                fechaFin = fechaFin
+            )
+        }
     }
 }

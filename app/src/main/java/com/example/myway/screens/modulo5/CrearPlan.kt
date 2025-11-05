@@ -1,6 +1,7 @@
 package com.example.myway.screens.modulo5
 
 import android.widget.Toast
+import android.net.Uri
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -345,29 +346,30 @@ fun CrearPlan(navController: NavController) {
                         onClick = {
                             when {
                                 titulo.isBlank() -> {
-                                    Toast.makeText(
-                                        context,
-                                        "Ingresa un título",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
+                                    Toast.makeText(context, "Ingresa un título", Toast.LENGTH_SHORT).show()
                                 }
                                 destinos.isEmpty() -> {
-                                    Toast.makeText(
-                                        context,
-                                        "Agrega al menos un destino",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
+                                    Toast.makeText(context, "Agrega al menos un destino", Toast.LENGTH_SHORT).show()
                                 }
-                                fechasSeleccionadas.isEmpty() -> {
-                                    Toast.makeText(
-                                        context,
-                                        "Selecciona al menos una fecha",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
+                                fechasSeleccionadas.size < 2 -> {
+                                    Toast.makeText(context, "Selecciona al menos 2 fechas", Toast.LENGTH_SHORT).show()
                                 }
                                 else -> {
-                                    // TODO: Navegar a pantalla de itinerario
-                                    navController.navigate("itinerario_plan")
+                                    val fechasList = fechasSeleccionadas.sorted()
+                                    val fechaInicio = fechasList.first()
+                                    val fechaFin = fechasList.last()
+                                    val destinoNombre = destinos.first().nombre
+
+                                    // ✅ Codificar valores para evitar errores en la ruta
+                                    val encodedTitulo = Uri.encode(titulo)
+                                    val encodedDestino = Uri.encode(destinoNombre)
+                                    val encodedInicio = Uri.encode(fechaInicio)
+                                    val encodedFin = Uri.encode(fechaFin)
+
+                                    // ✅ Navegación segura
+                                    navController.navigate(
+                                        "itinerario/$encodedTitulo/$encodedDestino/$encodedInicio/$encodedFin"
+                                    )
                                 }
                             }
                         },
@@ -375,9 +377,7 @@ fun CrearPlan(navController: NavController) {
                             .fillMaxWidth()
                             .height(50.dp),
                         shape = RoundedCornerShape(25.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Verde
-                        )
+                        colors = ButtonDefaults.buttonColors(containerColor = Verde)
                     ) {
                         Text(
                             text = "Siguiente",
