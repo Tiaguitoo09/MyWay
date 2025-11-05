@@ -15,7 +15,7 @@ class RecentPlacesRepository {
     private val auth = FirebaseAuth.getInstance()
 
     companion object {
-        // ✅ AHORA ES UNA COLECCIÓN RAÍZ SEPARADA
+
         private const val COLLECTION_RECIENTES = "recientes"
         private const val MAX_RECIENTES = 10
         private const val TAG = "RecentPlacesRepo"
@@ -53,7 +53,7 @@ class RecentPlacesRepository {
                 timestamp = System.currentTimeMillis()
             )
 
-            // ✅ NUEVA RUTA: recientes/{userId}/{placeId}
+
             val docRef = db.collection(COLLECTION_RECIENTES)
                 .document(userId)
                 .collection("lugares")
@@ -75,10 +75,6 @@ class RecentPlacesRepository {
         }
     }
 
-    /**
-     * Obtiene los lugares recientes en tiempo real
-     * Lee de: recientes/{userId}/lugares
-     */
     fun getRecentPlacesFlow(): Flow<List<RecentPlace>> = callbackFlow {
         val userId = auth.currentUser?.uid
 
@@ -91,7 +87,7 @@ class RecentPlacesRepository {
             return@callbackFlow
         }
 
-        // ✅ NUEVA RUTA: recientes/{userId}/lugares
+
         val collectionRef = db.collection(COLLECTION_RECIENTES)
             .document(userId)
             .collection("lugares")
@@ -139,9 +135,7 @@ class RecentPlacesRepository {
         }
     }
 
-    /**
-     * Elimina los lugares más antiguos si hay más del máximo permitido
-     */
+
     private suspend fun cleanOldRecents(userId: String) {
         try {
             val snapshot = db.collection(COLLECTION_RECIENTES)
@@ -170,9 +164,7 @@ class RecentPlacesRepository {
         }
     }
 
-    /**
-     * Limpia todos los lugares recientes del usuario
-     */
+
     suspend fun clearAllRecents(): Result<Unit> {
         return try {
             val userId = auth.currentUser?.uid
@@ -201,9 +193,7 @@ class RecentPlacesRepository {
         }
     }
 
-    /**
-     * Obtiene recientes de un usuario específico (útil para admin)
-     */
+
     suspend fun getRecentPlacesByUserId(userId: String): Result<List<RecentPlace>> {
         return try {
             val snapshot = db.collection(COLLECTION_RECIENTES)

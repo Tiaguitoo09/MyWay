@@ -13,7 +13,7 @@ object GooglePlacesNearby {
     private const val BASE_URL = "https://maps.googleapis.com/maps/api/place/nearbysearch/json"
     private val apiKey = BuildConfig.MAPS_API_KEY
 
-    // 🔥 TIPOS PERMITIDOS - Lista blanca estricta
+    //Lista blanca estricta
     private val ALLOWED_TYPES = setOf(
         "restaurant", "cafe", "bakery", "food",
         "bar", "night_club",
@@ -23,7 +23,7 @@ object GooglePlacesNearby {
         "movie_theater", "bowling_alley", "amusement_park"
     )
 
-    // ❌ TIPOS PROHIBIDOS - Lista negra
+    //Lista negra
     private val BLOCKED_TYPES = setOf(
         "lodging", "hotel", "motel", "hostel", "campground",
         "car_rental", "gas_station", "parking",
@@ -73,7 +73,7 @@ object GooglePlacesNearby {
                     val placeJson = results.getJSONObject(i)
 
                     try {
-                        // 🔥 FILTRADO TEMPRANO - Verificar tipos antes de parsear
+                        //Verificar tipos antes de parsear
                         val typesArray = placeJson.optJSONArray("types")
                         val placeTypes = if (typesArray != null) {
                             (0 until typesArray.length()).map { typesArray.getString(it) }
@@ -81,13 +81,13 @@ object GooglePlacesNearby {
                             emptyList()
                         }
 
-                        // ❌ Rechazar si contiene tipos prohibidos
+                        //Rechazar si contiene tipos prohibidos
                         if (placeTypes.any { it in BLOCKED_TYPES }) {
                             Log.d("GooglePlaces", "❌ Rechazado (tipo prohibido): ${placeJson.optString("name")}")
                             continue
                         }
 
-                        // ✅ Solo aceptar si tiene al menos un tipo permitido
+                        // Solo aceptar si tiene al menos un tipo permitido
                         if (placeTypes.none { it in ALLOWED_TYPES }) {
                             Log.d("GooglePlaces", "❌ Rechazado (sin tipos válidos): ${placeJson.optString("name")}")
                             continue
@@ -95,7 +95,7 @@ object GooglePlacesNearby {
 
                         val place = parsePlaceFromJson(placeJson)
 
-                        // 🔥 Validación adicional de categoría
+
                         if (place.category in listOf("hotel", "hospedaje", "otro")) {
                             Log.d("GooglePlaces", "❌ Rechazado por categoría: ${place.name} (${place.category})")
                             continue
@@ -174,7 +174,7 @@ object GooglePlacesNearby {
         )
     }
 
-    // 🔥 CATEGORIZACIÓN MEJORADA
+
     private fun inferCategory(types: List<String>): String {
         // ❌ Primero rechazar tipos no deseados
         if (types.any { it in BLOCKED_TYPES }) {

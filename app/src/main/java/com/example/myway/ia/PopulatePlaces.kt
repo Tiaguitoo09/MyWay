@@ -356,7 +356,7 @@ object PopulatePlaces {
         )
 
         try {
-            // 🔥 IMPORTANTE: Limpiar primero para evitar duplicados
+
             Log.d("PopulatePlaces", "🗑️ Limpiando lugares anteriores...")
             clearAllPlaces()
 
@@ -369,7 +369,7 @@ object PopulatePlaces {
                     "address" to lugar.address,
                     "latitude" to lugar.latitude,
                     "longitude" to lugar.longitude,
-                    "photoUrl" to fixUnsplashUrl(lugar.photoUrl), // ✅ APLICAR FIX
+                    "photoUrl" to fixUnsplashUrl(lugar.photoUrl),
                     "category" to lugar.category,
                     "priceLevel" to lugar.priceLevel,
                     "rating" to lugar.rating,

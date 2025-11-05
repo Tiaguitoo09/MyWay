@@ -8,40 +8,33 @@ import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.net.URL
 
-/**
- * Servicio de clima usando WeatherAPI
- *
- * GRATIS: 1,000,000 llamadas/mes
- * Con caché: Suficiente para 50,000+ usuarios
- */
+
 object WeatherAPIService {
 
-    // 🔑 Obtén tu API key en: https://www.weatherapi.com/signup.aspx
+
     private const val API_KEY = "960b18aa002c4c708e2201647252710"
     private const val BASE_URL = "https://api.weatherapi.com/v1/current.json"
     private const val CACHE_DURATION_MS = 15 * 60 * 1000L // 15 minutos
 
-    /**
-     * Obtiene clima actual con caché inteligente
-     */
+
     suspend fun getCurrentWeather(location: UserLocation, context: Context): String {
         return try {
-            // 1. Verificar caché primero (ahorra llamadas a API)
+
             getCached(context, location)?.let { cached ->
                 Log.d("WeatherAPI", "📦 Caché: $cached")
                 return cached
             }
 
-            // 2. Verificar conexión a internet
+
             if (!hasInternetConnection(context)) {
                 Log.w("WeatherAPI", "⚠️ Sin internet, usando fallback")
                 return getFallbackWeather()
             }
 
-            // 3. Llamar a API
+
             val weather = fetchFromAPI(location)
 
-            // 4. Guardar en caché
+
             saveCache(context, location, weather)
 
             Log.d("WeatherAPI", "🌐 API: $weather para ${getCityName(location)}")
@@ -53,9 +46,7 @@ object WeatherAPIService {
         }
     }
 
-    /**
-     * Llama a WeatherAPI para obtener clima real
-     */
+
     private suspend fun fetchFromAPI(location: UserLocation): String {
         return withContext(Dispatchers.IO) {
             try {
@@ -85,19 +76,16 @@ object WeatherAPIService {
         }
     }
 
-    /**
-     * Mapea condiciones de WeatherAPI a: soleado, nublado, lluvioso
-     */
     private fun mapWeatherCondition(condition: String): String {
         return when {
-            // ☀️ SOLEADO
+
             condition.contains("despejado") ||
                     condition.contains("soleado") ||
                     condition.contains("claro") ||
                     condition.contains("sunny") ||
                     condition.contains("clear") -> "soleado"
 
-            // 🌧️ LLUVIOSO
+
             condition.contains("lluvia") ||
                     condition.contains("llovizna") ||
                     condition.contains("tormenta") ||
@@ -108,14 +96,12 @@ object WeatherAPIService {
                     condition.contains("thunder") ||
                     condition.contains("chubasco") -> "lluvioso"
 
-            // ☁️ NUBLADO (por defecto)
+
             else -> "nublado"
         }
     }
 
-    /**
-     * Verifica si hay conexión a internet
-     */
+
     private fun hasInternetConnection(context: Context): Boolean {
         return try {
             val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE)
@@ -128,16 +114,12 @@ object WeatherAPIService {
         }
     }
 
-    /**
-     * Clima de respaldo cuando no hay internet o API falla
-     */
+
     private fun getFallbackWeather(): String {
-        return "nublado" // Valor seguro por defecto
+        return "nublado"
     }
 
-    /**
-     * Obtiene nombre de ciudad (para logs)
-     */
+
     private fun getCityName(location: UserLocation): String {
         return when {
             location.latitude in 4.4..4.9 && location.longitude in -74.3..-73.9 -> "Bogotá"
@@ -151,9 +133,7 @@ object WeatherAPIService {
 
     // ========== CACHÉ ==========
 
-    /**
-     * Obtiene clima desde caché si es válido
-     */
+
     private fun getCached(context: Context, location: UserLocation): String? {
         return try {
             val prefs = context.getSharedPreferences("weather_api_cache", Context.MODE_PRIVATE)
@@ -163,11 +143,11 @@ object WeatherAPIService {
             val cachedLon = prefs.getFloat("lon", 0f).toDouble()
             val cachedTime = prefs.getLong("time", 0)
 
-            // Verificar que sea la misma ubicación (~5km de tolerancia)
+
             val sameLocation = kotlin.math.abs(cachedLat - location.latitude) < 0.05 &&
                     kotlin.math.abs(cachedLon - location.longitude) < 0.05
 
-            // Verificar que no haya expirado (15 minutos)
+
             val elapsed = System.currentTimeMillis() - cachedTime
             val notExpired = elapsed < CACHE_DURATION_MS
 
@@ -184,9 +164,7 @@ object WeatherAPIService {
         }
     }
 
-    /**
-     * Guarda clima en caché
-     */
+
     private fun saveCache(context: Context, location: UserLocation, weather: String) {
         try {
             val prefs = context.getSharedPreferences("weather_api_cache", Context.MODE_PRIVATE)
@@ -203,9 +181,7 @@ object WeatherAPIService {
         }
     }
 
-    /**
-     * Limpia el caché (útil para debugging)
-     */
+
     fun clearCache(context: Context) {
         try {
             val prefs = context.getSharedPreferences("weather_api_cache", Context.MODE_PRIVATE)

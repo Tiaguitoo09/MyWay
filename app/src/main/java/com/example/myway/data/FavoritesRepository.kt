@@ -124,7 +124,6 @@ class FavoritesRepository(private val context: Context) {
         try {
             Log.d(TAG, "📸 Iniciando subida de foto para placeId: $placeId")
 
-            // Convertir bitmap a byte array con compresión
             val baos = ByteArrayOutputStream()
             bitmap.compress(Bitmap.CompressFormat.JPEG, 85, baos)
             val imageData = baos.toByteArray()
@@ -183,7 +182,6 @@ class FavoritesRepository(private val context: Context) {
     }
 
     /** Guardar lugar en favoritos **/
-    /** Guardar lugar en favoritos **/
     suspend fun saveFavorite(placeId: String, placeName: String): Result<Unit> {
         return withContext(Dispatchers.IO) {
             try {
@@ -194,7 +192,6 @@ class FavoritesRepository(private val context: Context) {
 
                 Log.d(TAG, "👤 UserId: $userId")
 
-                // ✅ DETECTAR SI ES LUGAR DE FIREBASE O GOOGLE PLACES
                 if (!placeId.startsWith("ChIJ") && !placeId.startsWith("Ei")) {
                     // 📦 Es un lugar de Firebase - obtener datos de Firestore
                     Log.d(TAG, "📦 Lugar de Firebase detectado: $placeId")
@@ -236,7 +233,6 @@ class FavoritesRepository(private val context: Context) {
                         return@withContext Result.failure(e)
                     }
                 } else {
-                    // 🌍 Es un lugar de Google Places - usar código existente
                     Log.d(TAG, "🌍 Lugar de Google Places detectado: $placeId")
 
                     val placeFields = listOf(
@@ -255,7 +251,6 @@ class FavoritesRepository(private val context: Context) {
                     Log.d(TAG, "✅ Detalles obtenidos: ${place.name}")
                     Log.d(TAG, "📸 Cantidad de fotos: ${place.photoMetadatas?.size ?: 0}")
 
-                    // Intentar descargar y subir la foto
                     var photoUrl: String? = null
 
                     if (place.photoMetadatas?.isNotEmpty() == true) {
@@ -322,7 +317,7 @@ class FavoritesRepository(private val context: Context) {
             try {
                 val userId = auth.currentUser?.uid ?: return@withContext
 
-                // Eliminar de Firestore
+
                 db.collection(COLLECTION_FAVORITOS)
                     .document(userId)
                     .collection("lugares")
@@ -330,7 +325,7 @@ class FavoritesRepository(private val context: Context) {
                     .delete()
                     .await()
 
-                // Eliminar imagen de Firebase Storage
+
                 try {
                     val storageRef = storage.reference
                         .child("$STORAGE_FAVORITES_PATH/$userId/$placeId.jpg")
@@ -394,7 +389,7 @@ class FavoritesRepository(private val context: Context) {
         }
     }
 
-    /** Limpiar todos los favoritos **/
+
     suspend fun clearAllFavorites(): Result<Unit> {
         return withContext(Dispatchers.IO) {
             try {

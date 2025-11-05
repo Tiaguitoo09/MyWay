@@ -7,10 +7,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlin.math.abs
 
-/**
- * Detector de conducción basado en velocidad y aceleración
- * Detecta si el usuario está conduciendo para activar medidas de seguridad
- */
+
 object DrivingDetector {
 
     // Estados observables
@@ -30,15 +27,12 @@ object DrivingDetector {
     // Contador de detecciones consecutivas
     private var drivingDetectionCount = 0
     private var stoppedDetectionCount = 0
-    private const val DETECTION_THRESHOLD = 3 // Requiere 3 detecciones consecutivas
+    private const val DETECTION_THRESHOLD = 3
 
-    // Context para acceder a SharedPreferences
+
     private var context: Context? = null
 
-    /**
-     * Inicializa el detector con el contexto de la aplicación
-     * DEBE ser llamado en onCreate() de MainActivity
-     */
+
     fun initialize(appContext: Context) {
         context = appContext.applicationContext
     }
@@ -47,7 +41,7 @@ object DrivingDetector {
      * Actualiza la ubicación y analiza si está conduciendo
      */
     fun updateLocation(location: Location) {
-        // ✅ PRIMERO: Verificar si modo copiloto está activo
+
         val modoCopiloto = context?.getSharedPreferences("MyWayPrefs", Context.MODE_PRIVATE)
             ?.getBoolean("modo_copiloto", false) ?: false
 
@@ -59,7 +53,7 @@ object DrivingDetector {
             return
         }
 
-        // ✅ SEGUNDO: Detección normal de conducción
+
         val currentTime = System.currentTimeMillis()
 
         lastLocation?.let { last ->
@@ -104,10 +98,7 @@ object DrivingDetector {
         lastUpdateTime = currentTime
     }
 
-    /**
-     * Verifica si el usuario puede usar la app libremente
-     * Retorna true si NO está conduciendo O si el modo copiloto está activo
-     */
+
     fun canUseAppFreely(context: Context): Boolean {
         val sharedPreferences = context.getSharedPreferences("MyWayPrefs", Context.MODE_PRIVATE)
         val modoCopiloto = sharedPreferences.getBoolean("modo_copiloto", false)
@@ -116,10 +107,7 @@ object DrivingDetector {
         return !_isDriving.value || modoCopiloto
     }
 
-    /**
-     * Fuerza la verificación del modo copiloto
-     * Útil cuando se activa/desactiva el modo copiloto
-     */
+
     fun checkCopilotMode() {
         val modoCopiloto = context?.getSharedPreferences("MyWayPrefs", Context.MODE_PRIVATE)
             ?.getBoolean("modo_copiloto", false) ?: false
@@ -131,9 +119,7 @@ object DrivingDetector {
         }
     }
 
-    /**
-     * Resetea el detector (útil para testing)
-     */
+
     fun reset() {
         _isDriving.value = false
         lastLocation = null
@@ -143,9 +129,6 @@ object DrivingDetector {
         stoppedDetectionCount = 0
     }
 
-    /**
-     * Forzar estado de conducción (solo para testing/debug)
-     */
     fun setDrivingState(isDriving: Boolean) {
         _isDriving.value = isDriving
     }

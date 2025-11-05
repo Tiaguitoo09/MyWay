@@ -10,13 +10,11 @@ import java.net.URL
 
 class AIService(private val context: Context) {
 
-    // ⚠️ IMPORTANTE: Añadir tu API Key en BuildConfig
-    // En build.gradle.kts:
-    // buildConfigField("String", "OPENAI_API_KEY", "\"tu-api-key-aqui\"")
-    private val apiKey = "" // Dejar vacío, usar BuildConfig.OPENAI_API_KEY
+
+    private val apiKey = ""
 
     private val baseUrl = "https://api.openai.com/v1/chat/completions"
-    private val model = "gpt-3.5-turbo" // Más económico, suficiente para itinerarios
+    private val model = "gpt-3.5-turbo"
 
     // ========== GENERAR ITINERARIO ==========
 
@@ -30,13 +28,13 @@ class AIService(private val context: Context) {
                     )
                 }
 
-                // Construir prompt optimizado
+
                 val prompt = buildItineraryPrompt(request)
 
-                // Hacer request a OpenAI
+
                 val response = callChatGPT(prompt, maxTokens = 2000)
 
-                // Parsear respuesta
+
                 val itinerary = parseItineraryResponse(response, request)
 
                 Result.success(itinerary)
@@ -168,20 +166,20 @@ class AIService(private val context: Context) {
     ): ItineraryResponse {
         val json = JSONObject(jsonResponse)
 
-        // Extraer contenido de la respuesta
+
         val content = json
             .getJSONArray("choices")
             .getJSONObject(0)
             .getJSONObject("message")
             .getString("content")
 
-        // Parsear día por día (básico)
+
         val dayPlans = parseDayPlans(content)
 
-        // Extraer costo estimado
+
         val estimatedCost = extractEstimatedCost(content)
 
-        // Extraer recomendaciones
+
         val recommendations = extractRecommendations(content)
 
         return ItineraryResponse(
@@ -196,7 +194,7 @@ class AIService(private val context: Context) {
     private fun parseDayPlans(content: String): List<DayPlan> {
         val dayPlans = mutableListOf<DayPlan>()
 
-        // Regex para encontrar días
+
         val dayPattern = """## Día (\d+): (.+)""".toRegex()
         val matches = dayPattern.findAll(content)
 
@@ -204,7 +202,7 @@ class AIService(private val context: Context) {
             val dayNumber = match.groupValues[1].toIntOrNull() ?: 0
             val dayTitle = match.groupValues[2].trim()
 
-            // Extraer actividades del día (simplificado)
+
             val activities = extractActivities(content, dayNumber)
             val meals = extractMeals(content, dayNumber)
 
@@ -222,8 +220,7 @@ class AIService(private val context: Context) {
     }
 
     private fun extractActivities(content: String, day: Int): List<Activity> {
-        // Implementación simplificada
-        // En producción, usar parsing más robusto
+
         return listOf(
             Activity(
                 time = "Mañana",
@@ -255,12 +252,12 @@ class AIService(private val context: Context) {
     private fun extractRecommendations(content: String): List<String> {
         val recommendations = mutableListOf<String>()
 
-        // Buscar sección de recomendaciones
+
         val recSection = """## Recomendaciones adicionales(.+?)(?=##|$)""".toRegex(RegexOption.DOT_MATCHES_ALL)
         val match = recSection.find(content)
 
         match?.groupValues?.get(1)?.let { section ->
-            // Extraer bullets
+
             val bulletPattern = """[-*]\s+(.+)""".toRegex()
             bulletPattern.findAll(section).forEach {
                 recommendations.add(it.groupValues[1].trim())

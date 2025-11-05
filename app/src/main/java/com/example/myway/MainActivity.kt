@@ -59,7 +59,7 @@ fun App(
             val repository = AIRepository(context)
             repository.cleanExpiredCache()
         } catch (e: Exception) {
-            // Manejo silencioso, no afecta la funcionalidad
+
         }
     }
 

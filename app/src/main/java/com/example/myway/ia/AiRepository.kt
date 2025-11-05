@@ -167,14 +167,14 @@ class AIRepository(private val context: Context) {
         allPlaces.addAll(googlePlaces)
         Log.d("AIRepository", "🌍 Google Places: ${googlePlaces.size} lugares")
 
-        // 🔥 FILTRADO FINAL - Eliminar duplicados y lugares no deseados
+
         return allPlaces
             .distinctBy { it.name.lowercase() }
             .filter { place ->
-                // ❌ Rechazar hoteles/hospedaje
+
                 val isValidCategory = place.category !in listOf("hotel", "hospedaje", "motel", "otro")
 
-                // ❌ Rechazar por palabras clave en el nombre
+
                 val hasInvalidKeyword = listOf(
                     "hotel", "hostel", "motel", "inn", "hospedaje",
                     "hospital", "clínica", "farmacia",
@@ -350,8 +350,8 @@ class AIRepository(private val context: Context) {
                 "museo" -> 0.9
                 "restaurante" -> 0.7
                 "centro_comercial" -> 0.8
-                "bar" -> 0.0  // 🔥 NUNCA en la mañana
-                "discoteca" -> 0.0  // 🔥 NUNCA en la mañana
+                "bar" -> 0.0
+                "discoteca" -> 0.0
                 else -> 0.5
             }
 
@@ -362,8 +362,8 @@ class AIRepository(private val context: Context) {
                 "museo" -> 0.85
                 "cafe" -> 0.8
                 "mirador" -> 0.9
-                "bar" -> 0.3  // 🔥 Bajo en la tarde
-                "discoteca" -> 0.0  // 🔥 NUNCA en la tarde
+                "bar" -> 0.3
+                "discoteca" -> 0.0
                 else -> 0.7
             }
 
@@ -374,9 +374,9 @@ class AIRepository(private val context: Context) {
                 "teatro" -> 0.9
                 "centro_comercial" -> 0.7
                 "cafe" -> 0.6
-                "museo" -> 0.2  // 🔥 Reducido
-                "parque" -> 0.1  // 🔥 Muy reducido
-                else -> 0.4  // 🔥 Reducido el default
+                "museo" -> 0.2
+                "parque" -> 0.1
+                else -> 0.4
             }
 
             else -> 0.5
@@ -467,7 +467,7 @@ class AIRepository(private val context: Context) {
     ): List<Place> {
         return places.filter { place ->
 
-            // ✅ Validación de categoría base
+            // Validación de categoría base
             val validCategories = setOf(
                 "restaurante", "cafe", "parque", "museo",
                 "bar", "discoteca", "centro_comercial",
@@ -480,7 +480,7 @@ class AIRepository(private val context: Context) {
                 return@filter false
             }
 
-            // ✅ Filtro por hora del día
+            // Filtro por hora del día
             val timeOk = when (timeOfDay.lowercase()) {
                 "mañana" -> {
                     // Por la mañana NO mostrar discotecas ni bares
@@ -502,7 +502,7 @@ class AIRepository(private val context: Context) {
                 else -> true
             }
 
-            // ✅ Filtro por clima
+            // Filtro por clima
             val weatherOk = when (weather?.lowercase()) {
                 "lluvioso" -> {
                     // Con lluvia evitar lugares al aire libre
@@ -515,7 +515,7 @@ class AIRepository(private val context: Context) {
                 else -> true
             }
 
-            // ✅ Rating mínimo
+            // Rating mínimo
             val ratingOk = place.rating >= 3.5
 
             val passes = timeOk && weatherOk && ratingOk
@@ -895,7 +895,7 @@ class AIRepository(private val context: Context) {
     }
 
         suspend fun getTopPlacesAI(limit: Int = 10): List<PlaceRecommendation> {
-        // Ubicación de Bogotá como default
+
         val fakeLocation = UserLocation(latitude = 4.7110, longitude = -74.0721)
         return getTopPlaceRecommendations(fakeLocation, radiusKm = 10.0, limit = limit)
     }
@@ -903,8 +903,8 @@ class AIRepository(private val context: Context) {
     // ========== DETALLES DE UN LUGAR ESPECÍFICO ==========
     suspend fun getPlaceDetails(placeId: String): Place? {
         return try {
-            // URL del endpoint de detalles de Google Places
-            val apiKey = "MAPS_API_KEY" // reemplázala por tu API Key real
+
+            val apiKey = "MAPS_API_KEY"
             val url =
                 "https://maps.googleapis.com/maps/api/place/details/json?place_id=$placeId&fields=name,formatted_address,rating,geometry,photos,types&key=$apiKey"
 
@@ -914,28 +914,28 @@ class AIRepository(private val context: Context) {
 
             val response = connection.inputStream.bufferedReader().use { it.readText() }
 
-            // Parsear respuesta JSON
+
             val json = org.json.JSONObject(response)
             val result = json.optJSONObject("result") ?: return null
 
-            // Extraer datos básicos
+
             val name = result.optString("name", "Sin nombre")
             val address = result.optString("formatted_address", "Sin dirección")
             val rating = result.optDouble("rating", 0.0)
 
-            // Coordenadas
+
             val geometry = result.optJSONObject("geometry")
             val location = geometry?.optJSONObject("location")
             val lat = location?.optDouble("lat", 0.0) ?: 0.0
             val lng = location?.optDouble("lng", 0.0) ?: 0.0
 
-            // Categoría (types[0])
+
             val typesArray = result.optJSONArray("types")
             val category = if (typesArray != null && typesArray.length() > 0)
                 typesArray.getString(0)
             else "Sin categoría"
 
-            // Foto (photo_reference → URL)
+
             val photosArray = result.optJSONArray("photos")
             val photoUrl = if (photosArray != null && photosArray.length() > 0) {
                 val photoReference =
@@ -943,7 +943,7 @@ class AIRepository(private val context: Context) {
                 buildPhotoUrl(photoReference)
             } else null
 
-            // Crear objeto Place
+
             Place(
                 id = placeId,
                 name = name,
@@ -964,9 +964,9 @@ class AIRepository(private val context: Context) {
         }
     }
 
-    // 🔧 Función auxiliar para construir la URL de la foto
+
     private fun buildPhotoUrl(photoReference: String): String {
-        val apiKey = "MAPS_API_KEY" // usa la misma key que arriba
+        val apiKey = "MAPS_API_KEY"
         return "https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photo_reference=$photoReference&key=$apiKey"
     }
 

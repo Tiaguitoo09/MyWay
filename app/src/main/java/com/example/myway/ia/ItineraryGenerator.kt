@@ -7,18 +7,13 @@ import kotlinx.coroutines.tasks.await
 import java.text.SimpleDateFormat
 import java.util.*
 
-/**
- * Generador de itinerarios GRATUITO
- * No requiere API de OpenAI, usa lógica propia
- */
+
 class ItineraryGenerator(private val context: Context) {
 
     private val firestore = FirebaseFirestore.getInstance()
     private val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
 
-    /**
-     * Genera un itinerario completo para un viaje
-     */
+
     suspend fun generateItinerary(
         destination: String,
         startDate: String,
@@ -53,7 +48,7 @@ class ItineraryGenerator(private val context: Context) {
             )
             dayPlans.add(dayPlan)
 
-            // Avanzar al siguiente día
+
             currentDate.add(Calendar.DAY_OF_MONTH, 1)
         }
 
@@ -80,9 +75,7 @@ class ItineraryGenerator(private val context: Context) {
         )
     }
 
-    /**
-     * Obtener lugares relevantes para el destino
-     */
+
     private suspend fun getPlacesForDestination(
         destination: String,
         interests: List<String>
@@ -114,7 +107,7 @@ class ItineraryGenerator(private val context: Context) {
                     null
                 }
             }.filter { place ->
-                // Filtrar por categorías válidas
+
                 place.category in listOf("restaurante", "cafe", "museo", "parque", "mirador", "centro_comercial")
             }
         } catch (e: Exception) {
@@ -123,16 +116,12 @@ class ItineraryGenerator(private val context: Context) {
         }
     }
 
-    /**
-     * Categorizar lugares por tipo
-     */
+
     private fun categorizePlaces(places: List<Place>): Map<String, List<Place>> {
         return places.groupBy { it.category }
     }
 
-    /**
-     * Generar plan para un día específico
-     */
+
     private fun generateDayPlan(
         day: Int,
         date: String,
@@ -143,14 +132,14 @@ class ItineraryGenerator(private val context: Context) {
         val activities = mutableListOf<Activity>()
         val meals = mutableListOf<Meal>()
 
-        // Título del día
+
         val title = when {
             isFirstDay -> "Llegada y exploración"
             isLastDay -> "Último día y regreso"
             else -> "Día $day de exploración"
         }
 
-        // MAÑANA (9:00 - 12:00)
+
         if (isFirstDay) {
             activities.add(
                 Activity(
@@ -163,7 +152,7 @@ class ItineraryGenerator(private val context: Context) {
                 )
             )
         } else {
-            // Actividad cultural o natural
+
             val morningPlace = selectPlace(categorizedPlaces, listOf("museo", "parque", "mirador"))
             if (morningPlace != null) {
                 activities.add(
@@ -184,7 +173,7 @@ class ItineraryGenerator(private val context: Context) {
             }
         }
 
-        // ALMUERZO (12:30)
+
         val lunchPlace = selectPlace(categorizedPlaces, listOf("restaurante", "cafe"))
         meals.add(
             Meal(
@@ -194,7 +183,7 @@ class ItineraryGenerator(private val context: Context) {
             )
         )
 
-        // TARDE (14:00 - 18:00)
+
         val afternoonPlace = selectPlace(categorizedPlaces, listOf("centro_comercial", "museo", "parque"))
         if (afternoonPlace != null) {
             activities.add(
@@ -209,7 +198,7 @@ class ItineraryGenerator(private val context: Context) {
             )
         }
 
-        // CENA (19:00)
+
         val dinnerPlace = selectPlace(categorizedPlaces, listOf("restaurante"))
         meals.add(
             Meal(
@@ -219,7 +208,7 @@ class ItineraryGenerator(private val context: Context) {
             )
         )
 
-        // NOCHE (21:00)
+
         if (!isLastDay) {
             activities.add(
                 Activity(
@@ -241,9 +230,7 @@ class ItineraryGenerator(private val context: Context) {
         )
     }
 
-    /**
-     * Seleccionar un lugar de categorías específicas
-     */
+
     private fun selectPlace(
         categorizedPlaces: Map<String, List<Place>>,
         preferredCategories: List<String>
@@ -257,9 +244,7 @@ class ItineraryGenerator(private val context: Context) {
         return null
     }
 
-    /**
-     * Construir texto completo del itinerario
-     */
+
     private fun buildItineraryText(
         destination: String,
         startDate: String,

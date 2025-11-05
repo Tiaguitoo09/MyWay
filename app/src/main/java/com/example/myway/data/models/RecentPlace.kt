@@ -11,7 +11,7 @@ data class RecentPlace(
     // Constructor vacío requerido por Firebase
     constructor() : this("", "", "", 0.0, 0.0, 0L)
 
-    // Convertir a HashMap para Firebase
+
     fun toMap(): HashMap<String, Any> {
         return hashMapOf(
             "id" to id,

@@ -1,9 +1,5 @@
 package com.example.myway.ai
 
-/**
- * Modelos de datos para el sistema de IA
- */
-
 // ========== UBICACIÓN ==========
 
 data class UserLocation(
@@ -13,7 +9,6 @@ data class UserLocation(
 
 // ========== LUGAR ==========
 
-// dentro del mismo archivo donde defines data class Place(...)
 
 data class Place(
     val id: String,
@@ -27,7 +22,7 @@ data class Place(
     val rating: Double,
     val tags: List<String>,
     val weatherSuitable: List<String>,
-    val phoneNumber: String? = null     // <-- NUEVO campo (nullable)
+    val phoneNumber: String? = null
 ) {
     companion object {
         fun fromMap(map: Map<String, Any?>): Place {
@@ -72,9 +67,6 @@ fun Place.toMap(): Map<String, Any?> {
 
 // ========== REQUESTS DE RECOMENDACIÓN ==========
 
-/**
- * Request para recomendación rápida (sin configuración)
- */
 data class QuickRecommendationRequest(
     val userLocation: UserLocation,
     val currentWeather: String?, // soleado, nublado, lluvioso
@@ -82,9 +74,7 @@ data class QuickRecommendationRequest(
     val userId: String
 )
 
-/**
- * Request para recomendación personalizada (Tu Mood)
- */
+
 data class PersonalizedRecommendationRequest(
     val userLocation: UserLocation,
     val mood: String, // feliz, triste, aventurero, relajado, romántico
@@ -98,21 +88,16 @@ data class PersonalizedRecommendationRequest(
 
 // ========== RESPONSES DE RECOMENDACIÓN ==========
 
-/**
- * Recomendación generada por la IA
- */
+
 data class AIRecommendation(
     val place: Place,
-    val score: Double, // 0-100
-    val reason: String, // Explicación de por qué se recomienda
-    val distance: Double, // Distancia en km
-    val estimatedDuration: String // Tiempo estimado para llegar
+    val score: Double,
+    val reason: String,
+    val distance: Double,
+    val estimatedDuration: String
 )
 
-/**
- * Detalles adicionales del lugar recomendado
- * (obtenidos de Google Places API)
- */
+
 data class RecommendedPlaceDetails(
     val name: String,
     val address: String,
@@ -125,9 +110,6 @@ data class RecommendedPlaceDetails(
 
 // ========== CONTEXTO DEL USUARIO ==========
 
-/**
- * Información del historial y preferencias del usuario
- */
 data class UserContext(
     val favoriteCategories: List<String> = emptyList(),
     val frequentTags: List<String> = emptyList(),
@@ -137,9 +119,6 @@ data class UserContext(
 
 // ========== SCORING ==========
 
-/**
- * Pesos para el cálculo de scores
- */
 data class ScoringWeights(
     val categoryMatch: Double = 0.25,
     val tagMatch: Double = 0.20,
@@ -152,34 +131,27 @@ data class ScoringWeights(
 
 // ========== MODELOS PARA ITINERARIOS ==========
 
-/**
- * Request para generar itinerario de viaje
- */
 data class ItineraryRequest(
     val destination: String,
     val startDate: String,
     val endDate: String,
-    val budget: String, // "economico", "moderado", "alto"
-    val interests: List<String>, // ["cultura", "aventura", "gastronomía", "naturaleza", etc.]
-    val travelStyle: String, // "relajado", "intenso", "balanceado"
-    val companions: String, // "solo", "pareja", "familia", "amigos"
+    val budget: String,
+    val interests: List<String>,
+    val travelStyle: String,
+    val companions: String,
     val userId: String
 )
 
-/**
- * Response con itinerario generado
- */
+
 data class ItineraryResponse(
-    val itinerary: String, // Texto completo del itinerario
+    val itinerary: String,
     val dayByDay: List<DayPlan>,
     val estimatedCost: String,
     val recommendations: List<String>,
     val timestamp: Long
 )
 
-/**
- * Plan para un día específico
- */
+
 data class DayPlan(
     val day: Int,
     val title: String,
@@ -187,11 +159,9 @@ data class DayPlan(
     val meals: List<Meal>
 )
 
-/**
- * Actividad dentro de un día
- */
+
 data class Activity(
-    val time: String, // "Mañana", "Tarde", "Noche"
+    val time: String,
     val name: String,
     val description: String,
     val location: String?,
@@ -199,11 +169,9 @@ data class Activity(
     val duration: String
 )
 
-/**
- * Comida recomendada
- */
+
 data class Meal(
-    val type: String, // "desayuno", "almuerzo", "cena"
+    val type: String,
     val recommendation: String,
     val estimatedCost: String
 )
@@ -219,9 +187,7 @@ data class PlaceRecommendation(
     val razon: String
 )
 
-/**
- * Modelo principal de un plan de viaje
- */
+
 data class TravelPlan(
     val id: String = "",
     val userId: String = "",
@@ -276,9 +242,7 @@ data class TravelPlan(
     }
 }
 
-/**
- * Actividad de un día específico
- */
+
 data class DayActivity(
     val dia: Int = 1,
     val fecha: String = "",
@@ -307,15 +271,13 @@ data class DayActivity(
     }
 }
 
-/**
- * Actividad individual dentro de un día
- */
+
 data class ItineraryActivity(
     val hora: String = "",
     val titulo: String = "",
     val descripcion: String = "",
     val lugar: String = "",
-    val tipo: String = "" // desayuno, almuerzo, cena, visita, transporte, etc.
+    val tipo: String = ""
 ) {
     fun toMap(): Map<String, Any?> {
         return mapOf(
