@@ -113,7 +113,7 @@ fun PlanesViaje(navController: NavController) {
                 color = Verde,
                 textColor = Blanco,
                 fontWeight = FontWeight.Normal,
-                icon = painterResource(id = R.drawable.ic_search),
+                icon = painterResource(id = R.drawable.icono_suma),
                 modifier = Modifier.fillMaxWidth(),
                 onClick = { navController.navigate("crear_plan") }
             )
@@ -127,7 +127,7 @@ fun PlanesViaje(navController: NavController) {
                 color = Rojo,
                 textColor = Blanco,
                 fontWeight = FontWeight.Normal,
-                icon = painterResource(id = R.drawable.ic_search),
+                icon = painterResource(id = R.drawable.icono_restar),
                 modifier = Modifier.fillMaxWidth(),
                 onClick = { navController.navigate("eliminar_plan") }
             )
