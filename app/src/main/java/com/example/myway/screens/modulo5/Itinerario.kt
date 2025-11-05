@@ -110,11 +110,15 @@ fun Itinerario(
                             // Simula proceso de creación
                             delay(2000)
 
-                            guardarPlanSimple(
+                            // ✅ Generar itinerario primero
+                            val itinerarioGenerado = generarItinerario(destino)
+
+                            // ✅ Guardar plan CON itinerario
+                            guardarPlanConItinerario(
                                 titulo, destino, fechaInicio, fechaFin,
+                                itinerarioGenerado, // ✅ Pasar el itinerario aquí
                                 onSuccess = {
-                                    // Generar itinerario con IA simulada
-                                    itinerario = generarItinerario(destino)
+                                    itinerario = itinerarioGenerado
                                     isCreating = false
                                     Toast.makeText(context, "¡Plan creado con éxito!", Toast.LENGTH_SHORT).show()
                                 },
@@ -166,12 +170,13 @@ fun Itinerario(
     }
 }
 
-// 🔹 Guarda el plan en Firestore
-fun guardarPlanSimple(
+// 🔹 Guarda el plan CON ITINERARIO en Firestore
+fun guardarPlanConItinerario(
     titulo: String,
     destino: String,
     fechaInicio: String,
     fechaFin: String,
+    itinerario: List<String>, // ✅ Ahora recibe el itinerario
     onSuccess: () -> Unit,
     onError: (String) -> Unit
 ) {
@@ -190,6 +195,7 @@ fun guardarPlanSimple(
         "fechaInicio" to fechaInicio,
         "fechaFin" to fechaFin,
         "duracion" to calcularDias(fechaInicio, fechaFin),
+        "itinerario" to itinerario, // ✅ Guardar el itinerario aquí
         "createdAt" to System.currentTimeMillis()
     )
 

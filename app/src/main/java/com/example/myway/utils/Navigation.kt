@@ -26,6 +26,7 @@ import com.example.myway.screens.modulo5.ViajesGuardados
 import com.example.myway.screens.modulo5.Itinerario
 import com.google.firebase.auth.FirebaseAuth
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
+import com.example.myway.screens.modulo5.VerPlan
 
 @Composable
 fun MyWayAppNavigation(
@@ -222,9 +223,6 @@ fun MyWayAppNavigation(
             EliminarPlan(navController = navController)
         }
 
-        composable("eliminar_plan2") {
-            EliminarPlan2(navController = navController)
-        }
 
 
         composable(
@@ -248,6 +246,19 @@ fun MyWayAppNavigation(
                 destino = destino,
                 fechaInicio = fechaInicio,
                 fechaFin = fechaFin
+            )
+        }
+
+        composable(
+            route = "ver_plan/{planId}",
+            arguments = listOf(
+                navArgument("planId") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val planId = backStackEntry.arguments?.getString("planId") ?: ""
+            VerPlan(
+                navController = navController,
+                planId = planId
             )
         }
     }
