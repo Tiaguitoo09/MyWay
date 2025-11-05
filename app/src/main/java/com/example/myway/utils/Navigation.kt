@@ -213,8 +213,15 @@ fun MyWayAppNavigation(
         }
 
         composable("crear_plan") {
-            CrearPlan(navController = navController)
+            CrearPlan(navController)
         }
+
+        /*composable(
+            route = "ver_plan/{planId}",
+            arguments = listOf(navArgument("planId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            VerPlan(navController, backStackEntry.arguments?.getString("planId"))
+        }*/
 
         composable("eliminar_plan") {
             EliminarPlan(navController = navController)

@@ -218,3 +218,124 @@ data class PlaceRecommendation(
     val categoria: String,
     val razon: String
 )
+
+/**
+ * Modelo principal de un plan de viaje
+ */
+data class TravelPlan(
+    val id: String = "",
+    val userId: String = "",
+    val titulo: String = "",
+    val destino: String = "",
+    val fechaInicio: String = "",
+    val fechaFin: String = "",
+    val duracion: Int = 1, // días
+    val itinerario: String = "", // Texto completo generado por IA
+    val actividades: List<DayActivity> = emptyList(),
+    val createdAt: Long = System.currentTimeMillis(),
+    val updatedAt: Long = System.currentTimeMillis()
+) {
+    // Convertir a Map para guardar en Firestore
+    fun toMap(): Map<String, Any?> {
+        return mapOf(
+            "id" to id,
+            "userId" to userId,
+            "titulo" to titulo,
+            "destino" to destino,
+            "fechaInicio" to fechaInicio,
+            "fechaFin" to fechaFin,
+            "duracion" to duracion,
+            "itinerario" to itinerario,
+            "actividades" to actividades.map { it.toMap() },
+            "createdAt" to createdAt,
+            "updatedAt" to updatedAt
+        )
+    }
+
+    companion object {
+        // Convertir desde Firestore
+        fun fromMap(map: Map<String, Any?>): TravelPlan {
+            return TravelPlan(
+                id = map["id"] as? String ?: "",
+                userId = map["userId"] as? String ?: "",
+                titulo = map["titulo"] as? String ?: "",
+                destino = map["destino"] as? String ?: "",
+                fechaInicio = map["fechaInicio"] as? String ?: "",
+                fechaFin = map["fechaFin"] as? String ?: "",
+                duracion = (map["duracion"] as? Long)?.toInt() ?: 1,
+                itinerario = map["itinerario"] as? String ?: "",
+                actividades = (map["actividades"] as? List<*>)?.mapNotNull { item ->
+                    (item as? Map<*, *>)?.let { activityMap ->
+                        DayActivity.fromMap(activityMap as Map<String, Any?>)
+                    }
+                } ?: emptyList(),
+                createdAt = map["createdAt"] as? Long ?: System.currentTimeMillis(),
+                updatedAt = map["updatedAt"] as? Long ?: System.currentTimeMillis()
+            )
+        }
+    }
+}
+
+/**
+ * Actividad de un día específico
+ */
+data class DayActivity(
+    val dia: Int = 1,
+    val fecha: String = "",
+    val actividades: List<ItineraryActivity> = emptyList()
+){
+    fun toMap(): Map<String, Any?> {
+        return mapOf(
+            "dia" to dia,
+            "fecha" to fecha,
+            "actividades" to actividades.map { it.toMap() }
+        )
+    }
+
+    companion object {
+        fun fromMap(map: Map<String, Any?>): DayActivity {
+            return DayActivity(
+                dia = (map["dia"] as? Long)?.toInt() ?: 1,
+                fecha = map["fecha"] as? String ?: "",
+                actividades = (map["actividades"] as? List<*>)?.mapNotNull { item ->
+                    (item as? Map<*, *>)?.let { actMap ->
+                        ItineraryActivity.fromMap(actMap as Map<String, Any?>)
+                    }
+                } ?: emptyList()
+            )
+        }
+    }
+}
+
+/**
+ * Actividad individual dentro de un día
+ */
+data class ItineraryActivity(
+    val hora: String = "",
+    val titulo: String = "",
+    val descripcion: String = "",
+    val lugar: String = "",
+    val tipo: String = "" // desayuno, almuerzo, cena, visita, transporte, etc.
+) {
+    fun toMap(): Map<String, Any?> {
+        return mapOf(
+            "hora" to hora,
+            "titulo" to titulo,
+            "descripcion" to descripcion,
+            "lugar" to lugar,
+            "tipo" to tipo
+        )
+    }
+
+    companion object {
+        fun fromMap(map: Map<String, Any?>): ItineraryActivity {
+            return ItineraryActivity(
+                hora = map["hora"] as? String ?: "",
+                titulo = map["titulo"] as? String ?: "",
+                descripcion = map["descripcion"] as? String ?: "",
+                lugar = map["lugar"] as? String ?: "",
+                tipo = map["tipo"] as? String ?: ""
+            )
+        }
+    }
+}
