@@ -13,6 +13,7 @@ import com.example.myway.screens.modulo1.IngresoUsuario
 import com.example.myway.screens.modulo1.InicioPantalla
 import com.example.myway.screens.modulo1.OlvidoContraseña
 import com.example.myway.screens.modulo1.RegistroUsuario
+import com.example.myway.screens.modulo1.SplashScreen
 import com.example.myway.screens.modulo2.*
 import com.example.myway.screens.modulo3.*
 import com.example.myway.screens.modulo4.Recomiendame
@@ -24,9 +25,9 @@ import com.example.myway.screens.modulo5.EliminarPlan
 import com.example.myway.screens.modulo5.PlanesViaje
 import com.example.myway.screens.modulo5.ViajesGuardados
 import com.example.myway.screens.modulo5.Itinerario
+import com.example.myway.screens.modulo5.VerPlan
 import com.google.firebase.auth.FirebaseAuth
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
-import com.example.myway.screens.modulo5.VerPlan
 
 @Composable
 fun MyWayAppNavigation(
@@ -34,7 +35,12 @@ fun MyWayAppNavigation(
     auth: FirebaseAuth,
     googleSignInClient: GoogleSignInClient
 ) {
-    NavHost(navController = navController, startDestination = "inicio") {
+    NavHost(navController = navController, startDestination = "splash") {
+
+        // 🔹 Splash Screen - Verifica sesión
+        composable("splash") {
+            SplashScreen(navController)
+        }
 
         // 🏁 Pantallas de autenticación
         composable("inicio") { InicioPantalla(navController) }
@@ -53,10 +59,10 @@ fun MyWayAppNavigation(
 
         composable("cambio_exitoso") { CambioExitoso(navController) }
 
-
+        // ⏳ Pantalla de carga
         composable("cargando") { Cargando(navController) }
 
-
+        // 🗺️ HOME - Mapa principal sin parámetros
         composable("home") {
             Home(
                 navController = navController,
@@ -66,6 +72,7 @@ fun MyWayAppNavigation(
             )
         }
 
+        // 🗺️ HOME - Mostrar lugares por tipo (restaurantes, hoteles, etc.)
         composable(
             route = "home/{placeType}",
             arguments = listOf(
@@ -81,7 +88,7 @@ fun MyWayAppNavigation(
             )
         }
 
-
+        // 🗺️ HOME - Con destino específico
         composable(
             route = "home/{placeId}/{placeName}",
             arguments = listOf(
@@ -103,7 +110,7 @@ fun MyWayAppNavigation(
             )
         }
 
-
+        // 👤 Perfil y configuración
         composable("perfil_ajustes") { PerfilAjustes(navController) }
         composable("eliminar_cuenta") { EliminarCuenta(navController) }
         composable("cerrar_sesion") { CerrarSesion(navController) }
@@ -113,22 +120,22 @@ fun MyWayAppNavigation(
         composable("soporte") { Soporte(navController) }
         composable("silenciar_notificaciones") { SilenciarNotificaciones(navController) }
 
-
+        // 🚗 MODO COPILOTO - uso seguro mientras conduces
         composable("modo_copiloto") {
             ModoCopiloto(navController = navController)
         }
 
-
+        // 🔐 PERMISOS - Gestión de permisos
         composable("permisos") {
             Permisos(navController = navController)
         }
 
-
+        // 🔍 PLANEA VIAJE - Búsqueda de destinos
         composable("planea_viaje") {
             PlaneaViaje(navController = navController)
         }
 
-
+        // 🚗 RUTA OPCIONES - Seleccionar tipo de transporte
         composable(
             route = "ruta_opciones/{placeId}/{placeName}",
             arguments = listOf(
@@ -145,7 +152,7 @@ fun MyWayAppNavigation(
             RutaOpciones(navController, placeId, placeName)
         }
 
-
+        // 🧭 NAVEGACIÓN ACTIVA - Guía paso a paso
         composable(
             route = "navegacion_activa/{placeId}/{placeName}/{transportMode}",
             arguments = listOf(
@@ -167,11 +174,11 @@ fun MyWayAppNavigation(
             NavegacionActiva(navController, placeId, placeName, transportMode)
         }
 
-
+        // ⭐ Favoritos y guardados
         composable("guardados") { Guardados(navController) }
         composable("favoritos") { Favoritos(navController) }
 
-
+        // 📍 Detalles de lugar
         composable(
             route = "detalles_lugar/{placeId}/{placeName}",
             arguments = listOf(
@@ -222,8 +229,6 @@ fun MyWayAppNavigation(
             EliminarPlan(navController = navController)
         }
 
-
-
         composable(
             route = "itinerario/{titulo}/{destino}/{fechaInicio}/{fechaFin}",
             arguments = listOf(
@@ -233,7 +238,6 @@ fun MyWayAppNavigation(
                 navArgument("fechaFin") { type = NavType.StringType }
             )
         ) { backStackEntry ->
-
             val titulo = Uri.decode(backStackEntry.arguments?.getString("titulo") ?: "")
             val destino = Uri.decode(backStackEntry.arguments?.getString("destino") ?: "")
             val fechaInicio = Uri.decode(backStackEntry.arguments?.getString("fechaInicio") ?: "")
