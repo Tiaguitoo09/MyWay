@@ -19,7 +19,7 @@ import com.example.myway.screens.modulo3.*
 import com.example.myway.screens.modulo4.Recomiendame
 import com.example.myway.screens.modulo4.SinPlan
 import com.example.myway.screens.modulo4.TuMood
-import com.example.myway.screens.modulo4.RankingLugares
+import com.example.myway.screens.modulo4.RankingLugaresPorCategorias
 import com.example.myway.screens.modulo5.CrearPlan
 import com.example.myway.screens.modulo5.EliminarPlan
 import com.example.myway.screens.modulo5.PlanesViaje
@@ -210,7 +210,7 @@ fun MyWayAppNavigation(
         }
 
         composable("ranking_lugares") {
-            RankingLugares(navController = navController)
+            RankingLugaresPorCategorias(navController = navController)
         }
 
         composable("planes_de_viaje") {

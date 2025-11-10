@@ -4,16 +4,11 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Error
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -25,19 +20,20 @@ import androidx.navigation.NavController
 import com.example.myway.R
 import com.example.myway.screens.CustomButton
 import com.example.myway.ui.theme.*
-import kotlinx.coroutines.launch
-import com.example.myway.ai.PopulatePlaces
+
+// ====== PASOS PARA USAR SOLO GOOGLE PLACES API ======
+// 1. Elimina el archivo PopulatePlaces.kt
+// 2. En AIRepository.kt, comenta o elimina las líneas 164-231
+//    (la función getPlacesFromFirebaseWithCache)
+// 3. En AIRepository.kt línea 154, cambia:
+//    val firebasePlaces = getPlacesFromFirebaseWithCache(location, radiusKm)
+//    POR:
+//    val firebasePlaces = emptyList<Place>()
+// 4. Listo! Ahora solo usas Google Places API
 
 @Composable
 fun SinPlan(navController: NavController) {
     val scrollState = rememberScrollState()
-    val scope = rememberCoroutineScope()
-
-    // Estados para el setup
-    var showSetup by remember { mutableStateOf(false) }
-    var isLoading by remember { mutableStateOf(false) }
-    var isDone by remember { mutableStateOf(false) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
 
     Box(modifier = Modifier.fillMaxSize()) {
         // Fondo
@@ -79,189 +75,6 @@ fun SinPlan(navController: NavController) {
                     fontWeight = FontWeight.Bold,
                     fontSize = 22.sp
                 )
-            }
-
-
-            if (showSetup) {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 16.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = Azul4.copy(alpha = 0.95f)
-                    ),
-                    shape = RoundedCornerShape(16.dp),
-                    elevation = CardDefaults.cardElevation(8.dp)
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = "⚙️ Configuración Inicial",
-                            fontFamily = Nunito,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 18.sp,
-                            color = Blanco
-                        )
-
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        Text(
-                            text = "Añade 20 lugares emblemáticos de Bogotá para que la IA tenga mejores recomendaciones",
-                            fontFamily = Nunito,
-                            fontSize = 14.sp,
-                            color = Blanco.copy(alpha = 0.9f),
-                            textAlign = TextAlign.Center
-                        )
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        when {
-                            isLoading -> {
-                                CircularProgressIndicator(
-                                    color = Blanco,
-                                    modifier = Modifier.size(40.dp)
-                                )
-                                Spacer(modifier = Modifier.height(12.dp))
-                                Text(
-                                    text = "Creando lugares en Firebase...",
-                                    fontFamily = Nunito,
-                                    fontSize = 14.sp,
-                                    color = Blanco
-                                )
-                            }
-
-                            isDone -> {
-                                Icon(
-                                    imageVector = Icons.Default.CheckCircle,
-                                    contentDescription = null,
-                                    tint = Verde,
-                                    modifier = Modifier.size(48.dp)
-                                )
-                                Spacer(modifier = Modifier.height(12.dp))
-                                Text(
-                                    text = "20 lugares creados",
-                                    fontFamily = Nunito,
-                                    fontSize = 16.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Blanco
-                                )
-                                Spacer(modifier = Modifier.height(8.dp))
-                                TextButton(
-                                    onClick = { showSetup = false }
-                                ) {
-                                    Text(
-                                        text = "Continuar",
-                                        color = Blanco,
-                                        fontFamily = Nunito,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                }
-                            }
-
-                            errorMessage != null -> {
-                                Icon(
-                                    imageVector = Icons.Default.Error,
-                                    contentDescription = null,
-                                    tint = Color.Red,
-                                    modifier = Modifier.size(48.dp)
-                                )
-                                Spacer(modifier = Modifier.height(12.dp))
-                                Text(
-                                    text = "Error: $errorMessage",
-                                    fontFamily = Nunito,
-                                    fontSize = 14.sp,
-                                    color = Color.Red,
-                                    textAlign = TextAlign.Center
-                                )
-                                Spacer(modifier = Modifier.height(12.dp))
-                                Row(
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    OutlinedButton(
-                                        onClick = { showSetup = false },
-                                        colors = ButtonDefaults.outlinedButtonColors(
-                                            contentColor = Blanco
-                                        )
-                                    ) {
-                                        Text("Omitir", fontFamily = Nunito)
-                                    }
-                                    Button(
-                                        onClick = {
-                                            errorMessage = null
-                                            isLoading = true
-                                            scope.launch {
-                                                try {
-                                                    PopulatePlaces.addSamplePlaces()
-                                                    isDone = true
-                                                } catch (e: Exception) {
-                                                    errorMessage = e.message ?: "Error desconocido"
-                                                } finally {
-                                                    isLoading = false
-                                                }
-                                            }
-                                        },
-                                        colors = ButtonDefaults.buttonColors(
-                                            containerColor = Blanco
-                                        )
-                                    ) {
-                                        Text(
-                                            "Reintentar",
-                                            color = Azul4,
-                                            fontFamily = Nunito,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                    }
-                                }
-                            }
-
-                            else -> {
-                                Button(
-                                    onClick = {
-                                        isLoading = true
-                                        errorMessage = null
-                                        scope.launch {
-                                            try {
-                                                PopulatePlaces.addSamplePlaces()
-                                                isDone = true
-                                            } catch (e: Exception) {
-                                                errorMessage = e.message ?: "Error desconocido"
-                                            } finally {
-                                                isLoading = false
-                                            }
-                                        }
-                                    },
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = Blanco
-                                    ),
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Text(
-                                        text = "Crear Lugares",
-                                        fontFamily = Nunito,
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 16.sp,
-                                        color = Azul4
-                                    )
-                                }
-
-                                Spacer(modifier = Modifier.height(8.dp))
-
-                                TextButton(
-                                    onClick = { showSetup = false }
-                                ) {
-                                    Text(
-                                        text = "Omitir (usar solo Google Places)",
-                                        color = Blanco.copy(alpha = 0.7f),
-                                        fontFamily = Nunito,
-                                        fontSize = 12.sp
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
             }
 
             // Textos descriptivos
@@ -317,7 +130,7 @@ fun SinPlan(navController: NavController) {
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Botón: Recomendación Personalizada
+            // Botón: Ranking de Lugares
             CustomButton(
                 alignCenter = false,
                 text = stringResource(R.string.ranking_lugares_top),

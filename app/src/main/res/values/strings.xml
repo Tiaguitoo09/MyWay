@@ -300,4 +300,29 @@
     <string name="recientes_eliminados">Recientes eliminados</string>
     <string name="no_lugares_recientes">No hay lugares recientes</string>
     <string name="google_maps_no_instalado">Google Maps no está instalado</string>
+
+
+    <!-- ========== AGREGAR AL FINAL DE strings.xml ========== -->
+
+    <!-- Ranking por Categorías -->
+    <string name="ranking_por_categorias">Ranking por Categorías</string>
+    <string name="cargando_lugares">Cargando lugares...</string>
+    <string name="no_lugares_categoria">No se encontraron lugares en esta categoría</string>
+    <string name="ver_detalles">Ver detalles</string>
+
+    <!-- Categorías -->
+    <string name="categoria_restaurantes">Restaurantes &amp; Cafés</string>
+    <string name="categoria_parques">Parques &amp; Naturaleza</string>
+    <string name="categoria_cultura">Cultura &amp; Ocio</string>
+    <string name="categoria_shopping">Shopping</string>
+    <string name="categoria_vida_nocturna">Vida Nocturna</string>
+    <string name="categoria_hoteles">Hoteles</string>
+
+    <!-- Descripciones de Categorías -->
+    <string name="desc_restaurantes">Los mejores lugares para comer cerca de ti</string>
+    <string name="desc_parques">Espacios naturales y miradores cercanos</string>
+    <string name="desc_cultura">Museos, teatros y entretenimiento</string>
+    <string name="desc_shopping">Centros comerciales y zonas de compras</string>
+    <string name="desc_vida_nocturna">Bares y discotecas para la noche</string>
+    <string name="desc_hoteles">Alojamiento recomendado en la zona</string>
 </resources>

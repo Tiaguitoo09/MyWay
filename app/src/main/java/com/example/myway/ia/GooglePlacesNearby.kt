@@ -95,7 +95,6 @@ object GooglePlacesNearby {
 
                         val place = parsePlaceFromJson(placeJson)
 
-
                         if (place.category in listOf("hotel", "hospedaje", "otro")) {
                             Log.d("GooglePlaces", "❌ Rechazado por categoría: ${place.name} (${place.category})")
                             continue
@@ -174,7 +173,6 @@ object GooglePlacesNearby {
         )
     }
 
-
     private fun inferCategory(types: List<String>): String {
         // ❌ Primero rechazar tipos no deseados
         if (types.any { it in BLOCKED_TYPES }) {
@@ -240,28 +238,55 @@ object GooglePlacesNearby {
         }
     }
 
-    suspend fun searchNearbyWithPagination(
+
+
+    // ========== BÚSQUEDA OPTIMIZADA PARA RANKING (INCLUYE HOTELES) ==========
+
+    /**
+     * Búsqueda OPTIMIZADA para ranking que INCLUYE hoteles
+     */
+    suspend fun searchNearbyForRanking(
         location: UserLocation,
-        radiusMeters: Int = 5000,
-        maxResults: Int = 60
+        radiusMeters: Int = 10000
     ): List<Place> {
-        val allPlaces = mutableListOf<Place>()
-        var pageToken: String? = null
-
-        repeat(maxResults / 20) {
-            val url = buildUrl(location, radiusMeters, pageToken)
-
+        return withContext(Dispatchers.IO) {
             try {
+                // Tipos permitidos para ranking (incluye hoteles)
+                val rankingTypes = listOf(
+                    "restaurant", "cafe", "bakery", "food",
+                    "bar", "night_club",
+                    "park", "tourist_attraction",
+                    "museum", "art_gallery", "aquarium",
+                    "shopping_mall", "store",
+                    "movie_theater", "bowling_alley", "amusement_park",
+                    "lodging" // ⭐ HOTELES PERMITIDOS PARA RANKING
+                )
+
+                val typeParam = rankingTypes.joinToString("|")
+                val url = "$BASE_URL?" +
+                        "location=${location.latitude},${location.longitude}" +
+                        "&radius=$radiusMeters" +
+                        "&type=${URLEncoder.encode(typeParam, "UTF-8")}" +
+                        "&key=$apiKey"
+
+                Log.d("GooglePlaces", "🔍 Ranking: ${radiusMeters}m")
+
                 val response = URL(url).readText()
                 val json = JSONObject(response)
 
-                if (json.getString("status") == "OK") {
-                    val results = json.getJSONArray("results")
+                val status = json.getString("status")
+                if (status != "OK" && status != "ZERO_RESULTS") {
+                    Log.e("GooglePlaces", "❌ Status: $status")
+                    return@withContext emptyList()
+                }
 
-                    for (i in 0 until results.length()) {
-                        val placeJson = results.getJSONObject(i)
+                val results = json.getJSONArray("results")
+                val places = mutableListOf<Place>()
 
-                        // Aplicar filtros
+                for (i in 0 until results.length()) {
+                    val placeJson = results.getJSONObject(i)
+
+                    try {
                         val typesArray = placeJson.optJSONArray("types")
                         val placeTypes = if (typesArray != null) {
                             (0 until typesArray.length()).map { typesArray.getString(it) }
@@ -269,45 +294,126 @@ object GooglePlacesNearby {
                             emptyList()
                         }
 
-                        if (placeTypes.any { it in BLOCKED_TYPES }) continue
-                        if (placeTypes.none { it in ALLOWED_TYPES }) continue
-
-                        val place = parsePlaceFromJson(placeJson)
-                        if (place.category !in listOf("hotel", "hospedaje", "otro")) {
-                            allPlaces.add(place)
+                        // Verificar que tenga tipos relevantes
+                        if (placeTypes.none { it in rankingTypes }) {
+                            continue
                         }
+
+                        // Parsear con categoría correcta para ranking
+                        val place = parsePlaceFromJsonForRanking(placeJson, placeTypes)
+                        places.add(place)
+
+                    } catch (e: Exception) {
+                        Log.e("GooglePlaces", "Error parseando: ${e.message}")
                     }
-
-                    pageToken = json.optString("next_page_token", null)
-
-                    if (pageToken.isNullOrEmpty()) {
-                        return@repeat
-                    }
-
-                    kotlinx.coroutines.delay(2000)
-                } else {
-                    return@repeat
                 }
+
+                Log.d("GooglePlaces", "✅ ${places.size} lugares (ranking)")
+                places
+
             } catch (e: Exception) {
-                Log.e("GooglePlaces", "Error en paginación: ${e.message}")
-                return@repeat
+                Log.e("GooglePlaces", "❌ Error ranking: ${e.message}", e)
+                emptyList()
             }
         }
-
-        return allPlaces
     }
 
-    private fun buildUrl(location: UserLocation, radius: Int, pageToken: String?): String {
-        var url = "$BASE_URL?" +
-                "location=${location.latitude},${location.longitude}" +
-                "&radius=$radius" +
-                "&type=restaurant|cafe|park|museum|bar" +
-                "&key=$apiKey"
+    /**
+     * Parser ESPECÍFICO para ranking que detecta hoteles correctamente
+     */
+    private fun parsePlaceFromJsonForRanking(json: JSONObject, types: List<String>): Place {
+        val geometry = json.getJSONObject("geometry")
+        val locationObj = geometry.getJSONObject("location")
 
-        if (pageToken != null) {
-            url += "&pagetoken=$pageToken"
+        val lat = locationObj.getDouble("lat")
+        val lng = locationObj.getDouble("lng")
+
+        val placeId = json.getString("place_id")
+        val name = json.getString("name")
+        val address = json.optString("vicinity", "Dirección no disponible")
+        val rating = json.optDouble("rating", 0.0)
+        val priceLevel = json.optInt("price_level", 2)
+
+        // Usar función específica para ranking que detecta hoteles
+        val category = inferCategoryForRanking(types)
+        val tags = inferTagsForRanking(types, rating, priceLevel, category)
+
+        return Place(
+            id = placeId,
+            name = name,
+            address = address,
+            latitude = lat,
+            longitude = lng,
+            photoUrl = null,
+            category = category,
+            priceLevel = priceLevel,
+            rating = rating,
+            tags = tags,
+            weatherSuitable = getWeatherSuitability(category)
+        )
+    }
+
+    /**
+     * Detectar categoría INCLUYENDO hoteles (para ranking)
+     */
+    private fun inferCategoryForRanking(types: List<String>): String {
+        return when {
+            // ⭐ HOTELES (ahora sí se detectan)
+            types.any { it in listOf("lodging", "hotel", "motel", "hostel") } -> "hotel"
+
+            // Resto de categorías (con mejor detección)
+            types.any { it == "night_club" } -> "discoteca"
+            types.any { it == "bar" } -> "bar"
+            types.any { it == "restaurant" || it == "food" } -> "restaurante"
+            types.any { it == "cafe" || it == "bakery" } -> "cafe"
+            types.any { it == "park" } -> "parque"
+            types.any { it == "museum" || it == "art_gallery" || it == "aquarium" } -> "museo"
+            types.any { it == "shopping_mall" || it == "shopping_center" } -> "centro_comercial"
+            types.any { it == "movie_theater" } -> "cine"
+            types.any { it == "tourist_attraction" } -> "atraccion_turistica"
+            types.any { it == "bowling_alley" || it == "amusement_park" } -> "entretenimiento"
+            types.any { it == "store" || it == "clothing_store" } -> "zona_comercial"
+            else -> "otro"
+        }
+    }
+
+    /**
+     * Tags mejorados para ranking
+     */
+    private fun inferTagsForRanking(
+        types: List<String>,
+        rating: Double,
+        priceLevel: Int,
+        category: String
+    ): List<String> {
+        val tags = mutableListOf<String>()
+
+        // Rating
+        when {
+            rating >= 4.5 -> tags.addAll(listOf("excelente", "recomendado", "popular"))
+            rating >= 4.0 -> tags.addAll(listOf("bueno", "recomendado"))
+            rating >= 3.5 -> tags.add("popular")
         }
 
-        return url
+        // Precio
+        when (priceLevel) {
+            0, 1 -> tags.add("económico")
+            2 -> tags.add("moderado")
+            3, 4 -> tags.addAll(listOf("premium", "elegante"))
+        }
+
+        // Por categoría específica
+        when (category) {
+            "hotel" -> tags.addAll(listOf("alojamiento", "hospedaje"))
+            "restaurante" -> tags.add("gastronomía")
+            "cafe" -> tags.addAll(listOf("acogedor", "tranquilo"))
+            "parque" -> tags.addAll(listOf("natural", "familiar", "aire libre"))
+            "museo" -> tags.addAll(listOf("cultural", "educativo"))
+            "bar", "discoteca" -> tags.addAll(listOf("social", "nocturno", "vibrante"))
+            "centro_comercial" -> tags.addAll(listOf("shopping", "entretenimiento"))
+            "atraccion_turistica" -> tags.addAll(listOf("turístico", "imperdible"))
+        }
+
+        return tags.distinct()
     }
 }
