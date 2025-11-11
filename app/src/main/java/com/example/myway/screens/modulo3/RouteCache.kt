@@ -6,6 +6,7 @@ import com.google.android.gms.maps.model.LatLng
 import com.google.gson.Gson
 import kotlin.math.roundToInt
 
+
 object RouteCache {
     private const val PREFS_NAME = "route_cache_prefs"
     private const val CACHE_EXPIRY_MS = 24 * 60 * 60 * 1000L // 24 horas
@@ -14,7 +15,13 @@ object RouteCache {
     data class CachedRoute(
         val points: List<SerializableLatLng>,
         val steps: List<NavigationStep>,
+        val segments: List<CachedSegment>?, // ✅ nuevo
         val timestamp: Long
+    )
+
+    data class CachedSegment(
+        val points: List<SerializableLatLng>,
+        val colorHex: String // guardar como "#RRGGBB"
     )
 
     data class SerializableLatLng(
@@ -36,7 +43,9 @@ object RouteCache {
         return "${oLat},${oLng}|${dLat},${dLng}|$mode"
     }
 
-    fun get(context: Context, origin: LatLng, destination: LatLng, mode: String): Pair<List<LatLng>, List<NavigationStep>>? {
+    fun get(context: Context, origin: LatLng, destination: LatLng, mode: String):
+            Triple<List<LatLng>, List<NavigationStep>, List<Pair<List<LatLng>, androidx.compose.ui.graphics.Color>>>? {
+
         val key = generateKey(origin, destination, mode)
         val prefs = getPrefs(context)
         val json = prefs.getString(key, null) ?: return null
@@ -47,12 +56,19 @@ object RouteCache {
             val currentTime = System.currentTimeMillis()
             if (currentTime - cached.timestamp > CACHE_EXPIRY_MS) {
                 prefs.edit().remove(key).apply()
-                android.util.Log.d("RouteCache", "Caché expirado")
+                android.util.Log.d("RouteCache", "⏰ Caché expirado")
                 null
             } else {
-                android.util.Log.d("RouteCache", "Caché encontrado (GRATIS)")
+                android.util.Log.d("RouteCache", "✅ Caché encontrado (GRATIS - 0 API calls)")
                 val points = cached.points.map { it.toLatLng() }
-                Pair(points, cached.steps)
+
+                val segments = cached.segments?.map { seg ->
+                    val segPoints = seg.points.map { it.toLatLng() }
+                    val color = androidx.compose.ui.graphics.Color(android.graphics.Color.parseColor(seg.colorHex))
+                    segPoints to color
+                } ?: emptyList()
+
+                Triple(points, cached.steps, segments)
             }
         } catch (e: Exception) {
             e.printStackTrace()
@@ -61,26 +77,36 @@ object RouteCache {
     }
 
     fun put(context: Context, origin: LatLng, destination: LatLng, mode: String,
-            points: List<LatLng>, steps: List<NavigationStep>) {
+            points: List<LatLng>, steps: List<NavigationStep>,
+            segments: List<Pair<List<LatLng>, androidx.compose.ui.graphics.Color>>) {
+
         val key = generateKey(origin, destination, mode)
 
         val serializablePoints = points.map {
             SerializableLatLng(it.latitude, it.longitude)
         }
 
+        val serializableSegments = segments.map { (segPoints, color) ->
+            CachedSegment(
+                points = segPoints.map { SerializableLatLng(it.latitude, it.longitude) },
+                colorHex = String.format("#%08X", color.value.toLong())
+            )
+        }
+
         val cached = CachedRoute(
             points = serializablePoints,
             steps = steps,
+            segments = serializableSegments,
             timestamp = System.currentTimeMillis()
         )
 
         val json = gson.toJson(cached)
         getPrefs(context).edit().putString(key, json).apply()
-        android.util.Log.d("RouteCache", "Ruta guardada en caché")
+        android.util.Log.d("RouteCache", "💾 Ruta guardada en caché")
     }
 
     fun clearAll(context: Context) {
         getPrefs(context).edit().clear().apply()
-        android.util.Log.d("RouteCache", "Caché eliminado")
+        android.util.Log.d("RouteCache", "🗑️ Caché eliminado")
     }
 }

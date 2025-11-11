@@ -1,6 +1,7 @@
 package com.example.myway.screens.modulo3
 
 import android.Manifest
+import android.content.Context
 import android.content.pm.PackageManager
 import android.location.Location
 import android.util.Log
@@ -14,6 +15,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -48,6 +50,7 @@ import org.json.JSONObject
 import java.net.URL
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
+import java.util.Locale
 
 data class NavigationStep(
     val instruction: String,
@@ -94,7 +97,7 @@ fun NavegacionActiva(
     var allSteps by remember { mutableStateOf<List<NavigationStep>>(emptyList()) }
     var paradasEnRuta by remember { mutableStateOf<List<NearbyPlace>>(emptyList()) }
     var mostrarParadas by remember { mutableStateOf(true) }
-
+    var routeSegments by remember { mutableStateOf<List<Pair<List<LatLng>, Color>>>(emptyList()) }
     var lastUpdateTime by remember { mutableLongStateOf(0L) }
     var lastKnownLocation by remember { mutableStateOf<LatLng?>(null) }
     var followUserLocation by remember { mutableStateOf(true) }
@@ -298,107 +301,125 @@ fun NavegacionActiva(
 
     LaunchedEffect(placeId, currentLocation) {
         if (placeId != null && currentLocation != null) {
+            Log.d("NavegacionActiva", "🔎 Detectando tipo de destino para: $placeId")
 
-            if (!placeId.startsWith("ChIJ") && !placeId.startsWith("Ei")) {
+            val firestore = FirebaseFirestore.getInstance()
+            val placeFields = listOf(Place.Field.LAT_LNG)
+            val request = FetchPlaceRequest.newInstance(placeId, placeFields)
 
-                Log.d("NavegacionActiva", "📦 Lugar de Firebase detectado: $placeId")
-
+            scope.launch {
                 try {
-                    val firestore = com.google.firebase.firestore.FirebaseFirestore.getInstance()
                     val doc = firestore.collection("lugares")
                         .document(placeId)
                         .get()
                         .await()
 
                     if (doc.exists()) {
+                        Log.d("NavegacionActiva", "📦 Lugar detectado desde Firebase")
                         val lat = doc.getDouble("latitude")
                         val lng = doc.getDouble("longitude")
 
                         if (lat != null && lng != null) {
                             val dest = LatLng(lat, lng)
                             destinationLocation = dest
-                            Log.d("NavegacionActiva", "✅ Coordenadas obtenidas: $lat, $lng")
+                            val preferencias = PreferenciasManager.cargarPreferencias(context)
+                            val mode = when (transportMode) {
+                                "walking" -> "walking"
+                                "bicycle" -> "bicycling"
+                                "motorcycle" -> "driving"
+                                else -> "driving"
+                            }
 
-                            scope.launch {
-                                val mode = when (transportMode) {
-                                    "walking" -> "walking"
-                                    "driving" -> "driving"
-                                    "motorcycle" -> "driving"
-                                    else -> "driving"
-                                }
+                            // ✅ INTENTAR CARGAR DESDE CACHÉ PRIMERO
+                            val cachedRoute = RouteCache.get(context, currentLocation!!, dest, mode)
 
-                                val preferencias = PreferenciasManager.cargarPreferencias(context)
+                            if (cachedRoute != null) {
+                                Log.d("NavegacionActiva", "✅ Ruta cargada desde caché (GRATIS)")
+                                routePoints = cachedRoute.first
+                                allSteps = cachedRoute.second
+                                routeSegments = cachedRoute.third // ✅ Ahora usa los segmentos del caché
+                            } else {
+                                Log.d("NavegacionActiva", "🌐 Obteniendo ruta desde API (CONSUME CRÉDITOS)")
                                 val routeData = getNavigationRoute(currentLocation!!, dest, mode, preferencias.rutaMasRapida)
                                 routePoints = routeData.first
                                 allSteps = routeData.second
+                                routeSegments = routeData.third
 
-                                if (allSteps.isNotEmpty()) {
-                                    currentStep = allSteps[0]
-                                    if (allSteps.size > 1) {
-                                        nextStep = allSteps[1]
-                                    }
-                                }
-
-                                val dist = calculateDistance(currentLocation!!, dest)
-                                distanceToDestination = formatDistance(dist)
+                                // ✅ GUARDAR EN CACHÉ
+                                RouteCache.put(context, currentLocation!!, dest, mode, routePoints, allSteps, routeSegments)
                             }
-                        } else {
-                            distanceToDestination = "Error: sin coordenadas"
+
+                            if (allSteps.isNotEmpty()) {
+                                currentStep = allSteps[0]
+                                nextStep = allSteps.getOrNull(1)
+                            }
+
+                            val dist = calculateDistance(currentLocation!!, dest)
+                            distanceToDestination = formatDistance(dist)
+                            return@launch
                         }
-                    } else {
-                        distanceToDestination = "Error: lugar no encontrado"
                     }
+
+                    // Google Places...
+                    Log.d("NavegacionActiva", "🌍 Intentando con Google Places")
+                    placesClient.fetchPlace(request)
+                        .addOnSuccessListener { response ->
+                            val dest = response.place.latLng
+                            if (dest != null) {
+                                destinationLocation = dest
+                                scope.launch {
+                                    val preferencias = PreferenciasManager.cargarPreferencias(context)
+                                    val mode = when (transportMode) {
+                                        "walking" -> "walking"
+                                        "bicycle" -> "bicycling"
+                                        "motorcycle" -> "driving"
+                                        else -> "driving"
+                                    }
+
+                                    // ✅ CACHÉ TAMBIÉN PARA GOOGLE PLACES
+                                    val cachedRoute = RouteCache.get(context, currentLocation!!, dest, mode)
+
+                                    if (cachedRoute != null) {
+                                        Log.d("NavegacionActiva", "✅ Ruta cargada desde caché (GRATIS)")
+                                        routePoints = cachedRoute.first
+                                        allSteps = cachedRoute.second
+                                        routeSegments = cachedRoute.third // ✅ Ahora usa los segmentos del caché
+                                    } else {
+                                        Log.d("NavegacionActiva", "🌐 Obteniendo ruta desde API (CONSUME CRÉDITOS)")
+                                        val routeData = getNavigationRoute(currentLocation!!, dest, mode, preferencias.rutaMasRapida)
+                                        routePoints = routeData.first
+                                        allSteps = routeData.second
+                                        routeSegments = routeData.third
+
+                                        RouteCache.put(context, currentLocation!!, dest, mode, routePoints, allSteps, routeSegments)
+                                    }
+
+                                    if (allSteps.isNotEmpty()) {
+                                        currentStep = allSteps[0]
+                                        nextStep = allSteps.getOrNull(1)
+                                    }
+
+                                    val dist = calculateDistance(currentLocation!!, dest)
+                                    distanceToDestination = formatDistance(dist)
+                                }
+                            }
+                        }
+                        .addOnFailureListener {
+                            Log.e("NavegacionActiva", "❌ Error con Google Places: ${it.message}")
+                            distanceToDestination = "Error al obtener destino"
+                        }
+
                 } catch (e: Exception) {
-                    Log.e("NavegacionActiva", "❌ Error: ${e.message}")
+                    Log.e("NavegacionActiva", "❌ Error general: ${e.message}")
                     distanceToDestination = "Error al obtener destino"
                 }
-            } else {
-
-                Log.d("NavegacionActiva", "🌍 Lugar de Google Places detectado: $placeId")
-
-                val placeFields = listOf(Place.Field.LAT_LNG)
-                val request = FetchPlaceRequest.newInstance(placeId, placeFields)
-
-                placesClient.fetchPlace(request)
-                    .addOnSuccessListener { response ->
-                        val dest = response.place.latLng
-                        if (dest != null) {
-                            destinationLocation = dest
-
-                            scope.launch {
-                                val mode = when (transportMode) {
-                                    "walking" -> "walking"
-                                    "driving" -> "driving"
-                                    "motorcycle" -> "driving"
-                                    else -> "driving"
-                                }
-
-                                val preferencias = PreferenciasManager.cargarPreferencias(context)
-                                val routeData = getNavigationRoute(currentLocation!!, dest, mode, preferencias.rutaMasRapida)
-                                routePoints = routeData.first
-                                allSteps = routeData.second
-
-                                if (allSteps.isNotEmpty()) {
-                                    currentStep = allSteps[0]
-                                    if (allSteps.size > 1) {
-                                        nextStep = allSteps[1]
-                                    }
-                                }
-
-                                val dist = calculateDistance(currentLocation!!, dest)
-                                distanceToDestination = formatDistance(dist)
-                            }
-                        }
-                    }
-                    .addOnFailureListener {
-                        it.printStackTrace()
-                        distanceToDestination = "Error al obtener destino"
-                    }
             }
         }
     }
 
+
     // Cargar paradas sugeridas a lo largo de la ruta
+// Cargar paradas sugeridas a lo largo de la ruta
     LaunchedEffect(routePoints, destinationLocation) {
         if (routePoints.isNotEmpty()) {
             scope.launch {
@@ -406,44 +427,43 @@ fun NavegacionActiva(
                 val todasLasParadas = mutableListOf<NearbyPlace>()
 
                 if (preferencias.paradasSugeridas.isNotEmpty()) {
+                    // ✅ REDUCIDO A 2 PUNTOS (antes eran 4)
                     val puntosIntermediarios = listOf(
-                        routePoints[routePoints.size / 5],
-                        routePoints[routePoints.size * 2 / 5],
-                        routePoints[routePoints.size * 3 / 5],
-                        routePoints[routePoints.size * 4 / 5]
+                        routePoints[routePoints.size / 3],
+                        routePoints[routePoints.size * 2 / 3]
                     )
 
                     puntosIntermediarios.forEach { punto ->
-                        if (preferencias.paradasSugeridas.contains("gasolinera")) {
-                            val gasolineras = fetchNearbyPlacesInRoute(
-                                placesClient, punto, "gas_station", 500, "gasolinera"
-                            )
-                            todasLasParadas.addAll(gasolineras)
-                        }
-
-                        if (preferencias.paradasSugeridas.contains("restaurante")) {
-                            val restaurantes = fetchNearbyPlacesInRoute(
-                                placesClient, punto, "restaurant", 500, "restaurante"
-                            )
-                            todasLasParadas.addAll(restaurantes)
-                        }
-
-                        if (preferencias.paradasSugeridas.contains("tienda")) {
-                            val tiendas = fetchNearbyPlacesInRoute(
-                                placesClient, punto, "convenience_store", 500, "tienda"
-                            )
-                            todasLasParadas.addAll(tiendas)
+                        // ✅ SOLO EL PRIMER TIPO (antes buscaba los 3)
+                        when (preferencias.paradasSugeridas.firstOrNull()) {
+                            "gasolinera" -> {
+                                val gasolineras = fetchNearbyPlacesInRoute(
+                                    placesClient, punto, "gas_station", 800, "gasolinera", context // ✅ pasar context
+                                )
+                                todasLasParadas.addAll(gasolineras)
+                            }
+                            "restaurante" -> {
+                                val restaurantes = fetchNearbyPlacesInRoute(
+                                    placesClient, punto, "restaurant", 800, "restaurante", context
+                                )
+                                todasLasParadas.addAll(restaurantes)
+                            }
+                            "tienda" -> {
+                                val tiendas = fetchNearbyPlacesInRoute(
+                                    placesClient, punto, "convenience_store", 800, "tienda", context
+                                )
+                                todasLasParadas.addAll(tiendas)
+                            }
                         }
                     }
 
                     paradasEnRuta = todasLasParadas
                         .distinctBy { "${it.latLng.latitude}-${it.latLng.longitude}" }
-                        .take(15)
+                        .take(10)
                 }
             }
         }
     }
-
     DisposableEffect(Unit) {
         onDispose {
             fusedLocationClient.removeLocationUpdates(locationCallback)
@@ -457,12 +477,14 @@ fun NavegacionActiva(
                 currentLocation = location,
                 destinationLocation = destinationLocation,
                 routePoints = routePoints,
+                routeSegments = routeSegments, // 👈 nuevo
                 placeName = placeName,
                 cameraPositionState = cameraPositionState,
                 currentBearing = currentBearing,
                 paradasEnRuta = paradasEnRuta,
                 mostrarParadas = mostrarParadas
             )
+
         } else {
             Box(
                 modifier = Modifier.fillMaxSize(),
@@ -688,6 +710,7 @@ fun EnhancedNavigationMap(
     currentLocation: LatLng,
     destinationLocation: LatLng?,
     routePoints: List<LatLng>,
+    routeSegments: List<Pair<List<LatLng>, Color>> = emptyList(),
     placeName: String?,
     cameraPositionState: CameraPositionState,
     currentBearing: Float,
@@ -700,12 +723,18 @@ fun EnhancedNavigationMap(
         currentMarkerState.position = currentLocation
     }
 
+    // Log para debugging
+    LaunchedEffect(routeSegments, routePoints) {
+        Log.d("EnhancedNavigationMap", "📍 routeSegments: ${routeSegments.size}, routePoints: ${routePoints.size}")
+    }
+
     GoogleMap(
         modifier = Modifier.fillMaxSize(),
         cameraPositionState = cameraPositionState,
         properties = MapProperties(
             isMyLocationEnabled = false,
-            mapType = MapType.NORMAL
+            mapType = MapType.NORMAL,
+            isTrafficEnabled = true
         ),
         uiSettings = MapUiSettings(
             zoomControlsEnabled = false,
@@ -718,31 +747,42 @@ fun EnhancedNavigationMap(
             zoomGesturesEnabled = true
         )
     ) {
-        if (routePoints.isNotEmpty()) {
+        // Dibujar segmentos de ruta con colores de tráfico
+        if (routeSegments.isNotEmpty()) {
+            Log.d("EnhancedNavigationMap", "🎨 Drawing ${routeSegments.size} colored segments")
+            routeSegments.forEach { (points, color) ->
+                if (points.isNotEmpty()) {
+                    Polyline(
+                        points = points,
+                        color = color,
+                        width = 16f,
+                        geodesic = true
+                    )
+                }
+            }
+        } else if (routePoints.isNotEmpty()) {
+            // Fallback: ruta sin datos de tráfico
+            Log.d("EnhancedNavigationMap", "🔵 Drawing fallback route with ${routePoints.size} points")
             Polyline(
                 points = routePoints,
-                color = androidx.compose.ui.graphics.Color.White,
-                width = 18f,
-                geodesic = true,
-                zIndex = -1f
-            )
-
-            Polyline(
-                points = routePoints,
-                color = androidx.compose.ui.graphics.Color(0xFF4285F4),
+                color = Color(0xFF4285F4),
                 width = 14f,
                 geodesic = true
             )
+        } else {
+            Log.d("EnhancedNavigationMap", "⚠️ No route to draw")
         }
 
+        // Círculo de ubicación actual
         Circle(
             center = currentLocation,
             radius = 25.0,
-            fillColor = androidx.compose.ui.graphics.Color(0x304285F4),
-            strokeColor = androidx.compose.ui.graphics.Color(0x804285F4),
+            fillColor = Color(0x304285F4),
+            strokeColor = Color(0x804285F4),
             strokeWidth = 3f
         )
 
+        // Marcador de ubicación actual
         Marker(
             state = currentMarkerState,
             icon = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE),
@@ -751,6 +791,7 @@ fun EnhancedNavigationMap(
             rotation = currentBearing
         )
 
+        // Marcador de destino
         destinationLocation?.let {
             Marker(
                 state = MarkerState(position = it),
@@ -759,12 +800,13 @@ fun EnhancedNavigationMap(
             )
         }
 
+        // Marcadores de paradas sugeridas
         if (mostrarParadas) {
             paradasEnRuta.forEach { parada ->
                 val markerColor = when (parada.type) {
-                    "gasolinera" -> BitmapDescriptorFactory.HUE_YELLOW // Amarillo
-                    "restaurante" -> BitmapDescriptorFactory.HUE_ORANGE // Naranja
-                    "tienda" -> BitmapDescriptorFactory.HUE_VIOLET // Violeta
+                    "gasolinera" -> BitmapDescriptorFactory.HUE_YELLOW
+                    "restaurante" -> BitmapDescriptorFactory.HUE_ORANGE
+                    "tienda" -> BitmapDescriptorFactory.HUE_VIOLET
                     else -> BitmapDescriptorFactory.HUE_ORANGE
                 }
 
@@ -789,8 +831,16 @@ suspend fun fetchNearbyPlacesInRoute(
     location: LatLng,
     type: String,
     radius: Int = 500,
-    placeType: String = ""
+    placeType: String = "",
+    context: Context // ✅ agregar context
 ): List<NearbyPlace> {
+    // ✅ INTENTAR CARGAR DESDE CACHÉ
+    val cachedPlaces = PlacesCache.get(context, location.latitude, location.longitude, type)
+    if (cachedPlaces != null) {
+        return cachedPlaces
+    }
+
+    // Si no hay caché, hacer la llamada a la API
     return withContext(Dispatchers.IO) {
         try {
             val apiKey = BuildConfig.MAPS_API_KEY
@@ -800,11 +850,12 @@ suspend fun fetchNearbyPlacesInRoute(
                     "&type=$type" +
                     "&key=$apiKey"
 
+            Log.d("PlacesAPI", "🌐 Llamando a Places API (CONSUME CRÉDITOS)")
             val response = URL(url).readText()
             val json = JSONObject(response)
             val results = json.getJSONArray("results")
 
-            (0 until results.length().coerceAtMost(3)).mapNotNull { i ->
+            val places = (0 until results.length().coerceAtMost(3)).mapNotNull { i ->
                 val obj = results.getJSONObject(i)
                 val placeId = obj.optString("place_id")
                 val name = obj.optString("name")
@@ -817,6 +868,11 @@ suspend fun fetchNearbyPlacesInRoute(
                     NearbyPlace(placeId, name, LatLng(lat, lng), placeType)
                 } else null
             }
+
+            // ✅ GUARDAR EN CACHÉ
+            PlacesCache.put(context, location.latitude, location.longitude, type, places)
+
+            places
         } catch (e: Exception) {
             e.printStackTrace()
             emptyList()
@@ -856,39 +912,53 @@ suspend fun getNavigationRoute(
     destination: LatLng,
     mode: String,
     useFastestRoute: Boolean = false
-): Pair<List<LatLng>, List<NavigationStep>> {
+): Triple<List<LatLng>, List<NavigationStep>, List<Pair<List<LatLng>, Color>>> {
     return withContext(Dispatchers.IO) {
         try {
             val apiKey = BuildConfig.MAPS_API_KEY
 
-            val trafficParams = if (useFastestRoute) {
-                "&departure_time=now&traffic_model=best_guess&alternatives=false"
+            val regionCode = Locale.getDefault().country.lowercase()
+
+            // Solo agregar parámetros de tráfico para modo driving
+            val trafficParams = if (mode == "driving") {
+                "&departure_time=now&traffic_model=best_guess"
             } else {
                 ""
             }
+
             val url = "https://maps.googleapis.com/maps/api/directions/json?" +
                     "origin=${origin.latitude},${origin.longitude}" +
                     "&destination=${destination.latitude},${destination.longitude}" +
                     "&mode=$mode" +
+                    (if (regionCode.isNotEmpty()) "&region=$regionCode" else "") +
+                    "&alternatives=false" +
                     trafficParams +
-                    "&language=es" +
+                    "&language=${Locale.getDefault().language}" +
                     "&key=$apiKey"
+
+            Log.d("NavegacionActiva", "🌐 URL: $url")
+            Log.d("NavegacionActiva", "🚗 Mode: $mode, Traffic params: $trafficParams")
 
             val response = URL(url).readText()
             val json = JSONObject(response)
 
+            Log.d("NavegacionActiva", "📡 Response status: ${json.optString("status")}")
+
             val routes = json.getJSONArray("routes")
-            if (routes.length() == 0) return@withContext Pair(emptyList(), emptyList())
+            if (routes.length() == 0) {
+                Log.e("NavegacionActiva", "❌ No routes found")
+                return@withContext Triple(emptyList(), emptyList(), emptyList())
+            }
 
             val route = routes.getJSONObject(0)
             val legs = route.getJSONArray("legs")
             val leg = legs.getJSONObject(0)
 
-            val polylineStr = route.getJSONObject("overview_polyline").getString("points")
-            val points = PolyUtil.decode(polylineStr)
-
             val steps = leg.getJSONArray("steps")
             val navigationSteps = mutableListOf<NavigationStep>()
+            val polylineSegments = mutableListOf<Pair<List<LatLng>, Color>>()
+
+            Log.d("NavegacionActiva", "📊 Processing ${steps.length()} steps")
 
             for (i in 0 until steps.length()) {
                 val step = steps.getJSONObject(i)
@@ -900,26 +970,52 @@ suspend fun getNavigationRoute(
                 instruction = translateInstruction(instruction)
 
                 val distance = step.getJSONObject("distance").getString("text")
-                val duration = step.getJSONObject("duration").getString("text")
+                val duration = step.getJSONObject("duration").getInt("value")
+                val durationInTraffic = step.optJSONObject("duration_in_traffic")?.optInt("value") ?: duration
                 val maneuver = step.optString("maneuver", "")
 
                 navigationSteps.add(
                     NavigationStep(
                         instruction = instruction,
                         distance = distance,
-                        duration = duration,
+                        duration = "${duration / 60} min",
                         maneuver = maneuver
                     )
                 )
+
+                // Decodificar polyline de este step
+                val polylineStr = step.getJSONObject("polyline").getString("points")
+                val points = PolyUtil.decode(polylineStr)
+
+                // Determinar color según tráfico
+                val ratio = durationInTraffic.toDouble() / duration.toDouble()
+                val color = when {
+                    ratio > 1.5 -> Color(0xFFDC143C)    // Rojo - mucho tráfico
+                    ratio > 1.1 -> Color(0xFFFFA500)    // Naranja - tráfico moderado
+                    else -> Color(0xFF4285F4)           // Azul - tráfico fluido
+                }
+
+                polylineSegments.add(points to color)
+
+                Log.d("NavegacionActiva", "✅ Step $i: ${points.size} points, color ratio: $ratio")
             }
 
-            Pair(points, navigationSteps)
+            // Obtener la polyline general como fallback
+            val polylineStr = route.getJSONObject("overview_polyline").getString("points")
+            val overviewPoints = PolyUtil.decode(polylineStr)
+
+            Log.d("NavegacionActiva", "✅ Route loaded: ${overviewPoints.size} overview points, ${navigationSteps.size} steps, ${polylineSegments.size} segments")
+
+            Triple(overviewPoints, navigationSteps, polylineSegments)
         } catch (e: Exception) {
+            Log.e("NavegacionActiva", "❌ Error getting route: ${e.message}", e)
             e.printStackTrace()
-            Pair(emptyList(), emptyList())
+            Triple(emptyList(), emptyList(), emptyList())
         }
     }
 }
+
+
 
 fun translateInstruction(instruction: String): String {
     return instruction
