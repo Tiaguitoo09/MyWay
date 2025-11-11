@@ -938,66 +938,102 @@ class AIRepository(private val context: Context) {
 
     // ========== AGREGAR ESTAS FUNCIONES AL AIRepository.kt ==========
 
+
+    suspend fun getTopPlacesByCategoryWithCache(
+        location: UserLocation,
+        category: PlaceCategory,
+        radiusKm: Double = 20.0,
+        limit: Int = 20
+    ): List<Place> {
+        // ✅ INTENTAR OBTENER DEL CACHE PRIMERO
+        val cachedPlaces = cacheManager.getRankingCache(
+            category = category,
+            latitude = location.latitude,
+            longitude = location.longitude,
+            radiusKm = radiusKm
+        )
+
+        if (cachedPlaces != null) {
+            Log.d("AIRepository", "✅ Usando cache para ${category.displayName} (${cachedPlaces.size} lugares)")
+            return cachedPlaces.take(limit)
+        }
+
+        // ❌ NO HAY CACHE VÁLIDO - BUSCAR EN API
+        Log.d("AIRepository", "⬇️ Cache expirado, buscando en API para ${category.displayName}")
+
+        val places = getTopPlacesByCategory(location, category, radiusKm, limit)
+
+        // ✅ GUARDAR EN CACHE
+        if (places.isNotEmpty()) {
+            cacheManager.cacheRankingPlaces(
+                category = category,
+                latitude = location.latitude,
+                longitude = location.longitude,
+                radiusKm = radiusKm,
+                places = places
+            )
+            Log.d("AIRepository", "💾 Cache guardado para ${category.displayName}")
+        }
+
+        return places
+    }
+
     suspend fun getTopPlacesByCategory(
         location: UserLocation,
         category: PlaceCategory,
-        radiusKm: Double = 15.0,
-        limit: Int = 15
+        radiusKm: Double = 20.0,
+        limit: Int = 20
     ): List<Place> {
         return try {
             Log.d("AIRepository", "🔍 Buscando ${category.displayName} en radio de ${radiusKm}km")
 
-            // Obtener todos los lugares cercanos (incluye hoteles solo para ranking)
-            val allPlaces = searchNearbyPlacesForRanking(location, radiusKm)
+            // Buscar lugares específicos para esta categoría
+            val allPlaces = searchPlacesBySpecificCategory(location, category, radiusKm)
 
-            // Filtrar por categoría con match más flexible
-            val filteredPlaces = allPlaces.filter { place ->
-                category.categories.any { cat ->
-                    place.category.equals(cat, ignoreCase = true) ||
-                            place.category.contains(cat, ignoreCase = true)
-                }
-            }
+            Log.d("AIRepository", "📦 Total lugares obtenidos: ${allPlaces.size}")
 
-            Log.d("AIRepository", "📊 Encontrados ${filteredPlaces.size} lugares de ${category.displayName}")
-
-            if (filteredPlaces.isEmpty()) {
+            if (allPlaces.isEmpty()) {
+                Log.w("AIRepository", "⚠️ No se encontraron lugares de ${category.displayName}")
                 return emptyList()
             }
 
-            // Calcular score y ordenar
-            filteredPlaces
-                .map { place ->
-                    val distance = calculateDistance(
-                        location.latitude, location.longitude,
-                        place.latitude, place.longitude
-                    )
+            // ✅ FILTRO ADICIONAL PARA ELIMINAR HOTELES DE VIDA NOCTURNA Y RESTAURANTES
+            val cleanedPlaces = filterOutUnwantedPlaces(allPlaces, category)
 
-                    ScoredPlace(
-                        place = place,
-                        score = calculateRankingScore(place, distance),
-                        distance = distance
-                    )
+            Log.d("AIRepository", "🧹 Después de limpieza: ${cleanedPlaces.size} lugares")
+
+            // Filtrar por categoría con matching flexible
+            val filteredPlaces = cleanedPlaces.filter { place ->
+                val matchesCategory = category.categories.any { cat ->
+                    place.category.equals(cat, ignoreCase = true) ||
+                            place.category.contains(cat, ignoreCase = true) ||
+                            cat.contains(place.category, ignoreCase = true) ||
+                            place.name.contains(cat, ignoreCase = true)
                 }
-                .sortedByDescending { it.score }
-                .take(limit)
-                .also { topPlaces ->
-                    // Log de resultados
-                    topPlaces.forEachIndexed { index, scored ->
-                        Log.d(
-                            "AIRepository",
-                            "#${index + 1} ${scored.place.name} - Score: ${scored.score.format(1)} " +
-                                    "(${scored.distance.format(1)}km, ⭐${scored.place.rating})"
-                        )
-                    }
+
+                if (matchesCategory) {
+                    Log.d("AIRepository", "✅ MATCH: '${place.name}' (${place.category})")
                 }
-                .map { it.place }
+
+                matchesCategory
+            }
+
+            Log.d("AIRepository", "📊 Filtrados: ${filteredPlaces.size} de ${category.displayName}")
+
+            if (filteredPlaces.isEmpty()) {
+                Log.w("AIRepository", "⚠️ Usando lugares de respaldo")
+                val fallbackFiltered = cleanedPlaces.filter { it.rating >= 3.0 }
+                return scorePlacesForRanking(location, fallbackFiltered).take(limit)
+            }
+
+            // Calcular scores y ordenar
+            scorePlacesForRanking(location, filteredPlaces).take(limit)
 
         } catch (e: Exception) {
-            Log.e("AIRepository", "❌ Error obteniendo ranking: ${e.message}", e)
+            Log.e("AIRepository", "❌ Error: ${e.message}", e)
             emptyList()
         }
     }
-
 
     private suspend fun searchNearbyPlacesForRanking(
         location: UserLocation,
@@ -1024,12 +1060,20 @@ class AIRepository(private val context: Context) {
         location: UserLocation,
         radiusKm: Double
     ): List<Place> {
-        Log.d("AIRepository", "⬇️ Google Places (ranking)...")
+        Log.d("AIRepository", "⬇️ Google Places para ranking...")
         return try {
-            GooglePlacesNearby.searchNearbyForRanking(
+            val places = GooglePlacesNearby.searchNearbyForRanking(
                 location = location,
                 radiusMeters = (radiusKm * 1000).toInt()
             )
+
+            places
+                .distinctBy { it.name.lowercase().trim() }
+                .filter { it.rating >= 2.5 }
+                .also { filtered ->
+                    Log.d("AIRepository", "📍 ${filtered.size} lugares válidos después de filtros básicos")
+                }
+
         } catch (e: Exception) {
             Log.e("AIRepository", "❌ Error Google Places: ${e.message}")
             emptyList()
@@ -1040,39 +1084,36 @@ class AIRepository(private val context: Context) {
      * Calcula el score para ranking
      * 50% Distancia + 30% Rating + 20% Popularidad
      */
-    private fun calculateRankingScore(
-        place: Place,
-        distance: Double
-    ): Double {
-        // 1. DISTANCIA (55 puntos) - AUMENTADO para priorizar cercanía
+    private fun calculateRankingScore(place: Place, distance: Double): Double {
         val distanceScore = when {
-            distance < 0.5 -> 1.0      // Muy cerca
-            distance < 1.0 -> 0.95     // Caminable
-            distance < 2.0 -> 0.90     // Cerca
-            distance < 3.0 -> 0.80     // Accesible
-            distance < 5.0 -> 0.65     // Aceptable
-            distance < 7.0 -> 0.50     // Algo lejos
-            distance < 10.0 -> 0.35    // Lejos
-            distance < 15.0 -> 0.20    // Muy lejos
-            else -> 0.05               // Demasiado lejos
+            distance < 0.5 -> 1.0
+            distance < 1.0 -> 0.95
+            distance < 2.0 -> 0.90
+            distance < 3.0 -> 0.80
+            distance < 5.0 -> 0.65
+            distance < 7.0 -> 0.50
+            distance < 10.0 -> 0.35
+            distance < 15.0 -> 0.20
+            distance < 20.0 -> 0.10
+            else -> 0.05
         }
 
-        // 2. RATING (30 puntos)
         val ratingScore = when {
-            place.rating >= 4.7 -> 1.0
+            place.rating >= 4.8 -> 1.0
+            place.rating >= 4.7 -> 0.98
             place.rating >= 4.5 -> 0.95
             place.rating >= 4.3 -> 0.90
             place.rating >= 4.0 -> 0.85
             place.rating >= 3.8 -> 0.75
             place.rating >= 3.5 -> 0.65
             place.rating >= 3.0 -> 0.50
-            else -> 0.30
+            place.rating >= 2.5 -> 0.35
+            else -> 0.20
         }
 
-        // 3. POPULARIDAD (15 puntos)
         val popularityScore = calculatePopularityScore(place)
 
-        return (distanceScore * 55 + ratingScore * 30 + popularityScore * 15).coerceIn(0.0, 100.0)
+        return (distanceScore * 50 + ratingScore * 35 + popularityScore * 15).coerceIn(0.0, 100.0)
     }
 
     /**
@@ -1081,25 +1122,24 @@ class AIRepository(private val context: Context) {
     private fun calculatePopularityScore(place: Place): Double {
         var score = 0.0
 
-        // Tags importantes (40%)
         val importantTags = setOf(
             "popular", "recomendado", "excelente", "premium",
-            "único", "imperdible", "turístico", "famoso"
+            "único", "imperdible", "turístico", "famoso",
+            "destacado", "visita obligada"
         )
 
         val tagMatches = place.tags.count { tag ->
             importantTags.any { important ->
-                tag.contains(important, ignoreCase = true) || important.contains(tag, ignoreCase = true)
+                tag.contains(important, ignoreCase = true) ||
+                        important.contains(tag, ignoreCase = true)
             }
         }
-        score += (tagMatches.toDouble() / 4.0).coerceAtMost(1.0) * 0.4
+        score += (tagMatches.toDouble() / 5.0).coerceAtMost(1.0) * 0.5
 
-        // Cantidad de información (30%)
-        val infoScore = minOf(place.tags.size / 10.0, 1.0) * 0.3
+        val infoScore = minOf(place.tags.size / 8.0, 1.0) * 0.25
         score += infoScore
 
-        // Tiene foto (30%)
-        if (place.photoUrl != null) score += 0.3
+        if (place.photoUrl != null) score += 0.25
 
         return score.coerceIn(0.0, 1.0)
     }
@@ -1113,6 +1153,137 @@ class AIRepository(private val context: Context) {
 
     // Helper para formatear números
     private fun Double.format(decimals: Int): String = "%.${decimals}f".format(this)
+
+    private suspend fun searchPlacesBySpecificCategory(
+        location: UserLocation,
+        category: PlaceCategory,
+        radiusKm: Double
+    ): List<Place> {
+        return when (category) {
+            PlaceCategory.RESTAURANTES -> {
+                GooglePlacesNearby.searchBySpecificTypes(
+                    location = location,
+                    radiusMeters = (radiusKm * 1000).toInt(),
+                    types = listOf("restaurant", "cafe", "bakery", "food", "meal_takeaway")
+                )
+            }
+            PlaceCategory.PARQUES -> {
+                GooglePlacesNearby.searchBySpecificTypes(
+                    location = location,
+                    radiusMeters = (radiusKm * 1000).toInt(),
+                    types = listOf("park", "campground", "rv_park", "natural_feature")
+                )
+            }
+            PlaceCategory.CULTURA -> {
+                GooglePlacesNearby.searchBySpecificTypes(
+                    location = location,
+                    radiusMeters = (radiusKm * 1000).toInt(),
+                    types = listOf(
+                        "museum", "art_gallery", "aquarium", "zoo",
+                        "movie_theater", "performing_arts_theater",
+                        "tourist_attraction", "stadium", "casino",
+                        "bowling_alley", "amusement_park"
+                    )
+                )
+            }
+            PlaceCategory.SHOPPING -> {
+                GooglePlacesNearby.searchBySpecificTypes(
+                    location = location,
+                    radiusMeters = (radiusKm * 1000).toInt(),
+                    types = listOf(
+                        "shopping_mall", "department_store", "store",
+                        "clothing_store", "shoe_store", "electronics_store",
+                        "book_store", "jewelry_store"
+                    )
+                )
+            }
+            PlaceCategory.VIDA_NOCTURNA -> {
+                GooglePlacesNearby.searchBySpecificTypes(
+                    location = location,
+                    radiusMeters = (radiusKm * 1000).toInt(),
+                    types = listOf("bar", "night_club", "casino")
+                )
+            }
+            PlaceCategory.HOTELES -> {
+                GooglePlacesNearby.searchBySpecificTypes(
+                    location = location,
+                    radiusMeters = (radiusKm * 1000).toInt(),
+                    types = listOf("lodging", "hotel")
+                )
+            }
+        }
+    }
+
+    private fun scorePlacesForRanking(
+        location: UserLocation,
+        places: List<Place>
+    ): List<Place> {
+        return places.map { place ->
+            val distance = calculateDistance(
+                location.latitude, location.longitude,
+                place.latitude, place.longitude
+            )
+
+            ScoredPlace(
+                place = place,
+                score = calculateRankingScore(place, distance),
+                distance = distance
+            )
+        }
+            .sortedByDescending { it.score }
+            .also { scored ->
+                Log.d("AIRepository", "🏆 TOP LUGARES:")
+                scored.take(10).forEachIndexed { index, item ->
+                    Log.d("AIRepository", "#${index + 1} ${item.place.name} - Score: ${item.score.format(1)} (${item.distance.format(1)}km, ⭐${item.place.rating})")
+                }
+            }
+            .map { it.place }
+    }
+
+    private fun filterOutUnwantedPlaces(
+        places: List<Place>,
+        category: PlaceCategory
+    ): List<Place> {
+        return places.filter { place ->
+            when (category) {
+                PlaceCategory.VIDA_NOCTURNA -> {
+                    // Para vida nocturna, eliminar cualquier cosa que suene a hotel
+                    val isHotel = place.category.contains("hotel", ignoreCase = true) ||
+                            place.category.contains("lodging", ignoreCase = true) ||
+                            place.name.contains("hotel", ignoreCase = true) ||
+                            place.name.contains("hostel", ignoreCase = true) ||
+                            place.name.contains("inn", ignoreCase = true) ||
+                            place.name.contains("motel", ignoreCase = true) ||
+                            place.name.contains("resort", ignoreCase = true)
+
+                    if (isHotel) {
+                        Log.d("AIRepository", "❌ Filtrado de Vida Nocturna: ${place.name}")
+                    }
+
+                    !isHotel
+                }
+
+                PlaceCategory.RESTAURANTES -> {
+                    // Eliminar hoteles que tengan restaurante
+                    val isHotel = place.name.contains("hotel", ignoreCase = true) ||
+                            place.name.contains("hostel", ignoreCase = true) ||
+                            place.name.contains("resort", ignoreCase = true)
+                    !isHotel
+                }
+
+                else -> true // Para otras categorías, dejar pasar todo
+            }
+        }
+    }
+
+    fun clearRankingCache() {
+        cacheManager.clearRankingCache()
+        Log.d("AIRepository", "🧹 Cache de rankings limpiado")
+    }
+
+    fun cleanExpiredRankingCache() {
+        cacheManager.cleanExpiredRankingCache()
+    }
 
 
 

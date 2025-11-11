@@ -155,6 +155,13 @@ object GooglePlacesNearby {
             emptyList()
         }
 
+        // ✅ OBTENER FOTO
+        val photosArray = json.optJSONArray("photos")
+        val photoUrl = if (photosArray != null && photosArray.length() > 0) {
+            val photoReference = photosArray.getJSONObject(0).optString("photo_reference")
+            buildPhotoUrl(photoReference)
+        } else null
+
         val category = inferCategory(types)
         val tags = inferTags(types, rating, priceLevel)
 
@@ -164,7 +171,7 @@ object GooglePlacesNearby {
             address = address,
             latitude = lat,
             longitude = lng,
-            photoUrl = null,
+            photoUrl = photoUrl, // ✅ YA NO ES NULL
             category = category,
             priceLevel = priceLevel,
             rating = rating,
@@ -238,28 +245,48 @@ object GooglePlacesNearby {
         }
     }
 
-
+    // ✅ FUNCIÓN PARA CONSTRUIR URL DE FOTO
+    private fun buildPhotoUrl(photoReference: String): String {
+        return "https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photoreference=$photoReference&key=$apiKey"
+    }
 
     // ========== BÚSQUEDA OPTIMIZADA PARA RANKING (INCLUYE HOTELES) ==========
 
     /**
      * Búsqueda OPTIMIZADA para ranking que INCLUYE hoteles
      */
+// GooglePlacesNearby.kt - VERSIÓN CON DEBUG COMPLETO
+
     suspend fun searchNearbyForRanking(
         location: UserLocation,
-        radiusMeters: Int = 10000
+        radiusMeters: Int = 15000
     ): List<Place> {
         return withContext(Dispatchers.IO) {
             try {
-                // Tipos permitidos para ranking (incluye hoteles)
                 val rankingTypes = listOf(
-                    "restaurant", "cafe", "bakery", "food",
+                    // Comida y bebida
+                    "restaurant", "cafe", "bakery", "food", "meal_takeaway",
                     "bar", "night_club",
-                    "park", "tourist_attraction",
-                    "museum", "art_gallery", "aquarium",
-                    "shopping_mall", "store",
+
+                    // Naturaleza y aire libre
+                    "park", "campground", "rv_park",
+
+                    // Cultura y entretenimiento
+                    "museum", "art_gallery", "aquarium", "zoo",
                     "movie_theater", "bowling_alley", "amusement_park",
-                    "lodging" // ⭐ HOTELES PERMITIDOS PARA RANKING
+                    "tourist_attraction", "point_of_interest",
+                    "stadium", "casino",
+
+                    // Teatro y artes escénicas
+                    "performing_arts_theater",
+
+                    // Shopping
+                    "shopping_mall", "department_store", "store",
+                    "clothing_store", "shoe_store", "jewelry_store",
+                    "book_store", "electronics_store",
+
+                    // Hoteles
+                    "lodging", "hotel"
                 )
 
                 val typeParam = rankingTypes.joinToString("|")
@@ -269,24 +296,29 @@ object GooglePlacesNearby {
                         "&type=${URLEncoder.encode(typeParam, "UTF-8")}" +
                         "&key=$apiKey"
 
-                Log.d("GooglePlaces", "🔍 Ranking: ${radiusMeters}m")
+                Log.d("GooglePlaces", "🔍 Buscando en ${radiusMeters / 1000}km para ranking")
 
                 val response = URL(url).readText()
                 val json = JSONObject(response)
 
                 val status = json.getString("status")
                 if (status != "OK" && status != "ZERO_RESULTS") {
-                    Log.e("GooglePlaces", "❌ Status: $status")
+                    Log.e("GooglePlaces", "❌ API Status: $status")
                     return@withContext emptyList()
                 }
 
                 val results = json.getJSONArray("results")
                 val places = mutableListOf<Place>()
 
+                // ✅ CONTADOR POR CATEGORÍA PARA DEBUG
+                val categoryCount = mutableMapOf<String, Int>()
+
                 for (i in 0 until results.length()) {
                     val placeJson = results.getJSONObject(i)
 
                     try {
+                        val placeName = placeJson.optString("name", "Sin nombre")
+
                         val typesArray = placeJson.optJSONArray("types")
                         val placeTypes = if (typesArray != null) {
                             (0 until typesArray.length()).map { typesArray.getString(it) }
@@ -294,25 +326,112 @@ object GooglePlacesNearby {
                             emptyList()
                         }
 
-                        // Verificar que tenga tipos relevantes
+                        // ✅ LOG DETALLADO DE CADA LUGAR
+                        Log.d("GooglePlaces", "📍 [$i] $placeName")
+                        Log.d("GooglePlaces", "   Types: ${placeTypes.joinToString(", ")}")
+
                         if (placeTypes.none { it in rankingTypes }) {
+                            Log.d("GooglePlaces", "   ❌ Sin tipos relevantes")
                             continue
                         }
 
-                        // Parsear con categoría correcta para ranking
                         val place = parsePlaceFromJsonForRanking(placeJson, placeTypes)
+
+                        // ✅ LOG DE CATEGORÍA ASIGNADA
+                        Log.d("GooglePlaces", "   ✅ Categoría: ${place.category}")
+
+                        // ✅ CONTAR POR CATEGORÍA
+                        categoryCount[place.category] = categoryCount.getOrDefault(place.category, 0) + 1
+
                         places.add(place)
 
                     } catch (e: Exception) {
-                        Log.e("GooglePlaces", "Error parseando: ${e.message}")
+                        Log.e("GooglePlaces", "Error parseando lugar: ${e.message}")
                     }
                 }
 
-                Log.d("GooglePlaces", "✅ ${places.size} lugares (ranking)")
+                // ✅ LOG RESUMEN POR CATEGORÍA
+                Log.d("GooglePlaces", "✅ ${places.size} lugares encontrados para ranking")
+                Log.d("GooglePlaces", "📊 DESGLOSE POR CATEGORÍA:")
+                categoryCount.forEach { (category, count) ->
+                    Log.d("GooglePlaces", "   - $category: $count lugares")
+                }
+
                 places
 
             } catch (e: Exception) {
-                Log.e("GooglePlaces", "❌ Error ranking: ${e.message}", e)
+                Log.e("GooglePlaces", "❌ Error en búsqueda ranking: ${e.message}", e)
+                emptyList()
+            }
+        }
+    }
+
+    suspend fun searchBySpecificTypes(
+        location: UserLocation,
+        radiusMeters: Int = 15000,
+        types: List<String>
+    ): List<Place> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val typeParam = types.joinToString("|")
+                val url = "$BASE_URL?" +
+                        "location=${location.latitude},${location.longitude}" +
+                        "&radius=$radiusMeters" +
+                        "&type=${URLEncoder.encode(typeParam, "UTF-8")}" +
+                        "&key=$apiKey"
+
+                Log.d("GooglePlaces", "🔍 Búsqueda específica de tipos: ${types.joinToString(", ")}")
+
+                val response = URL(url).readText()
+                val json = JSONObject(response)
+
+                val status = json.getString("status")
+                if (status != "OK" && status != "ZERO_RESULTS") {
+                    Log.e("GooglePlaces", "❌ API Status: $status")
+                    return@withContext emptyList()
+                }
+
+                val results = json.getJSONArray("results")
+                val places = mutableListOf<Place>()
+
+                Log.d("GooglePlaces", "📦 API devolvió ${results.length()} resultados")
+
+                for (i in 0 until results.length()) {
+                    val placeJson = results.getJSONObject(i)
+
+                    try {
+                        val placeName = placeJson.optString("name", "Sin nombre")
+
+                        val typesArray = placeJson.optJSONArray("types")
+                        val placeTypes = if (typesArray != null) {
+                            (0 until typesArray.length()).map { typesArray.getString(it) }
+                        } else {
+                            emptyList()
+                        }
+
+                        // ✅ Verificar que tenga al menos uno de los tipos solicitados
+                        if (placeTypes.none { it in types }) {
+                            Log.d("GooglePlaces", "❌ [$i] $placeName: sin tipos relevantes")
+                            continue
+                        }
+
+                        // ✅ Parsear usando la función para ranking
+                        val place = parsePlaceFromJsonForRanking(placeJson, placeTypes)
+
+                        Log.d("GooglePlaces", "✅ [$i] $placeName -> ${place.category} (⭐${place.rating})")
+
+                        places.add(place)
+
+                    } catch (e: Exception) {
+                        Log.e("GooglePlaces", "Error parseando lugar: ${e.message}")
+                    }
+                }
+
+                Log.d("GooglePlaces", "✅ ${places.size} lugares válidos de ${types.size} tipos")
+                places
+
+            } catch (e: Exception) {
+                Log.e("GooglePlaces", "❌ Error en búsqueda específica: ${e.message}", e)
                 emptyList()
             }
         }
@@ -334,7 +453,12 @@ object GooglePlacesNearby {
         val rating = json.optDouble("rating", 0.0)
         val priceLevel = json.optInt("price_level", 2)
 
-        // Usar función específica para ranking que detecta hoteles
+        val photosArray = json.optJSONArray("photos")
+        val photoUrl = if (photosArray != null && photosArray.length() > 0) {
+            val photoReference = photosArray.getJSONObject(0).optString("photo_reference")
+            buildPhotoUrl(photoReference)
+        } else null
+
         val category = inferCategoryForRanking(types)
         val tags = inferTagsForRanking(types, rating, priceLevel, category)
 
@@ -344,7 +468,7 @@ object GooglePlacesNearby {
             address = address,
             latitude = lat,
             longitude = lng,
-            photoUrl = null,
+            photoUrl = photoUrl,
             category = category,
             priceLevel = priceLevel,
             rating = rating,
@@ -357,24 +481,54 @@ object GooglePlacesNearby {
      * Detectar categoría INCLUYENDO hoteles (para ranking)
      */
     private fun inferCategoryForRanking(types: List<String>): String {
-        return when {
-            // ⭐ HOTELES (ahora sí se detectan)
-            types.any { it in listOf("lodging", "hotel", "motel", "hostel") } -> "hotel"
+        Log.d("GooglePlaces", "      Analizando tipos: ${types.joinToString(", ")}")
 
-            // Resto de categorías (con mejor detección)
+        val category = when {
+            // ✅ PRIORIDAD 1: VIDA NOCTURNA (debe ir ANTES que hoteles)
             types.any { it == "night_club" } -> "discoteca"
-            types.any { it == "bar" } -> "bar"
-            types.any { it == "restaurant" || it == "food" } -> "restaurante"
-            types.any { it == "cafe" || it == "bakery" } -> "cafe"
-            types.any { it == "park" } -> "parque"
-            types.any { it == "museum" || it == "art_gallery" || it == "aquarium" } -> "museo"
-            types.any { it == "shopping_mall" || it == "shopping_center" } -> "centro_comercial"
+            types.any { it == "bar" && "night_club" !in types } -> "bar"
+
+            // ✅ PRIORIDAD 2: Comida y bebida
+            types.any { it == "cafe" || it == "bakery" } && "restaurant" !in types -> "cafe"
+            types.any { it == "restaurant" || it == "food" || it == "meal_takeaway" } -> "restaurante"
+
+            // ✅ PRIORIDAD 3: Naturaleza
+            types.any { it == "park" || it == "campground" || it == "rv_park" } -> "parque"
+
+            // ✅ PRIORIDAD 4: Cultura y entretenimiento
+            types.any { it == "museum" || it == "art_gallery" || it == "aquarium" || it == "zoo" } -> "museo"
+            types.any { it == "performing_arts_theater" } -> "teatro"
             types.any { it == "movie_theater" } -> "cine"
-            types.any { it == "tourist_attraction" } -> "atraccion_turistica"
-            types.any { it == "bowling_alley" || it == "amusement_park" } -> "entretenimiento"
-            types.any { it == "store" || it == "clothing_store" } -> "zona_comercial"
-            else -> "otro"
+            types.any { it == "bowling_alley" || it == "amusement_park" || it == "casino" } -> "entretenimiento"
+            types.any { it == "stadium" } -> "entretenimiento"
+
+            // ✅ PRIORIDAD 5: Shopping
+            types.any { it == "shopping_mall" || it == "department_store" } -> "centro_comercial"
+            types.any { it == "store" || it == "clothing_store" || it == "shoe_store" ||
+                    it == "jewelry_store" || it == "book_store" || it == "electronics_store" } -> "zona_comercial"
+
+            // ✅ PRIORIDAD 6: Hoteles (AL FINAL para evitar conflictos)
+            types.any { it == "lodging" || it == "hotel" } &&
+                    types.none { it in listOf("bar", "night_club", "restaurant", "cafe") } -> "hotel"
+
+            // ✅ PRIORIDAD 7: Turismo (SOLO si no es otra categoría)
+            types.any { it == "tourist_attraction" } &&
+                    types.none { it in listOf("restaurant", "cafe", "bar", "museum", "park", "shopping_mall", "lodging", "night_club") } ->
+                "atraccion_turistica"
+
+            // Punto de interés genérico
+            types.any { it == "point_of_interest" } &&
+                    types.none { it in listOf("restaurant", "cafe", "bar", "museum", "park", "shopping_mall", "lodging", "night_club") } ->
+                "atraccion_turistica"
+
+            else -> {
+                Log.d("GooglePlaces", "      ⚠️ Sin categoría definida -> otro")
+                "otro"
+            }
         }
+
+        Log.d("GooglePlaces", "      → Categoría asignada: $category")
+        return category
     }
 
     /**
@@ -390,6 +544,7 @@ object GooglePlacesNearby {
 
         // Rating
         when {
+            rating >= 4.7 -> tags.addAll(listOf("excelente", "recomendado", "popular", "imperdible"))
             rating >= 4.5 -> tags.addAll(listOf("excelente", "recomendado", "popular"))
             rating >= 4.0 -> tags.addAll(listOf("bueno", "recomendado"))
             rating >= 3.5 -> tags.add("popular")
@@ -402,17 +557,28 @@ object GooglePlacesNearby {
             3, 4 -> tags.addAll(listOf("premium", "elegante"))
         }
 
-        // Por categoría específica
+        // Tags por categoría
         when (category) {
             "hotel" -> tags.addAll(listOf("alojamiento", "hospedaje"))
-            "restaurante" -> tags.add("gastronomía")
-            "cafe" -> tags.addAll(listOf("acogedor", "tranquilo"))
-            "parque" -> tags.addAll(listOf("natural", "familiar", "aire libre"))
-            "museo" -> tags.addAll(listOf("cultural", "educativo"))
-            "bar", "discoteca" -> tags.addAll(listOf("social", "nocturno", "vibrante"))
-            "centro_comercial" -> tags.addAll(listOf("shopping", "entretenimiento"))
-            "atraccion_turistica" -> tags.addAll(listOf("turístico", "imperdible"))
+            "restaurante" -> tags.addAll(listOf("gastronomía", "comida"))
+            "cafe" -> tags.addAll(listOf("acogedor", "tranquilo", "café"))
+            "parque" -> tags.addAll(listOf("natural", "familiar", "aire libre", "recreación"))
+            "museo" -> tags.addAll(listOf("cultural", "educativo", "arte"))
+            "teatro" -> tags.addAll(listOf("cultural", "espectáculos", "arte", "entretenimiento"))
+            "cine" -> tags.addAll(listOf("entretenimiento", "películas"))
+            "bar", "discoteca" -> tags.addAll(listOf("social", "nocturno", "vibrante", "fiesta"))
+            "centro_comercial" -> tags.addAll(listOf("shopping", "entretenimiento", "compras"))
+            "zona_comercial" -> tags.addAll(listOf("tiendas", "compras"))
+            "atraccion_turistica" -> tags.addAll(listOf("turístico", "imperdible", "visita obligada"))
+            "entretenimiento" -> tags.addAll(listOf("diversión", "ocio", "actividades"))
         }
+
+        // Tags por tipos específicos
+        if ("tourist_attraction" in types) tags.add("turístico")
+        if ("point_of_interest" in types) tags.add("destacado")
+        if ("zoo" in types || "aquarium" in types) tags.addAll(listOf("familiar", "animales"))
+        if ("stadium" in types) tags.addAll(listOf("deportes", "eventos"))
+        if ("casino" in types) tags.addAll(listOf("juegos", "adultos"))
 
         return tags.distinct()
     }

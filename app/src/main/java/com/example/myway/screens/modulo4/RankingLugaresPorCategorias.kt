@@ -1,5 +1,6 @@
 package com.example.myway.screens.modulo4
 
+import android.Manifest
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -8,11 +9,14 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -30,8 +34,11 @@ import com.example.myway.ai.Place
 import com.example.myway.ai.AIRepository
 import com.example.myway.ai.UserLocation
 import com.example.myway.data.repository.RecentPlacesRepository
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.isGranted
+import com.google.accompanist.permissions.rememberPermissionState
+import com.google.android.gms.location.LocationServices
 import kotlinx.coroutines.launch
-import android.net.Uri
 import android.util.Log
 
 // ========== CATEGORÍAS DISPONIBLES ==========
@@ -43,22 +50,32 @@ enum class PlaceCategory(
     RESTAURANTES(
         displayName = "Restaurantes & Cafés",
         emoji = "🍽️",
-        categories = listOf("restaurante", "cafe", "bakery")
+        categories = listOf("restaurante", "cafe", "bakery", "food")
     ),
     PARQUES(
         displayName = "Parques & Naturaleza",
         emoji = "🌳",
-        categories = listOf("parque", "mirador")
+        categories = listOf("parque", "park", "mirador", "campground")
     ),
     CULTURA(
         displayName = "Cultura & Ocio",
         emoji = "🎨",
-        categories = listOf("museo", "cine", "teatro", "atraccion_turistica", "entretenimiento")
+        categories = listOf(
+            "museo", "museum", "art_gallery",
+            "cine", "movie_theater",
+            "teatro", "performing_arts_theater",
+            "atraccion_turistica", "tourist_attraction",
+            "entretenimiento", "aquarium", "zoo", "bowling_alley", "amusement_park"
+        )
     ),
     SHOPPING(
         displayName = "Shopping",
         emoji = "🛍️",
-        categories = listOf("centro_comercial", "zona_comercial", "mercado")
+        categories = listOf(
+            "centro_comercial", "shopping_mall", "department_store",
+            "zona_comercial", "store",
+            "mercado"
+        )
     ),
     VIDA_NOCTURNA(
         displayName = "Vida Nocturna",
@@ -72,6 +89,7 @@ enum class PlaceCategory(
     )
 }
 
+@OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun RankingLugaresPorCategorias(navController: NavController) {
     val scrollState = rememberScrollState()
@@ -81,23 +99,64 @@ fun RankingLugaresPorCategorias(navController: NavController) {
     var selectedCategory by remember { mutableStateOf(PlaceCategory.RESTAURANTES) }
     var places by remember { mutableStateOf<List<Place>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
+    var currentLocation by remember { mutableStateOf<UserLocation?>(null) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
 
-    // Cargar lugares cuando cambia la categoría
-    LaunchedEffect(selectedCategory) {
-        isLoading = true
-        coroutineScope.launch {
-            val repository = AIRepository(context)
-            val location = UserLocation(4.7110, -74.0721) // Bogotá por defecto
+    // ✅ PERMISO DE UBICACIÓN
+    val locationPermission = rememberPermissionState(Manifest.permission.ACCESS_FINE_LOCATION)
 
-            places = repository.getTopPlacesByCategory(
-                location = location,
-                category = selectedCategory,
-                radiusKm = 15.0,
-                limit = 15
-            )
+    // ✅ OBTENER UBICACIÓN ACTUAL
+    LaunchedEffect(Unit) {
+        if (locationPermission.status.isGranted) {
+            val fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
+            try {
+                fusedLocationClient.lastLocation.addOnSuccessListener { location ->
+                    location?.let {
+                        currentLocation = UserLocation(it.latitude, it.longitude)
+                        Log.d("RankingCategorias", "📍 Ubicación: ${it.latitude}, ${it.longitude}")
+                    } ?: run {
+                        // Fallback a Bogotá si no hay ubicación
+                        currentLocation = UserLocation(4.7110, -74.0721)
+                        Log.d("RankingCategorias", "⚠️ Usando ubicación por defecto: Bogotá")
+                    }
+                }
+            } catch (e: SecurityException) {
+                Log.e("RankingCategorias", "Error de permisos: ${e.message}")
+                currentLocation = UserLocation(4.7110, -74.0721)
+            }
+        } else {
+            // Sin permiso, usar Bogotá
+            currentLocation = UserLocation(4.7110, -74.0721)
+        }
+    }
 
-            isLoading = false
-            Log.d("RankingCategorias", "📊 Cargados ${places.size} lugares de ${selectedCategory.displayName}")
+    // ✅ CARGAR LUGARES CUANDO CAMBIA LA CATEGORÍA O UBICACIÓN
+    LaunchedEffect(selectedCategory, currentLocation) {
+        currentLocation?.let { location ->
+            isLoading = true
+            errorMessage = null
+
+            coroutineScope.launch {
+                try {
+                    val repository = AIRepository(context)
+
+                    // ✅ USAR CACHE OPTIMIZADO
+                    places = repository.getTopPlacesByCategoryWithCache(
+                        location = location,
+                        category = selectedCategory,
+                        radiusKm = 15.0,
+                        limit = 15
+                    )
+
+                    Log.d("RankingCategorias", "📊 Cargados ${places.size} lugares de ${selectedCategory.displayName}")
+
+                } catch (e: Exception) {
+                    Log.e("RankingCategorias", "Error: ${e.message}")
+                    errorMessage = "Error al cargar lugares: ${e.message}"
+                } finally {
+                    isLoading = false
+                }
+            }
         }
     }
 
@@ -116,7 +175,7 @@ fun RankingLugaresPorCategorias(navController: NavController) {
                 .padding(horizontal = 20.dp, vertical = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // 🔹 Encabezado
+            // Encabezado
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -154,7 +213,51 @@ fun RankingLugaresPorCategorias(navController: NavController) {
                 }
             }
 
-            // 🔹 Tabs de Categorías
+            // ✅ SOLICITAR PERMISO SI NO ESTÁ OTORGADO
+            if (!locationPermission.status.isGranted) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp),
+                    colors = CardDefaults.cardColors(containerColor = Azul4.copy(alpha = 0.9f)),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.LocationOn,
+                            contentDescription = null,
+                            tint = Blanco,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Mejora tu experiencia",
+                                fontFamily = Nunito,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp,
+                                color = Blanco
+                            )
+                            Text(
+                                text = "Activa la ubicación para ver lugares cerca de ti",
+                                fontFamily = Nunito,
+                                fontSize = 12.sp,
+                                color = Blanco.copy(alpha = 0.8f)
+                            )
+                        }
+                        TextButton(
+                            onClick = { locationPermission.launchPermissionRequest() }
+                        ) {
+                            Text("Activar", color = Amarillo, fontFamily = Nunito)
+                        }
+                    }
+                }
+            }
+
+            // Tabs de Categorías
             CategoryTabs(
                 selectedCategory = selectedCategory,
                 onCategorySelected = { selectedCategory = it }
@@ -162,7 +265,7 @@ fun RankingLugaresPorCategorias(navController: NavController) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 🔹 Lista de Lugares
+            // Lista de Lugares
             when {
                 isLoading -> {
                     Box(
@@ -179,6 +282,21 @@ fun RankingLugaresPorCategorias(navController: NavController) {
                                 fontSize = 16.sp
                             )
                         }
+                    }
+                }
+
+                errorMessage != null -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = errorMessage ?: "",
+                            color = Color.Red,
+                            fontFamily = Nunito,
+                            fontSize = 16.sp,
+                            textAlign = TextAlign.Center
+                        )
                     }
                 }
 
@@ -286,7 +404,6 @@ fun PlaceRankingCard(
     place: Place,
     navController: NavController
 ) {
-    val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val recentPlacesRepository = remember { RecentPlacesRepository() }
 
@@ -411,11 +528,7 @@ fun PlaceRankingCard(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Botón de acción
-                // ========== REEMPLAZAR EN PlaceRankingCard ==========
-// Busca el Box con "Ver detalles" y reemplázalo por esto:
-
-// Botón de acción - MARCAR RUTA
+                // Botón Ver Ruta
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -430,45 +543,21 @@ fun PlaceRankingCard(
                                     latitude = place.latitude,
                                     longitude = place.longitude
                                 )
-
-                                // Navegar directamente a Google Maps
-                                val uri = "google.navigation:q=${place.latitude},${place.longitude}"
-                                val intent = android.content.Intent(
-                                    android.content.Intent.ACTION_VIEW,
-                                    android.net.Uri.parse(uri)
+                                navController.navigate(
+                                    "ruta_opciones/${place.id}/${place.name}"
                                 )
-                                intent.setPackage("com.google.android.apps.maps")
-
-                                try {
-                                    context.startActivity(intent)
-                                } catch (e: Exception) {
-                                    // Si no tiene Google Maps, usar el navegador
-                                    val browserUri =
-                                        "https://www.google.com/maps/dir/?api=1&destination=${place.latitude},${place.longitude}"
-                                    val browserIntent = android.content.Intent(
-                                        android.content.Intent.ACTION_VIEW,
-                                        android.net.Uri.parse(browserUri)
-                                    )
-                                    context.startActivity(browserIntent)
-                                }
                             }
                         }
                         .padding(vertical = 8.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Row(
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "Marcar ruta",
-                            fontFamily = Nunito,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp,
-                            color = androidx.compose.ui.graphics.Color.Black
-                        )
-                    }
+                    Text(
+                        text = "Ver ruta",
+                        fontFamily = Nunito,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp,
+                        color = androidx.compose.ui.graphics.Color.Black
+                    )
                 }
             }
         }

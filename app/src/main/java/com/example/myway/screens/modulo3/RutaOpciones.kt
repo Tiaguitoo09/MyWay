@@ -305,7 +305,7 @@ fun RutaOpciones(
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = "⭐ Usando tu transporte preferido",
-                            color = Verde,
+                            color = Blanco,
                             fontFamily = Nunito,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold
