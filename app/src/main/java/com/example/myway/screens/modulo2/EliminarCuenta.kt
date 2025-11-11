@@ -107,7 +107,7 @@ fun EliminarCuenta(navController: NavController) {
                     color = Azul3,
                     modifier = Modifier.width(140.dp),
                     onClick = {
-                        navController.navigate("perfil_ajustes")
+                        navController.popBackStack()
                     }
                 )
             }

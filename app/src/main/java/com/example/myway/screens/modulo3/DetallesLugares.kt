@@ -42,6 +42,7 @@ import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import java.util.Calendar
 import kotlin.math.roundToInt
+import com.example.myway.data.repository.RecentPlacesRepository
 
 @Composable
 fun DetallesLugar(
@@ -49,6 +50,7 @@ fun DetallesLugar(
     placeId: String?,
     placeName: String?
 ) {
+    val recentPlacesRepository = remember { RecentPlacesRepository() }
     val context = LocalContext.current
     val repository = remember { FavoritesRepository(context) }
     val scope = rememberCoroutineScope()
@@ -455,9 +457,19 @@ fun DetallesLugar(
                         text = stringResource(R.string.marcar_ruta),
                         color = Azul3,
                         onClick = {
-                            navController.navigate(
-                                "ruta_opciones/${placeId}/${placeName}"
-                            )
+                            scope.launch {
+                                // ✅ Guardar en recientes antes de navegar
+                                recentPlacesRepository.saveRecentPlace(
+                                    placeId = placeId ?: "",
+                                    placeName = placeDetails?.name ?: placeName ?: "",
+                                    placeAddress = placeDetails?.address ?: ""
+                                    // No pasamos latitude/longitude aquí porque son opcionales
+                                )
+
+                                navController.navigate(
+                                    "ruta_opciones/${placeId}/${placeName}"
+                                )
+                            }
                         },
                         modifier = Modifier
                             .fillMaxWidth()

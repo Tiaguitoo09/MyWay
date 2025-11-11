@@ -46,10 +46,12 @@ import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 import java.util.Calendar
 import kotlin.math.roundToInt
+import com.example.myway.data.repository.RecentPlacesRepository
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun Recomiendame(navController: NavController) {
+    val recentPlacesRepository = remember { RecentPlacesRepository() }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val repository = remember { AIRepository(context) }
@@ -521,9 +523,20 @@ fun Recomiendame(navController: NavController) {
                         color = Azul3,
                         modifier = Modifier.fillMaxWidth(),
                         onClick = {
-                            navController.navigate(
-                                "ruta_opciones/${rec.place.id}/${rec.place.name}"
-                            )
+                            scope.launch {
+                                // ✅ AGREGAR: Guardar en recientes antes de navegar
+                                recentPlacesRepository.saveRecentPlace(
+                                    placeId = rec.place.id,
+                                    placeName = rec.place.name,
+                                    placeAddress = rec.place.address,
+                                    latitude = rec.place.latitude,
+                                    longitude = rec.place.longitude
+                                )
+
+                                navController.navigate(
+                                    "ruta_opciones/${rec.place.id}/${rec.place.name}"
+                                )
+                            }
                         }
                     )
 

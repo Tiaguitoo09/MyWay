@@ -45,10 +45,12 @@ import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 import com.example.myway.services.WeatherAPIService
 import android.content.Context
+import com.example.myway.data.repository.RecentPlacesRepository
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun TuMood(navController: NavController) {
+    val recentPlacesRepository = remember { RecentPlacesRepository() }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val repository = remember { AIRepository(context) }
@@ -658,16 +660,18 @@ fun TuMood(navController: NavController) {
                         color = Azul3,
                         modifier = Modifier.fillMaxWidth(),
                         onClick = {
-
-                            if (googlePlaceId != null) {
-                                navController.navigate(
-                                    "ruta_opciones/$googlePlaceId/${rec.place.name}"
+                            scope.launch {
+                                // ✅ AGREGAR: Guardar en recientes antes de navegar
+                                recentPlacesRepository.saveRecentPlace(
+                                    placeId = rec.place.id,
+                                    placeName = rec.place.name,
+                                    placeAddress = rec.place.address,
+                                    latitude = rec.place.latitude,
+                                    longitude = rec.place.longitude
                                 )
-                            } else {
 
-                                val coordsString = "${rec.place.latitude},${rec.place.longitude}"
                                 navController.navigate(
-                                    "ruta_opciones/$coordsString/${rec.place.name}"
+                                    "ruta_opciones/${rec.place.id}/${rec.place.name}"
                                 )
                             }
                         }
