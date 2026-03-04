@@ -215,7 +215,7 @@ Para habilitar el mapa:
 4. Ahi se encuentra el local.properties 
 5. Agrega la siguiente línea:
 ```properties
-MAPS_API_KEY=AIzaSyDQeDHEuDEajRDtKUyNafoay6LfcRe0oso
+MAPS_API_KEY=1234
 ```
 
 > ⚠️ **Importante:** Este archivo no se sube a GitHub y es único por desarrollador.
